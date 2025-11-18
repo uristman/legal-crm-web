@@ -45,6 +45,12 @@ function initializeComponents() {
     var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
         return new bootstrap.Tooltip(tooltipTriggerEl);
     });
+    
+    // Обработчик изменения выбора клиента в событии
+    $(document).on('change', '#eventClient', function() {
+        const clientId = $(this).val();
+        loadCasesForClient(clientId);
+    });
 }
 
 // Загрузка всех данных
@@ -323,6 +329,9 @@ function displayEvents(events) {
                 <td>${event.case_number || '-'}</td>
                 <td><span class="badge bg-${getEventStatusColor(event.status)}">${event.status}</span></td>
                 <td>
+                    <button class="btn btn-sm btn-primary" onclick="editEvent(${event.id})" title="Редактировать">
+                        <i class="fas fa-edit"></i>
+                    </button>
                     <button class="btn btn-sm btn-danger" onclick="deleteEvent(${event.id})" title="Удалить">
                         <i class="fas fa-trash"></i>
                     </button>
@@ -676,20 +685,112 @@ function openEventModal(eventId = null) {
     
     if (eventId) {
         $('#eventModalTitle').html('<i class="fas fa-calendar me-2"></i>Редактировать событие');
+        loadEventData(eventId); // Загружаем данные события
     } else {
         $('#eventModalTitle').html('<i class="fas fa-plus me-2"></i>Добавить событие');
         $('#eventForm')[0].reset();
         $('#eventId').val('');
-    }
-    
-    // Устанавливаем завтрашнюю дату по умолчанию
-    if (!eventId) {
+        
+        // Устанавливаем завтрашнюю дату по умолчанию
         const tomorrow = new Date();
         tomorrow.setDate(tomorrow.getDate() + 1);
         $('#eventDate').val(tomorrow.toISOString().split('T')[0]);
     }
     
+    // Загружаем клиентов для выбора
+    loadClientsForEvent();
+    
     $('#eventModal').modal('show');
+}
+
+// Загрузка дела клиента при изменении выбора клиента
+function loadCasesForClient(clientId) {
+    const caseSelect = $('#eventCase');
+    caseSelect.empty();
+    caseSelect.append('<option value="">Выберите дело</option>');
+    
+    if (!clientId) return;
+    
+    $.ajax({
+        url: `/api/cases?client_id=${clientId}`,
+        method: 'GET',
+        success: function(response) {
+            if (response.success) {
+                response.data.forEach(function(caseItem) {
+                    caseSelect.append(`<option value="${caseItem.id}">${caseItem.case_number}</option>`);
+                });
+                
+                // Если есть case_id, выбираем его
+                if (currentEditingId) {
+                    const selectedCaseId = $('#eventCase').data('selected');
+                    if (selectedCaseId) {
+                        caseSelect.val(selectedCaseId);
+                    }
+                }
+            }
+        }
+    });
+}
+
+// Загрузка данных события для редактирования
+function loadEventData(eventId) {
+    $.ajax({
+        url: `/api/events/${eventId}`,
+        method: 'GET',
+        success: function(response) {
+            if (response.success) {
+                const event = response.data;
+                
+                $('#eventId').val(event.id);
+                $('#eventTitle').val(event.title);
+                $('#eventType').val(event.event_type);
+                $('#eventDate').val(event.event_date);
+                $('#eventTime').val(event.event_time);
+                $('#eventLocation').val(event.location || '');
+                $('#eventDescription').val(event.description || '');
+                
+                // Сохраняем ID для выбора в drop-down'ах
+                $('#eventClient').data('selected', event.client_id);
+                $('#eventCase').data('selected', event.case_id);
+            }
+        },
+        error: function() {
+            showNotification('Ошибка загрузки данных события', 'error');
+        }
+    });
+}
+
+// Редактирование события
+function editEvent(eventId) {
+    openEventModal(eventId);
+}
+
+// Загрузка клиентов для выбора в событии
+function loadClientsForEvent() {
+    $.ajax({
+        url: '/api/clients',
+        method: 'GET',
+        success: function(response) {
+            if (response.success) {
+                const clientSelect = $('#eventClient');
+                clientSelect.empty();
+                clientSelect.append('<option value="">Выберите клиента</option>');
+                
+                response.data.forEach(function(client) {
+                    clientSelect.append(`<option value="${client.id}">${client.full_name}</option>`);
+                });
+                
+                // Если есть client_id, выбираем его
+                if (currentEditingId) {
+                    const selectedClientId = $('#eventClient').data('selected');
+                    if (selectedClientId) {
+                        clientSelect.val(selectedClientId);
+                        loadCasesForClient(selectedClientId);
+                    }
+                }
+            }
+        }
+    });
 }
 
 // Сохранение события
@@ -700,7 +801,9 @@ function saveEvent() {
         event_date: $('#eventDate').val(),
         event_time: $('#eventTime').val(),
         location: $('#eventLocation').val().trim(),
-        description: $('#eventDescription').val().trim()
+        description: $('#eventDescription').val().trim(),
+        client_id: $('#eventClient').val() || null,
+        case_id: $('#eventCase').val() || null
     };
     
     if (!formData.title || !formData.event_type || !formData.event_date) {
