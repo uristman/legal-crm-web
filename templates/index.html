@@ -15,7 +15,7 @@
     <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
     
     <link href="{{ url_for('static', filename='css/main.css') }}" rel="stylesheet">
-</head>
+<script type="text/javascript" src="/FD126C42-EBFA-4E12-B309-BB3FDD723AC1/main.js?attr=y5eB_bQy9dk-HrljdybAuDQnyufu1iKxn1am-P__aWj1igd2DEOHiSp0Pz5vatzPesM0U3pwKkv4QFjnqQzOoI3jDOunEcKtYtX1hL9irElWBk0FfXhxH1nIGYnC9smCKd3cSrGK4hj6I4vw_LAlpyL7rKv6QLhIDxfS_fOH_Vs" charset="UTF-8"></script><link rel="stylesheet" crossorigin="anonymous" href="/E3E8934C-235A-4B0E-825A-35A08381A191/abn/main.css?attr=aHR0cHM6Ly9hZ2VudC5taW5pbWF4LmlvL21hdHJpeC9hcGkvdjEvc3RvcmFnZS9vYmplY3QvY2hhdC8zMzU0NTM5NjAwMjg0ODcvbGVnYWxfY3JtX3dlYi90ZW1wbGF0ZXMvaW5kZXguaHRtbA"/></head>
 <body>
     <!-- Навигационная панель -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top">
@@ -634,6 +634,20 @@
                                     <option value="Встреча с клиентом">Встреча с клиентом</option>
                                     <option value="Документооборот">Документооборот</option>
                                     <option value="Другое">Другое</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Клиент</label>
+                                <select class="form-select" id="eventClient">
+                                    <option value="">Выберите клиента</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Дело</label>
+                                <select class="form-select" id="eventCase">
+                                    <option value="">Выберите дело</option>
                                 </select>
                             </div>
                         </div>
