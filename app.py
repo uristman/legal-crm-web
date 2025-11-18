@@ -272,17 +272,29 @@ def delete_client(client_id):
 def get_cases():
     """Получение всех дел"""
     try:
+        client_id = request.args.get('client_id')
+        
         with db.get_connection() as conn:
             cursor = conn.cursor()
             
-            query = """
-                SELECT c.*, cl.full_name as client_name
-                FROM cases c
-                JOIN clients cl ON c.client_id = cl.id
-                ORDER BY c.start_date DESC
-            """
+            if client_id:
+                query = """
+                    SELECT c.*, cl.full_name as client_name
+                    FROM cases c
+                    JOIN clients cl ON c.client_id = cl.id
+                    WHERE c.client_id = ?
+                    ORDER BY c.start_date DESC
+                """
+                cursor.execute(query, (client_id,))
+            else:
+                query = """
+                    SELECT c.*, cl.full_name as client_name
+                    FROM cases c
+                    JOIN clients cl ON c.client_id = cl.id
+                    ORDER BY c.start_date DESC
+                """
+                cursor.execute(query)
             
-            cursor.execute(query)
             cases = [dict(row) for row in cursor.fetchall()]
             
             return jsonify({'success': True, 'data': cases})
@@ -447,6 +459,32 @@ def get_events():
             events = [dict(row) for row in cursor.fetchall()]
             
             return jsonify({'success': True, 'data': events})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/events/<int:event_id>', methods=['GET'])
+def get_event(event_id):
+    """Получение конкретного события по ID"""
+    try:
+        with db.get_connection() as conn:
+            cursor = conn.cursor()
+            
+            query = """
+                SELECT e.*, cl.full_name as client_name, c.case_number
+                FROM events e
+                LEFT JOIN clients cl ON e.client_id = cl.id
+                LEFT JOIN cases c ON e.case_id = c.id
+                WHERE e.id = ?
+            """
+            
+            cursor.execute(query, (event_id,))
+            row = cursor.fetchone()
+            
+            if row:
+                event = dict(row)
+                return jsonify({'success': True, 'data': event})
+            else:
+                return jsonify({'success': False, 'error': 'Событие не найдено'})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
