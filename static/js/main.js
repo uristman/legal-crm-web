@@ -3,10 +3,44 @@
 // Глобальные переменные
 let clientsDataTable, casesDataTable, servicesDataTable, paymentsDataTable, eventsDataTable;
 let currentEditingId = null;
+let currentUser = null;
 
 // Инициализация при загрузке страницы
 $(document).ready(function() {
     console.log('🚀 Legal CRM Web инициализация...');
+    
+    // Проверка аутентификации
+    checkAuthentication();
+});
+
+// Проверка аутентификации
+async function checkAuthentication() {
+    try {
+        const response = await fetch('/api/auth/check');
+        const data = await response.json();
+        
+        if (data.authenticated) {
+            currentUser = data.user;
+            showUserInterface();
+        } else {
+            // Перенаправляем на страницу входа
+            window.location.href = '/login';
+        }
+    } catch (error) {
+        console.error('Ошибка проверки аутентификации:', error);
+        showNotification('Ошибка подключения к серверу', 'error');
+        window.location.href = '/login';
+    }
+}
+
+// Показать интерфейс после аутентификации
+function showUserInterface() {
+    // Показываем элементы интерфейса
+    $('#userInfo').removeClass('d-none');
+    $('#logoutBtn').removeClass('d-none');
+    
+    // Обновляем информацию о пользователе
+    $('#userName').text(currentUser.username);
     
     // Инициализация компонентов
     initializeComponents();
@@ -21,7 +55,33 @@ $(document).ready(function() {
     initializeSearch();
     
     console.log('✅ Legal CRM Web готов к работе!');
-});
+}
+
+// Выход из системы
+async function logout() {
+    try {
+        const response = await fetch('/api/auth/logout', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.success) {
+            showNotification('Вы успешно вышли из системы', 'success');
+            setTimeout(() => {
+                window.location.href = '/login';
+            }, 1000);
+        } else {
+            showNotification('Ошибка выхода из системы', 'error');
+        }
+    } catch (error) {
+        console.error('Ошибка выхода:', error);
+        showNotification('Ошибка подключения к серверу', 'error');
+    }
+}
 
 // Инициализация компонентов
 function initializeComponents() {
