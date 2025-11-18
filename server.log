@@ -1,0 +1,33 @@
+nohup: ignoring input
+🚀 Запуск веб-версии Legal CRM...
+📡 Сервер доступен по адресу: http://localhost:5000
+⚖️  Legal CRM Web - Система для юристов
+💡 Для создания демо-данных перейдите на /api/demo-data (POST)
+ * Serving Flask app 'app'
+ * Debug mode: on
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.17.143.51:5000
+[33mPress CTRL+C to quit[0m
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 430-406-950
+127.0.0.1 - - [18/Nov/2025 19:18:09] "POST /api/demo-data HTTP/1.1" 200 -
+127.0.0.1 - - [18/Nov/2025 19:18:15] "GET /api/clients HTTP/1.1" 200 -
+127.0.0.1 - - [18/Nov/2025 19:18:23] "GET /api/statistics HTTP/1.1" 200 -
+127.0.0.1 - - [18/Nov/2025 19:18:38] "GET / HTTP/1.1" 200 -
+ * Detected change in '/workspace/legal_crm_web/app.py', reloading
+🚀 Запуск веб-версии Legal CRM...
+📡 Сервер доступен по адресу: http://localhost:5000
+⚖️  Legal CRM Web - Система для юристов
+💡 Для создания демо-данных перейдите на /api/demo-data (POST)
+ * Restarting with stat
+ * Debugger is active!
+ * Debugger PIN: 430-406-950
+ * Detected change in '/workspace/legal_crm_web/app.py', reloading
+🚀 Запуск веб-версии Legal CRM...
+📡 Сервер доступен по адресу: http://localhost:5000
+⚖️  Legal CRM Web - Система для юристов
+💡 Для создания демо-данных перейдите на /api/demo-data (POST)
+ * Restarting with stat
