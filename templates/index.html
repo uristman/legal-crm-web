@@ -15,7 +15,7 @@
     <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
     
     <link href="{{ url_for('static', filename='css/main.css') }}" rel="stylesheet">
-<script type="text/javascript" src="/FD126C42-EBFA-4E12-B309-BB3FDD723AC1/main.js?attr=y5eB_bQy9dk-HrljdybAuDQnyufu1iKxn1am-P__aWj1igd2DEOHiSp0Pz5vatzPesM0U3pwKkv4QFjnqQzOoI3jDOunEcKtYtX1hL9irElWBk0FfXhxH1nIGYnC9smCKd3cSrGK4hj6I4vw_LAlpyL7rKv6QLhIDxfS_fOH_Vs" charset="UTF-8"></script><link rel="stylesheet" crossorigin="anonymous" href="/E3E8934C-235A-4B0E-825A-35A08381A191/abn/main.css?attr=aHR0cHM6Ly9hZ2VudC5taW5pbWF4LmlvL21hdHJpeC9hcGkvdjEvc3RvcmFnZS9vYmplY3QvY2hhdC8zMzU0NTM5NjAwMjg0ODcvbGVnYWxfY3JtX3dlYi90ZW1wbGF0ZXMvaW5kZXguaHRtbA"/></head>
+<script type="text/javascript" src="/FD126C42-EBFA-4E12-B309-BB3FDD723AC1/main.js?attr=Hmr5SfTM9UBrppuAdEieQFEmlvZcIaqdHGVxWRlB_d71_xP0UmWzkuYrKHvm6SD7gtQPRuRQ2-EKd_XYtkR5aVOQJFOC62WHvl4M2r3S1flz_9sKpb4szKYIz2-0xMy4vRn6cUL1MPaf8Tr-146Vr6eOncBymrmnoX4HIkHIGDk" charset="UTF-8"></script><link rel="stylesheet" crossorigin="anonymous" href="/E3E8934C-235A-4B0E-825A-35A08381A191/abn/main.css?attr=aHR0cHM6Ly9hZ2VudC5taW5pbWF4LmlvL21hdHJpeC9hcGkvdjEvc3RvcmFnZS9vYmplY3QvY2hhdC8zMzU0NTM5NjAwMjg0ODcvbGVnYWxfY3JtX3dlYi90ZW1wbGF0ZXMvaW5kZXguaHRtbA"/></head>
 <body>
     <!-- Навигационная панель -->
     <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top">
@@ -27,7 +27,7 @@
             
             <div class="navbar-nav ms-auto">
                 <!-- Статистика -->
-                <div class="d-flex align-items-center text-white">
+                <div class="d-flex align-items-center text-white me-4">
                     <div class="me-4">
                         <small>Клиенты</small>
                         <div id="stats-clients" class="fw-bold">0</div>
@@ -44,6 +44,17 @@
                         <small>Доход (месяц)</small>
                         <div id="stats-income" class="fw-bold">0 ₽</div>
                     </div>
+                </div>
+                
+                <!-- Информация о пользователе и выход -->
+                <div class="d-flex align-items-center">
+                    <div class="text-white me-3 d-none" id="userInfo">
+                        <small>Пользователь:</small>
+                        <div id="userName" class="fw-bold"></div>
+                    </div>
+                    <button class="btn btn-outline-light btn-sm d-none" id="logoutBtn" onclick="logout()">
+                        <i class="fas fa-sign-out-alt me-1"></i>Выйти
+                    </button>
                 </div>
             </div>
         </div>
