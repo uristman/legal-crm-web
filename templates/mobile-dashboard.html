@@ -1,0 +1,523 @@
+{% extends "mobile-base.html" %}
+
+{% block title %}Главная - Legal CRM{% endblock %}
+
+{% block content %}
+<div class="animate-slide-up">
+    <!-- Dashboard Header -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <div>
+                    <h1 class="text-xl font-bold mb-1">👋 Добро пожаловать!</h1>
+                    <p class="text-muted">Сегодня {{ current_date }}</p>
+                </div>
+                <div class="user-avatar">
+                    {{ current_user.username[0].upper() }}
+                </div>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="text-center">
+                <p class="text-lg mb-2">🎯 Планы на сегодня:</p>
+                <p class="text-muted">Добавьте дела и клиентов для отслеживания</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Quick Stats -->
+    <div class="mobile-grid mb-4">
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="text-2xl mb-2">👥</div>
+                <div class="text-2xl font-bold text-success">{{ stats.clients }}</div>
+                <div class="text-xs text-muted">Клиенты</div>
+            </div>
+        </div>
+        
+        <div class="card text-center">
+            <div class="card-body">
+                <div class="text-2xl mb-2">⚖️</div>
+                <div class="text-2xl font-bold text-warning">{{ stats.cases }}</div>
+                <div class="text-xs text-muted">Дела</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Today's Schedule -->
+    {% if todays_events %}
+    <div class="card mb-4">
+        <div class="card-header">
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                    <line x1="16" y1="2" x2="16" y2="6"></line>
+                    <line x1="8" y1="2" x2="8" y2="6"></line>
+                    <line x1="3" y1="10" x2="21" y2="10"></line>
+                </svg>
+                <h2 class="text-lg font-semibold">Сегодняшние события</h2>
+            </div>
+        </div>
+        <div class="card-body">
+            <div class="mobile-table">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Время</th>
+                            <th>Событие</th>
+                            <th>Клиент</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for event in todays_events %}
+                        <tr onclick="showEventDetails('{{ event.id }}')" style="cursor: pointer;">
+                            <td class="text-sm">
+                                <span class="chip">{{ event.time }}</span>
+                            </td>
+                            <td>{{ event.title }}</td>
+                            <td class="text-sm text-muted">{{ event.client }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Quick Actions -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <h2 class="text-lg font-semibold">⚡ Быстрые действия</h2>
+        </div>
+        <div class="card-body">
+            <div class="mobile-grid">
+                <a href="{{ url_for('add_client') }}" class="btn btn-outline" style="text-decoration: none;">
+                    <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                        <circle cx="8.5" cy="7" r="4"></circle>
+                        <line x1="20" y1="8" x2="20" y2="14"></line>
+                        <line x1="23" y1="11" x2="17" y2="11"></line>
+                    </svg>
+                    Новый клиент
+                </a>
+                
+                <a href="{{ url_for('add_case') }}" class="btn btn-outline" style="text-decoration: none;">
+                    <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                        <polyline points="14,2 14,8 20,8"></polyline>
+                        <line x1="12" y1="18" x2="12" y2="12"></line>
+                        <line x1="9" y1="15" x2="15" y2="15"></line>
+                    </svg>
+                    Новое дело
+                </a>
+                
+                <a href="{{ url_for('add_document') }}" class="btn btn-outline" style="text-decoration: none;">
+                    <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <path d="M13 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V9z"></path>
+                        <polyline points="13,2 13,9 20,9"></polyline>
+                        <line x1="15" y1="13" x2="15" y2="18"></line>
+                        <line x1="9" y1="15" x2="15" y2="15"></line>
+                    </svg>
+                    Новый документ
+                </a>
+                
+                <a href="{{ url_for('calendar') }}" class="btn btn-outline" style="text-decoration: none;">
+                    <svg class="icon-sm" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect>
+                        <line x1="16" y1="2" x2="16" y2="6"></line>
+                        <line x1="8" y1="2" x2="8" y2="6"></line>
+                        <line x1="3" y1="10" x2="21" y2="10"></line>
+                    </svg>
+                    Календарь
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recent Activities -->
+    <div class="card mb-4">
+        <div class="card-header">
+            <div style="display: flex; align-items: center; gap: 0.75rem;">
+                <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="22,12 18,12 15,21 9,3 6,12 2,12"></polyline>
+                </svg>
+                <h2 class="text-lg font-semibold">Последняя активность</h2>
+            </div>
+        </div>
+        <div class="card-body">
+            {% if recent_activities %}
+            <div class="timeline">
+                {% for activity in recent_activities %}
+                <div class="timeline-item" style="display: flex; gap: 1rem; margin-bottom: 1rem; padding-bottom: 1rem; {% if not loop.last %}border-bottom: 1px solid var(--border-color);{% endif %}">
+                    <div class="timeline-icon" style="width: 32px; height: 32px; border-radius: 50%; background: var(--primary-color); color: white; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; flex-shrink: 0;">
+                        {{ activity.icon }}
+                    </div>
+                    <div class="timeline-content" style="flex: 1;">
+                        <div class="font-medium text-sm">{{ activity.description }}</div>
+                        <div class="text-xs text-muted">{{ activity.timestamp }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center text-muted py-4">
+                <p>📝 Пока нет активности</p>
+                <p class="text-xs">Начните добавлять клиентов и дела</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Weather & Time Info -->
+    <div class="mobile-grid mb-4">
+        <div class="card">
+            <div class="card-body text-center">
+                <div class="text-2xl mb-2">🌤️</div>
+                <div class="text-sm font-medium">Погода</div>
+                <div class="text-xs text-muted">{{ weather.temperature }}°C</div>
+                <div class="text-xs text-muted">{{ weather.condition }}</div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-body text-center">
+                <div class="text-2xl mb-2">🕒</div>
+                <div class="text-sm font-medium">Время</div>
+                <div class="text-xs text-muted">{{ current_time }}</div>
+                <div class="text-xs text-muted">{{ timezone }}</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Bottom Padding for Mobile Menu -->
+    <div style="height: 80px;"></div>
+</div>
+
+<!-- Event Details Modal -->
+<div id="event-modal" class="mobile-menu-overlay" style="display: none;" onclick="closeEventModal()">
+    <div class="card" style="margin: 1rem; max-width: 400px;" onclick="event.stopPropagation()">
+        <div class="card-body">
+            <h3 class="font-semibold mb-3" id="event-title">📅 Событие</h3>
+            <div id="event-details" class="text-sm">
+                <!-- Event details will be populated by JavaScript -->
+            </div>
+            <div class="btn-group mt-4">
+                <button class="btn btn-outline" onclick="closeEventModal()">
+                    Закрыть
+                </button>
+                <button class="btn btn-primary" onclick="editEvent()">
+                    Редактировать
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Dashboard specific styles */
+.timeline-icon {
+    background: linear-gradient(135deg, var(--primary-color), #3b82f6);
+}
+
+.card:hover {
+    transform: translateY(-2px);
+    box-shadow: var(--shadow-lg);
+    transition: all 0.3s ease;
+}
+
+/* Event modal animations */
+#event-modal {
+    animation: fadeIn 0.3s ease-out;
+}
+
+#event-modal .card {
+    animation: slideInUp 0.3s ease-out;
+}
+
+/* Swipe indicators */
+.swipe-indicator {
+    position: fixed;
+    bottom: 120px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0, 0, 0, 0.7);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    z-index: 100;
+    animation: fadeInOut 4s ease-in-out;
+}
+
+/* Floating action button for quick actions */
+.fab {
+    position: fixed;
+    bottom: 100px;
+    right: 20px;
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    color: white;
+    border: none;
+    box-shadow: var(--shadow-lg);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 100;
+    transition: all 0.3s ease;
+}
+
+.fab:hover {
+    transform: scale(1.1);
+    box-shadow: 0 8px 25px rgba(37, 99, 235, 0.4);
+}
+
+@media (max-width: 480px) {
+    .mobile-grid {
+        gap: 0.75rem;
+    }
+    
+    .card-body {
+        padding: 1rem;
+    }
+    
+    .btn-group {
+        flex-direction: column;
+    }
+    
+    .btn-group .btn {
+        margin-bottom: 0.5rem;
+    }
+}
+
+/* Pull to refresh */
+.pull-to-refresh {
+    position: fixed;
+    top: -60px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--primary-color);
+    color: white;
+    padding: 1rem;
+    border-radius: 0 0 50px 50px;
+    transition: top 0.3s ease;
+    z-index: 200;
+    font-size: 0.875rem;
+}
+
+.pull-to-refresh.show {
+    top: 0;
+}
+</style>
+
+<script>
+// Event details functionality
+function showEventDetails(eventId) {
+    const modal = document.getElementById('event-modal');
+    const title = document.getElementById('event-title');
+    const details = document.getElementById('event-details');
+    
+    // Simulate event data - in real app, this would come from server
+    const eventData = {
+        title: 'Судебное заседание',
+        time: '14:00',
+        date: '{{ current_date }}',
+        location: 'Зал суда №3',
+        client: 'Иванов И.И.',
+        description: 'Рассмотрение дела по иску о признании права собственности',
+        status: 'Назначено'
+    };
+    
+    title.textContent = `📅 ${eventData.title}`;
+    details.innerHTML = `
+        <div class="mobile-grid" style="gap: 0.75rem;">
+            <div style="padding: 0.75rem; background: #f8fafc; border-radius: 8px;">
+                <div class="text-xs text-muted mb-1">🕒 Время</div>
+                <div class="font-medium">${eventData.time}</div>
+            </div>
+            <div style="padding: 0.75rem; background: #f8fafc; border-radius: 8px;">
+                <div class="text-xs text-muted mb-1">📍 Место</div>
+                <div class="font-medium">${eventData.location}</div>
+            </div>
+            <div style="padding: 0.75rem; background: #f8fafc; border-radius: 8px;">
+                <div class="text-xs text-muted mb-1">👤 Клиент</div>
+                <div class="font-medium">${eventData.client}</div>
+            </div>
+            <div style="padding: 0.75rem; background: #f8fafc; border-radius: 8px;">
+                <div class="text-xs text-muted mb-1">📋 Статус</div>
+                <div class="status-badge ${eventData.status === 'Назначено' ? 'status-pending' : 'status-active'}">${eventData.status}</div>
+            </div>
+        </div>
+        <div style="margin-top: 1rem; padding: 0.75rem; background: #fef3c7; border-radius: 8px;">
+            <div class="text-xs text-muted mb-1">📝 Описание</div>
+            <div class="text-sm">${eventData.description}</div>
+        </div>
+    `;
+    
+    modal.style.display = 'block';
+    modal.classList.add('active');
+    document.body.style.overflow = 'hidden';
+}
+
+function closeEventModal() {
+    const modal = document.getElementById('event-modal');
+    modal.style.display = 'none';
+    modal.classList.remove('active');
+    document.body.style.overflow = '';
+}
+
+function editEvent() {
+    closeEventModal();
+    // Navigate to edit page
+    window.location.href = '/calendar/edit';
+}
+
+// Pull to refresh functionality
+let startY = 0;
+let currentY = 0;
+let isRefreshing = false;
+
+document.addEventListener('touchstart', function(e) {
+    if (window.scrollY === 0) {
+        startY = e.touches[0].pageY;
+    }
+});
+
+document.addEventListener('touchmove', function(e) {
+    if (window.scrollY === 0 && !isRefreshing) {
+        currentY = e.touches[0].pageY;
+        const diff = currentY - startY;
+        
+        if (diff > 50) {
+            showPullToRefresh();
+        }
+    }
+});
+
+document.addEventListener('touchend', function(e) {
+    if (currentY - startY > 100) {
+        performRefresh();
+    }
+    resetPullToRefresh();
+});
+
+function showPullToRefresh() {
+    let indicator = document.querySelector('.pull-to-refresh');
+    if (!indicator) {
+        indicator = document.createElement('div');
+        indicator.className = 'pull-to-refresh';
+        indicator.innerHTML = '🔄 Отпустите для обновления';
+        document.body.appendChild(indicator);
+    }
+    indicator.classList.add('show');
+}
+
+function resetPullToRefresh() {
+    const indicator = document.querySelector('.pull-to-refresh');
+    if (indicator) {
+        indicator.classList.remove('show');
+        setTimeout(() => indicator.remove(), 300);
+    }
+    startY = 0;
+    currentY = 0;
+}
+
+function performRefresh() {
+    if (isRefreshing) return;
+    
+    isRefreshing = true;
+    const indicator = document.querySelector('.pull-to-refresh');
+    indicator.innerHTML = '🔄 Обновление...';
+    
+    // Simulate refresh
+    setTimeout(() => {
+        location.reload();
+    }, 1000);
+}
+
+// Floating Action Button for quick add
+function createFAB() {
+    const fab = document.createElement('button');
+    fab.className = 'fab';
+    fab.innerHTML = '+';
+    fab.title = 'Быстрое добавление';
+    fab.onclick = showQuickAddMenu;
+    document.body.appendChild(fab);
+}
+
+function showQuickAddMenu() {
+    const menu = document.createElement('div');
+    menu.style.cssText = `
+        position: fixed;
+        bottom: 170px;
+        right: 20px;
+        background: white;
+        border-radius: 12px;
+        box-shadow: var(--shadow-lg);
+        padding: 1rem;
+        z-index: 100;
+        animation: slideInUp 0.3s ease-out;
+    `;
+    
+    menu.innerHTML = `
+        <div class="mobile-grid" style="grid-template-columns: 1fr;">
+            <button class="btn btn-primary btn-sm mb-2" style="width: 100%; min-height: 40px;" onclick="location.href='{{ url_for("add_client") }}'">
+                👥 Клиент
+            </button>
+            <button class="btn btn-primary btn-sm mb-2" style="width: 100%; min-height: 40px;" onclick="location.href='{{ url_for("add_case") }}'">
+                ⚖️ Дело
+            </button>
+            <button class="btn btn-primary btn-sm" style="width: 100%; min-height: 40px;" onclick="location.href='{{ url_for("add_document") }}'">
+                📄 Документ
+            </button>
+        </div>
+    `;
+    
+    // Close menu when clicking outside
+    setTimeout(() => {
+        document.addEventListener('click', function closeMenu() {
+            menu.remove();
+            document.removeEventListener('click', closeMenu);
+        });
+    }, 100);
+    
+    document.body.appendChild(menu);
+}
+
+// Initialize dashboard
+document.addEventListener('DOMContentLoaded', function() {
+    createFAB();
+    
+    // Auto-hide stats if no data
+    const stats = document.querySelectorAll('.card .text-2xl.font-bold');
+    stats.forEach(stat => {
+        if (stat.textContent === '0') {
+            stat.closest('.card').style.opacity = '0.6';
+            stat.closest('.card').style.filter = 'grayscale(50%)';
+        }
+    });
+    
+    // Add swipe gestures for mobile table
+    const tables = document.querySelectorAll('.mobile-table table');
+    tables.forEach(table => {
+        let startX = 0;
+        let scrollLeft = 0;
+        
+        table.addEventListener('touchstart', (e) => {
+            startX = e.touches[0].pageX - table.parentElement.offsetLeft;
+            scrollLeft = table.parentElement.scrollLeft;
+        });
+        
+        table.addEventListener('touchmove', (e) => {
+            e.preventDefault();
+            const x = e.touches[0].pageX - table.parentElement.offsetLeft;
+            const walk = (x - startX) * 1.5;
+            table.parentElement.scrollLeft = scrollLeft - walk;
+        });
+    });
+});
+</script>
+{% endblock %}
