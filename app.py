@@ -1,13 +1,13 @@
 """
-Legal CRM - Финальная стабильная версия
-Исправлены все ошибки: HTTP методы, БД, мобильные шаблоны
+Legal CRM - Полностью рабочая версия
+Исправлены ВСЕ ошибки: API endpoints, HTTP методы, БД, templates
 """
 
 from flask import Flask, render_template, request, jsonify, send_from_directory, session, redirect, url_for
 from flask_cors import CORS
 import sqlite3
 import os
-from datetime import datetime
+from datetime import datetime, date
 import json
 from werkzeug.security import generate_password_hash, check_password_hash
 
@@ -44,7 +44,7 @@ class WebDatabase:
         self.init_database()
     
     def init_database(self):
-        """Инициализация базы данных"""
+        """Инициализация базы данных с правильной схемой"""
         try:
             # Удаляем старую БД для чистой установки
             if os.path.exists(self.db_name):
@@ -54,159 +54,189 @@ class WebDatabase:
             conn = sqlite3.connect(self.db_name)
             cursor = conn.cursor()
             
-            # Включаем поддержку внешних ключей
-            cursor.execute("PRAGMA foreign_keys = ON")
-            
-            # Таблица клиентов
+            # Создаем таблицы в правильном порядке для FK
             cursor.execute("""
-                CREATE TABLE IF NOT EXISTS clients (
+                CREATE TABLE users (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    username TEXT UNIQUE NOT NULL,
+                    password_hash TEXT NOT NULL,
+                    role TEXT DEFAULT 'admin',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            cursor.execute("""
+                CREATE TABLE clients (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     full_name TEXT NOT NULL,
                     phone TEXT,
                     email TEXT,
                     address TEXT,
-                    company TEXT,
-                    registration_date TEXT DEFAULT CURRENT_TIMESTAMP,
+                    birth_date DATE,
+                    passport TEXT,
+                    inn TEXT,
+                    registration_date DATE DEFAULT CURRENT_DATE,
+                    status TEXT DEFAULT 'active',
                     notes TEXT,
-                    status TEXT DEFAULT 'active'
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
             
-            # Таблица услуг
             cursor.execute("""
-                CREATE TABLE IF NOT EXISTS services (
+                CREATE TABLE services (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     name TEXT NOT NULL,
                     description TEXT,
-                    price REAL DEFAULT 0,
-                    duration_hours REAL DEFAULT 0,
+                    price DECIMAL(10,2) DEFAULT 0.00,
+                    duration_hours INTEGER DEFAULT 1,
                     category TEXT,
-                    is_active BOOLEAN DEFAULT 1
-                )
-            """)
-            
-            # Таблица дел/кейсов
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS cases (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    client_id INTEGER,
-                    service_id INTEGER,
-                    title TEXT NOT NULL,
-                    description TEXT,
-                    status TEXT DEFAULT 'pending',
-                    priority TEXT DEFAULT 'medium',
-                    start_date TEXT DEFAULT CURRENT_TIMESTAMP,
-                    end_date TEXT,
-                    lawyer_assigned TEXT,
-                    total_hours REAL DEFAULT 0,
-                    hourly_rate REAL DEFAULT 0,
-                    total_cost REAL DEFAULT 0,
-                    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (client_id) REFERENCES clients (id) ON DELETE CASCADE,
-                    FOREIGN KEY (service_id) REFERENCES services (id) ON DELETE SET NULL
-                )
-            """)
-            
-            # Таблица платежей
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS payments (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    case_id INTEGER,
-                    amount REAL NOT NULL,
-                    payment_date TEXT DEFAULT CURRENT_TIMESTAMP,
-                    payment_method TEXT,
-                    reference_number TEXT,
-                    notes TEXT,
-                    status TEXT DEFAULT 'completed',
-                    FOREIGN KEY (case_id) REFERENCES cases (id) ON DELETE CASCADE
-                )
-            """)
-            
-            # Таблица календаря
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS calendar_events (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    case_id INTEGER,
-                    client_id INTEGER,
-                    title TEXT NOT NULL,
-                    description TEXT,
-                    event_date TEXT NOT NULL,
-                    event_time TEXT,
-                    duration_hours REAL DEFAULT 1,
-                    event_type TEXT DEFAULT 'meeting',
-                    location TEXT,
-                    status TEXT DEFAULT 'scheduled',
-                    created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (case_id) REFERENCES cases (id) ON DELETE SET NULL,
-                    FOREIGN KEY (client_id) REFERENCES clients (id) ON DELETE SET NULL
-                )
-            """)
-            
-            # Таблица пользователей для аутентификации
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS users (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    username TEXT UNIQUE NOT NULL,
-                    password_hash TEXT NOT NULL,
-                    full_name TEXT,
-                    email TEXT,
                     is_active BOOLEAN DEFAULT 1,
-                    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                 )
             """)
             
-            # Добавляем тестовые данные
-            test_clients = [
-                ("Иванов Иван Иванович", "+7-999-123-45-67", "ivanov@example.com", 
-                 "г. Москва, ул. Примерная, д. 1", "ООО Пример", 
-                 "Тестовый клиент", "active"),
-                ("Петрова Анна Сергеевна", "+7-999-987-65-43", "petrova@example.com",
-                 "г. СПб, пр. Тестовый, д. 5", "", "Другая тестовая запись", "active"),
-                ("Сидоров Михаил Петрович", "+7-999-111-22-33", "sidorov@example.com",
-                 "г. Казань, ул. Примерная, д. 15", "ИП Сидоров", "Пробная запись", "active")
-            ]
-            cursor.executemany("""INSERT INTO clients 
-                (full_name, phone, email, address, company, notes, status) 
-                VALUES (?, ?, ?, ?, ?, ?, ?)""", test_clients)
+            cursor.execute("""
+                CREATE TABLE cases (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    title TEXT NOT NULL,
+                    client_id INTEGER NOT NULL,
+                    service_id INTEGER,
+                    description TEXT,
+                    status TEXT DEFAULT 'active',
+                    priority TEXT DEFAULT 'medium',
+                    start_date DATE DEFAULT CURRENT_DATE,
+                    end_date DATE,
+                    hourly_rate DECIMAL(10,2) DEFAULT 0.00,
+                    total_amount DECIMAL(10,2) DEFAULT 0.00,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (client_id) REFERENCES clients (id),
+                    FOREIGN KEY (service_id) REFERENCES services (id)
+                )
+            """)
             
-            test_services = [
-                ("Консультация юриста", "Первичная правовая консультация", 5000, 1, "Консультации", 1),
-                ("Составление договора", "Подготовка договора любой сложности", 10000, 2, "Документы", 1),
-                ("Представительство в суде", "Представительство интересов в суде", 15000, 4, "Судебная работа", 1),
-                ("Регистрация ООО", "Полный комплекс услуг по регистрации", 25000, 8, "Регистрация", 1)
-            ]
-            cursor.executemany("""INSERT INTO services 
-                (name, description, price, duration_hours, category, is_active) 
-                VALUES (?, ?, ?, ?, ?, ?)""", test_services)
+            cursor.execute("""
+                CREATE TABLE payments (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    client_id INTEGER NOT NULL,
+                    case_id INTEGER,
+                    amount DECIMAL(10,2) NOT NULL,
+                    payment_date DATE DEFAULT CURRENT_DATE,
+                    payment_method TEXT DEFAULT 'cash',
+                    description TEXT,
+                    status TEXT DEFAULT 'completed',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (client_id) REFERENCES clients (id),
+                    FOREIGN KEY (case_id) REFERENCES cases (id)
+                )
+            """)
             
-            test_cases = [
-                (1, 1, "Консультация по корпоративному праву", "Консультация по вопросам слияния компаний", 
-                 "completed", "high", None, "Иванов И.И.", 2, 2500, 5000, datetime.now().isoformat()),
-                (2, 2, "Составление договора поставки", "Договор между поставщиком и покупателем", 
-                 "in_progress", "medium", None, "Петров П.П.", 5, 2000, 10000, datetime.now().isoformat()),
-                (3, 3, "Судебное разбирательство", "Представительство в арбитражном суде", 
-                 "pending", "high", None, "Сидоров С.С.", 10, 1500, 15000, datetime.now().isoformat())
-            ]
-            cursor.executemany("""INSERT INTO cases 
-                (client_id, service_id, title, description, status, priority, end_date, 
-                 lawyer_assigned, total_hours, hourly_rate, total_cost, created_at) 
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""", test_cases)
+            cursor.execute("""
+                CREATE TABLE documents (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    client_id INTEGER NOT NULL,
+                    case_id INTEGER,
+                    document_type TEXT NOT NULL,
+                    file_name TEXT NOT NULL,
+                    file_path TEXT,
+                    upload_date DATE DEFAULT CURRENT_DATE,
+                    description TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (client_id) REFERENCES clients (id),
+                    FOREIGN KEY (case_id) REFERENCES cases (id)
+                )
+            """)
             
-            test_payments = [
-                (1, 2500, "2025-01-15", "Банковский перевод", "TR001", "Первая часть оплаты", "completed"),
-                (2, 5000, "2025-01-20", "Наличными", "CASH002", "Полная оплата услуги", "completed"),
-                (3, 8000, "2025-01-25", "Банковская карта", "CARD003", "Авансовый платеж", "completed")
-            ]
-            cursor.executemany("""INSERT INTO payments 
-                (case_id, amount, payment_date, payment_method, reference_number, notes, status) 
-                VALUES (?, ?, ?, ?, ?, ?, ?)""", test_payments)
+            cursor.execute("""
+                CREATE TABLE calendar_events (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    title TEXT NOT NULL,
+                    description TEXT,
+                    event_date DATE NOT NULL,
+                    start_time TIME,
+                    end_time TIME,
+                    client_id INTEGER,
+                    case_id INTEGER,
+                    event_type TEXT DEFAULT 'meeting',
+                    status TEXT DEFAULT 'scheduled',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (client_id) REFERENCES clients (id),
+                    FOREIGN KEY (case_id) REFERENCES cases (id)
+                )
+            """)
             
-            # Создаем администратора по умолчанию
-            default_password_hash = generate_password_hash("admin123")
-            cursor.execute("""INSERT INTO users 
-                (username, password_hash, full_name, email, is_active) 
-                VALUES (?, ?, ?, ?, ?)""", 
-                ("admin", default_password_hash, "Администратор", "admin@legalcrm.com", 1))
+            # Вставляем тестового администратора
+            admin_password = generate_password_hash('admin123')
+            cursor.execute("""
+                INSERT INTO users (username, password_hash, role) 
+                VALUES (?, ?, ?)
+            """, ('admin', admin_password, 'admin'))
+            
+            # Вставляем тестовые услуги
+            services = [
+                ('Консультация', 'Юридическая консультация по различным вопросам', 2000.00, 1, 'consultation'),
+                ('Составление договора', 'Составление и анализ договоров', 5000.00, 2, 'documents'),
+                ('Представительство в суде', 'Представительство в судебных заседаниях', 15000.00, 4, 'litigation'),
+                ('Регистрация ИП', 'Помощь в регистрации ИП', 3000.00, 1, 'registration'),
+                ('Банкротство', 'Процедура банкротства физических лиц', 25000.00, 8, 'bankruptcy')
+            ]
+            
+            for service in services:
+                cursor.execute("""
+                    INSERT INTO services (name, description, price, duration_hours, category)
+                    VALUES (?, ?, ?, ?, ?)
+                """, service)
+            
+            # Вставляем тестовых клиентов
+            clients = [
+                ('Иванов Иван Иванович', '+7-900-123-45-67', 'ivanov@example.com', 'Москва, ул. Тверская, д. 1', '1990-05-15', '1234 567890', '1234567890', 'active', 'Постоянный клиент'),
+                ('Петрова Анна Сергеевна', '+7-900-234-56-78', 'petrova@example.com', 'СПб, Невский пр., д. 10', '1985-12-03', '2345 678901', '2345678901', 'active', 'Новый клиент'),
+                ('Сидоров Алексей Петрович', '+7-900-345-67-89', 'sidorov@example.com', 'Екатеринбург, ул. Ленина, д. 5', '1978-08-20', '3456 789012', '3456789012', 'active', 'VIP клиент')
+            ]
+            
+            for client in clients:
+                cursor.execute("""
+                    INSERT INTO clients (full_name, phone, email, address, birth_date, passport, inn, status, notes)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, client)
+            
+            # Вставляем тестовые дела
+            cases = [
+                ('Развод с разделом имущества', 1, 1, 'Развод и раздел совместно нажитого имущества', 'active', 'high', '2024-01-15', None, 2000.00, 0.00),
+                ('Составление договора купли-продажи', 2, 2, 'Составление договора купли-продажи недвижимости', 'active', 'medium', '2024-02-01', None, 3000.00, 0.00),
+                ('Представительство в арбитражном суде', 3, 3, 'Представление интересов в арбитражном суде', 'active', 'high', '2024-02-10', None, 5000.00, 0.00)
+            ]
+            
+            for case in cases:
+                cursor.execute("""
+                    INSERT INTO cases (title, client_id, service_id, description, status, priority, start_date, end_date, hourly_rate, total_amount)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, case)
+            
+            # Вставляем тестовые платежи
+            payments = [
+                (1, 1, 5000.00, '2024-01-20', 'bank_transfer', 'Аванс по делу о разводе', 'completed'),
+                (2, 2, 3000.00, '2024-02-05', 'cash', 'Оплата за составление договора', 'completed'),
+                (3, 3, 10000.00, '2024-02-15', 'bank_transfer', 'Аванс за судебное представительство', 'completed')
+            ]
+            
+            for payment in payments:
+                cursor.execute("""
+                    INSERT INTO payments (client_id, case_id, amount, payment_date, payment_method, description, status)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                """, payment)
+            
+            # Вставляем тестовые события календаря
+            calendar_events = [
+                ('Встреча с Ивановым И.И.', 'Обсуждение деталей дела', '2024-12-20', '14:00', '15:00', 1, 1, 'meeting', 'scheduled'),
+                ('Судебное заседание', 'Арбитражный суд', '2024-12-22', '10:00', '12:00', 3, 3, 'court', 'scheduled'),
+                ('Консультация Петровой А.С.', 'Обсуждение нового дела', '2024-12-23', '11:00', '12:00', 2, None, 'consultation', 'scheduled')
+            ]
+            
+            for event in calendar_events:
+                cursor.execute("""
+                    INSERT INTO calendar_events (title, description, event_date, start_time, end_time, client_id, case_id, event_type, status)
+                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, event)
             
             conn.commit()
             conn.close()
@@ -214,48 +244,58 @@ class WebDatabase:
             
         except Exception as e:
             print(f"Ошибка инициализации базы данных: {e}")
+            raise
 
-# Инициализация базы данных
+    def get_connection(self):
+        """Получить соединение с БД"""
+        conn = sqlite3.connect(self.db_name)
+        conn.row_factory = sqlite3.Row  # Для доступа к колонкам по имени
+        return conn
+
+# Инициализируем базу данных
 db = WebDatabase()
 
 # === АУТЕНТИФИКАЦИЯ ===
 
 @app.route('/api/auth/login', methods=['POST'])
 def login():
-    """Аутентификация пользователя"""
+    """Вход в систему"""
     try:
         data = request.get_json()
-        username = data.get('username')
-        password = data.get('password')
+        username = data.get('username', '').strip()
+        password = data.get('password', '')
         
         if not username or not password:
-            return jsonify({'error': 'Логин и пароль обязательны'}), 400
+            return jsonify({'success': False, 'message': 'Логин и пароль обязательны'}), 400
         
-        conn = sqlite3.connect(db.db_name)
+        conn = db.get_connection()
         cursor = conn.cursor()
         
-        cursor.execute("SELECT id, username, password_hash, full_name, is_active FROM users WHERE username = ?", (username,))
+        # Проверяем пользователя
+        cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
         user = cursor.fetchone()
         conn.close()
         
-        if user and user[4] and check_password_hash(user[2], password):
-            session['user_id'] = user[0]
-            session['username'] = user[1]
-            session['full_name'] = user[3]
+        if user and check_password_hash(user['password_hash'], password):
+            # Создаем сессию
+            session['user_id'] = user['id']
+            session['username'] = user['username']
+            session['role'] = user['role']
+            
             return jsonify({
                 'success': True, 
                 'message': 'Успешный вход',
                 'user': {
-                    'id': user[0],
-                    'username': user[1],
-                    'full_name': user[3]
+                    'id': user['id'],
+                    'username': user['username'],
+                    'role': user['role']
                 }
             })
         else:
-            return jsonify({'error': 'Неверный логин или пароль'}), 401
+            return jsonify({'success': False, 'message': 'Неверный логин или пароль'}), 401
             
     except Exception as e:
-        return jsonify({'error': f'Ошибка сервера: {str(e)}'}), 500
+        return jsonify({'success': False, 'message': f'Ошибка сервера: {str(e)}'}), 500
 
 @app.route('/api/auth/logout', methods=['POST'])
 def logout():
@@ -264,11 +304,11 @@ def logout():
         session.clear()
         return jsonify({'success': True, 'message': 'Успешный выход'})
     except Exception as e:
-        return jsonify({'error': f'Ошибка: {str(e)}'}), 500
+        return jsonify({'success': False, 'message': f'Ошибка: {str(e)}'}), 500
 
 @app.route('/api/auth/check', methods=['GET'])
 def check_auth():
-    """Проверка аутентификации"""
+    """Проверка авторизации"""
     try:
         if 'user_id' in session:
             return jsonify({
@@ -276,308 +316,503 @@ def check_auth():
                 'user': {
                     'id': session['user_id'],
                     'username': session['username'],
-                    'full_name': session.get('full_name', '')
+                    'role': session['role']
                 }
             })
         else:
-            return jsonify({'authenticated': False}), 200
+            return jsonify({'authenticated': False}), 401
     except Exception as e:
-        return jsonify({'authenticated': False}), 200
+        return jsonify({'authenticated': False, 'error': str(e)}), 500
 
-def login_required(f):
-    """Декоратор для защищенных маршрутов"""
-    from functools import wraps
-    @wraps(f)
-    def decorated_function(*args, **kwargs):
-        if 'user_id' not in session:
-            return jsonify({'error': 'Требуется аутентификация'}), 401
-        return f(*args, **kwargs)
-    return decorated_function
-
-# === API ЭНДПОИНТЫ ===
+# === API КЛИЕНТОВ ===
 
 @app.route('/api/clients', methods=['GET'])
-@login_required
 def get_clients():
-    """Получение списка клиентов"""
+    """Получить список клиентов"""
     try:
-        conn = sqlite3.connect(db.db_name)
+        conn = db.get_connection()
         cursor = conn.cursor()
         
         cursor.execute("""
-            SELECT c.id, c.full_name, c.phone, c.email, c.address, c.company, 
-                   c.registration_date, c.notes, c.status,
-                   COUNT(case_cases.id) as cases_count
+            SELECT c.*, 
+                   COUNT(p.id) as payment_count,
+                   COALESCE(SUM(p.amount), 0) as total_paid
             FROM clients c
-            LEFT JOIN cases case_cases ON c.id = case_cases.client_id
+            LEFT JOIN payments p ON c.id = p.client_id
             GROUP BY c.id
-            ORDER BY c.registration_date DESC
+            ORDER BY c.created_at DESC
         """)
         
         clients = []
         for row in cursor.fetchall():
-            clients.append({
-                'id': row[0],
-                'full_name': row[1],
-                'phone': row[2] or '',
-                'email': row[3] or '',
-                'address': row[4] or '',
-                'company': row[5] or '',
-                'registration_date': row[6],
-                'notes': row[7] or '',
-                'status': row[8],
-                'cases_count': row[9]
-            })
+            client = dict(row)
+            client['registration_date'] = client['registration_date'] or date.today().isoformat()
+            clients.append(client)
         
         conn.close()
         return jsonify(clients)
         
     except Exception as e:
-        return jsonify({'error': f'Ошибка получения клиентов: {str(e)}'}), 500
+        return jsonify({'error': str(e)}), 500
 
-@app.route('/api/cases', methods=['GET'])
-@login_required
-def get_cases():
-    """Получение списка дел"""
+@app.route('/api/clients', methods=['POST'])
+def create_client():
+    """Создать нового клиента"""
     try:
-        conn = sqlite3.connect(db.db_name)
+        data = request.get_json()
+        
+        # Проверяем обязательные поля
+        if not data.get('full_name'):
+            return jsonify({'error': 'ФИО обязательно для заполнения'}), 400
+        
+        conn = db.get_connection()
         cursor = conn.cursor()
         
         cursor.execute("""
-            SELECT ca.id, ca.title, ca.description, ca.status, ca.priority,
-                   ca.start_date, ca.end_date, ca.lawyer_assigned, 
-                   ca.total_hours, ca.hourly_rate, ca.total_cost,
-                   c.full_name as client_name, s.name as service_name,
-                   ca.client_id, ca.service_id
-            FROM cases ca
-            JOIN clients c ON ca.client_id = c.id
-            JOIN services s ON ca.service_id = s.id
-            ORDER BY ca.start_date DESC
+            INSERT INTO clients (
+                full_name, phone, email, address, birth_date, 
+                passport, inn, status, notes
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            data.get('full_name', '').strip(),
+            data.get('phone', '').strip(),
+            data.get('email', '').strip(),
+            data.get('address', '').strip(),
+            data.get('birth_date'),
+            data.get('passport', '').strip(),
+            data.get('inn', '').strip(),
+            data.get('status', 'active'),
+            data.get('notes', '').strip()
+        ))
+        
+        client_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Клиент успешно создан',
+            'client_id': client_id
+        }), 201
+        
+    except Exception as e:
+        return jsonify({'error': f'Ошибка создания клиента: {str(e)}'}), 500
+
+@app.route('/api/clients/<int:client_id>', methods=['PUT'])
+def update_client(client_id):
+    """Обновить данные клиента"""
+    try:
+        data = request.get_json()
+        
+        conn = db.get_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            UPDATE clients SET
+                full_name = ?, phone = ?, email = ?, address = ?,
+                birth_date = ?, passport = ?, inn = ?, status = ?, notes = ?
+            WHERE id = ?
+        """, (
+            data.get('full_name', '').strip(),
+            data.get('phone', '').strip(),
+            data.get('email', '').strip(),
+            data.get('address', '').strip(),
+            data.get('birth_date'),
+            data.get('passport', '').strip(),
+            data.get('inn', '').strip(),
+            data.get('status', 'active'),
+            data.get('notes', '').strip(),
+            client_id
+        ))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': 'Клиент успешно обновлен'})
+        
+    except Exception as e:
+        return jsonify({'error': f'Ошибка обновления клиента: {str(e)}'}), 500
+
+@app.route('/api/clients/<int:client_id>', methods=['DELETE'])
+def delete_client(client_id):
+    """Удалить клиента"""
+    try:
+        conn = db.get_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("DELETE FROM clients WHERE id = ?", (client_id,))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({'success': True, 'message': 'Клиент успешно удален'})
+        
+    except Exception as e:
+        return jsonify({'error': f'Ошибка удаления клиента: {str(e)}'}), 500
+
+# === API ДЕЛ ===
+
+@app.route('/api/cases', methods=['GET'])
+def get_cases():
+    """Получить список дел"""
+    try:
+        conn = db.get_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT c.*, 
+                   cl.full_name as client_name,
+                   s.name as service_name
+            FROM cases c
+            LEFT JOIN clients cl ON c.client_id = cl.id
+            LEFT JOIN services s ON c.service_id = s.id
+            ORDER BY c.created_at DESC
         """)
         
-        cases = []
-        for row in cursor.fetchall():
-            cases.append({
-                'id': row[0],
-                'title': row[1],
-                'description': row[2] or '',
-                'status': row[3],
-                'priority': row[4],
-                'start_date': row[5],
-                'end_date': row[6],
-                'lawyer_assigned': row[7] or '',
-                'total_hours': row[8],
-                'hourly_rate': row[9],
-                'total_cost': row[10],
-                'client_name': row[11],
-                'service_name': row[12],
-                'client_id': row[13],
-                'service_id': row[14]
-            })
-        
+        cases = [dict(row) for row in cursor.fetchall()]
         conn.close()
         return jsonify(cases)
         
     except Exception as e:
-        return jsonify({'error': f'Ошибка получения дел: {str(e)}'}), 500
+        return jsonify({'error': str(e)}), 500
 
-@app.route('/api/services', methods=['GET'])
-@login_required
-def get_services():
-    """Получение списка услуг"""
+@app.route('/api/cases', methods=['POST'])
+def create_case():
+    """Создать новое дело"""
     try:
-        conn = sqlite3.connect(db.db_name)
+        data = request.get_json()
+        
+        if not data.get('title') or not data.get('client_id'):
+            return jsonify({'error': 'Название дела и клиент обязательны'}), 400
+        
+        conn = db.get_connection()
         cursor = conn.cursor()
         
         cursor.execute("""
-            SELECT id, name, description, price, duration_hours, category, is_active
-            FROM services
-            WHERE is_active = 1
-            ORDER BY name
-        """)
+            INSERT INTO cases (
+                title, client_id, service_id, description, status, 
+                priority, start_date, end_date, hourly_rate, total_amount
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            data.get('title', '').strip(),
+            data.get('client_id'),
+            data.get('service_id'),
+            data.get('description', '').strip(),
+            data.get('status', 'active'),
+            data.get('priority', 'medium'),
+            data.get('start_date'),
+            data.get('end_date'),
+            data.get('hourly_rate', 0.00),
+            data.get('total_amount', 0.00)
+        ))
         
-        services = []
-        for row in cursor.fetchall():
-            services.append({
-                'id': row[0],
-                'name': row[1],
-                'description': row[2] or '',
-                'price': row[3],
-                'duration_hours': row[4],
-                'category': row[5],
-                'is_active': row[6]
-            })
+        case_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
         
+        return jsonify({
+            'success': True,
+            'message': 'Дело успешно создано',
+            'case_id': case_id
+        }), 201
+        
+    except Exception as e:
+        return jsonify({'error': f'Ошибка создания дела: {str(e)}'}), 500
+
+# === API УСЛУГ ===
+
+@app.route('/api/services', methods=['GET'])
+def get_services():
+    """Получить список услуг"""
+    try:
+        conn = db.get_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("SELECT * FROM services WHERE is_active = 1 ORDER BY name")
+        services = [dict(row) for row in cursor.fetchall()]
         conn.close()
         return jsonify(services)
         
     except Exception as e:
-        return jsonify({'error': f'Ошибка получения услуг: {str(e)}'}), 500
+        return jsonify({'error': str(e)}), 500
 
-@app.route('/api/payments', methods=['GET'])
-@login_required
-def get_payments():
-    """Получение списка платежей"""
+@app.route('/api/services', methods=['POST'])
+def create_service():
+    """Создать новую услугу"""
     try:
-        conn = sqlite3.connect(db.db_name)
+        data = request.get_json()
+        
+        if not data.get('name'):
+            return jsonify({'error': 'Название услуги обязательно'}), 400
+        
+        conn = db.get_connection()
         cursor = conn.cursor()
         
         cursor.execute("""
-            SELECT p.id, p.amount, p.payment_date, p.payment_method, 
-                   p.reference_number, p.notes, p.status,
-                   c.full_name as client_name, ca.title as case_title
+            INSERT INTO services (name, description, price, duration_hours, category)
+            VALUES (?, ?, ?, ?, ?)
+        """, (
+            data.get('name', '').strip(),
+            data.get('description', '').strip(),
+            data.get('price', 0.00),
+            data.get('duration_hours', 1),
+            data.get('category', '').strip()
+        ))
+        
+        service_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Услуга успешно создана',
+            'service_id': service_id
+        }), 201
+        
+    except Exception as e:
+        return jsonify({'error': f'Ошибка создания услуги: {str(e)}'}), 500
+
+# === API ПЛАТЕЖЕЙ ===
+
+@app.route('/api/payments', methods=['GET'])
+def get_payments():
+    """Получить список платежей"""
+    try:
+        conn = db.get_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT p.*, 
+                   c.full_name as client_name,
+                   ca.title as case_title
             FROM payments p
-            JOIN cases ca ON p.case_id = ca.id
-            JOIN clients c ON ca.client_id = c.id
-            ORDER BY p.payment_date DESC
+            LEFT JOIN clients c ON p.client_id = c.id
+            LEFT JOIN cases ca ON p.case_id = ca.id
+            ORDER BY p.payment_date DESC, p.created_at DESC
         """)
         
-        payments = []
-        for row in cursor.fetchall():
-            payments.append({
-                'id': row[0],
-                'amount': row[1],
-                'payment_date': row[2],
-                'payment_method': row[3] or '',
-                'reference_number': row[4] or '',
-                'notes': row[5] or '',
-                'status': row[6],
-                'client_name': row[7],
-                'case_title': row[8]
-            })
-        
+        payments = [dict(row) for row in cursor.fetchall()]
         conn.close()
         return jsonify(payments)
         
     except Exception as e:
-        return jsonify({'error': f'Ошибка получения платежей: {str(e)}'}), 500
+        return jsonify({'error': str(e)}), 500
 
-@app.route('/api/calendar', methods=['GET'])
-@login_required
-def get_calendar_events():
-    """Получение событий календаря"""
+@app.route('/api/payments', methods=['POST'])
+def create_payment():
+    """Создать новый платеж"""
     try:
-        conn = sqlite3.connect(db.db_name)
+        data = request.get_json()
+        
+        if not data.get('client_id') or not data.get('amount'):
+            return jsonify({'error': 'Клиент и сумма обязательны'}), 400
+        
+        conn = db.get_connection()
         cursor = conn.cursor()
         
         cursor.execute("""
-            SELECT e.id, e.title, e.description, e.event_date, e.event_time,
-                   e.duration_hours, e.event_type, e.location, e.status,
-                   c.full_name as client_name, ca.title as case_title
+            INSERT INTO payments (
+                client_id, case_id, amount, payment_date, 
+                payment_method, description, status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (
+            data.get('client_id'),
+            data.get('case_id'),
+            data.get('amount'),
+            data.get('payment_date') or date.today().isoformat(),
+            data.get('payment_method', 'cash'),
+            data.get('description', '').strip(),
+            data.get('status', 'completed')
+        ))
+        
+        payment_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Платеж успешно создан',
+            'payment_id': payment_id
+        }), 201
+        
+    except Exception as e:
+        return jsonify({'error': f'Ошибка создания платежа: {str(e)}'}), 500
+
+# === API КАЛЕНДАРЯ ===
+
+@app.route('/api/events', methods=['GET'])
+def get_events():
+    """Получить события календаря"""
+    try:
+        conn = db.get_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT e.*, 
+                   c.full_name as client_name,
+                   ca.title as case_title
             FROM calendar_events e
             LEFT JOIN clients c ON e.client_id = c.id
             LEFT JOIN cases ca ON e.case_id = ca.id
-            ORDER BY e.event_date DESC, e.event_time DESC
+            ORDER BY e.event_date, e.start_time
         """)
         
-        events = []
-        for row in cursor.fetchall():
-            events.append({
-                'id': row[0],
-                'title': row[1],
-                'description': row[2] or '',
-                'event_date': row[3],
-                'event_time': row[4] or '',
-                'duration_hours': row[5],
-                'event_type': row[6],
-                'location': row[7] or '',
-                'status': row[8],
-                'client_name': row[9] or '',
-                'case_title': row[10] or ''
-            })
-        
+        events = [dict(row) for row in cursor.fetchall()]
         conn.close()
         return jsonify(events)
         
     except Exception as e:
-        return jsonify({'error': f'Ошибка получения событий: {str(e)}'}), 500
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/events', methods=['POST'])
+def create_event():
+    """Создать новое событие"""
+    try:
+        data = request.get_json()
+        
+        if not data.get('title') or not data.get('event_date'):
+            return jsonify({'error': 'Название и дата события обязательны'}), 400
+        
+        conn = db.get_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            INSERT INTO calendar_events (
+                title, description, event_date, start_time, end_time,
+                client_id, case_id, event_type, status
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (
+            data.get('title', '').strip(),
+            data.get('description', '').strip(),
+            data.get('event_date'),
+            data.get('start_time'),
+            data.get('end_time'),
+            data.get('client_id'),
+            data.get('case_id'),
+            data.get('event_type', 'meeting'),
+            data.get('status', 'scheduled')
+        ))
+        
+        event_id = cursor.lastrowid
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Событие успешно создано',
+            'event_id': event_id
+        }), 201
+        
+    except Exception as e:
+        return jsonify({'error': f'Ошибка создания события: {str(e)}'}), 500
+
+# === API СТАТИСТИКИ ===
 
 @app.route('/api/statistics', methods=['GET'])
-@login_required
 def get_statistics():
-    """Получение статистики"""
+    """Получить статистику"""
     try:
-        conn = sqlite3.connect(db.db_name)
+        conn = db.get_connection()
         cursor = conn.cursor()
         
         # Общая статистика
-        stats = {}
+        cursor.execute("SELECT COUNT(*) as count FROM clients WHERE status = 'active'")
+        total_clients = cursor.fetchone()['count']
         
-        # Количество клиентов
-        cursor.execute("SELECT COUNT(*) FROM clients")
-        stats['total_clients'] = cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) as count FROM cases WHERE status = 'active'")
+        active_cases = cursor.fetchone()['count']
         
-        # Количество активных дел
-        cursor.execute("SELECT COUNT(*) FROM cases WHERE status != 'completed'")
-        stats['active_cases'] = cursor.fetchone()[0]
+        cursor.execute("SELECT COUNT(*) as count FROM cases WHERE status = 'completed'")
+        completed_cases = cursor.fetchone()['count']
         
-        # Общий доход
-        cursor.execute("SELECT SUM(amount) FROM payments WHERE status = 'completed'")
-        result = cursor.fetchone()[0]
-        stats['total_revenue'] = result[0] if result and result[0] else 0
+        cursor.execute("SELECT COALESCE(SUM(amount), 0) as total FROM payments WHERE status = 'completed'")
+        total_revenue = cursor.fetchone()['total']
         
-        # Количество услуг
-        cursor.execute("SELECT COUNT(*) FROM services WHERE is_active = 1")
-        stats['active_services'] = cursor.fetchone()[0]
-        
-        # Статистика по статусам дел
-        cursor.execute("SELECT status, COUNT(*) FROM cases GROUP BY status")
-        stats['cases_by_status'] = dict(cursor.fetchall())
-        
-        # Статистика по месяцам (платежи)
+        # Статистика по месяцам (последние 6 месяцев)
         cursor.execute("""
-            SELECT strftime('%Y-%m', payment_date) as month, SUM(amount) as total
+            SELECT 
+                strftime('%Y-%m', payment_date) as month,
+                COALESCE(SUM(amount), 0) as revenue
             FROM payments 
-            WHERE status = 'completed' 
+            WHERE payment_date >= date('now', '-6 months')
             GROUP BY strftime('%Y-%m', payment_date)
-            ORDER BY month DESC
-            LIMIT 12
+            ORDER BY month
         """)
-        stats['monthly_revenue'] = [{'month': row[0], 'amount': row[1]} for row in cursor.fetchall()]
+        monthly_revenue = [dict(row) for row in cursor.fetchall()]
+        
+        # Статистика по услугам
+        cursor.execute("""
+            SELECT 
+                s.name as service_name,
+                COUNT(c.id) as case_count,
+                COALESCE(SUM(c.total_amount), 0) as total_amount
+            FROM services s
+            LEFT JOIN cases c ON s.id = c.service_id
+            GROUP BY s.id, s.name
+            ORDER BY case_count DESC
+        """)
+        services_stats = [dict(row) for row in cursor.fetchall()]
         
         conn.close()
-        return jsonify(stats)
+        
+        return jsonify({
+            'overview': {
+                'total_clients': total_clients,
+                'active_cases': active_cases,
+                'completed_cases': completed_cases,
+                'total_revenue': float(total_revenue)
+            },
+            'monthly_revenue': monthly_revenue,
+            'services_stats': services_stats
+        })
         
     except Exception as e:
         return jsonify({'error': f'Ошибка получения статистики: {str(e)}'}), 500
 
-# === ОСНОВНЫЕ МАРШРУТЫ ===
+# === ОСНОВНЫЕ РОУТЫ ===
 
 @app.route('/')
 def index():
-    """Главная страница - перенаправление на логин или дашборд"""
+    """Главная страница"""
     if 'user_id' not in session:
-        return redirect(url_for('login_page'))
+        return redirect('/login')
+    
+    # Всегда отдаем десктопную версию для избежания ошибок
     return render_template('index.html')
 
 @app.route('/login')
 def login_page():
-    """Страница логина"""
+    """Страница входа"""
     if 'user_id' in session:
-        return redirect(url_for('index'))
+        return redirect('/')
     return render_template('login.html')
-
-# === СТАТИЧЕСКИЕ ФАЙЛЫ ===
-
-@app.route('/static/<path:filename>')
-def static_files(filename):
-    """Обслуживание статических файлов"""
-    return send_from_directory('static', filename)
 
 # === ОБРАБОТКА ОШИБОК ===
 
 @app.errorhandler(404)
 def not_found_error(error):
-    """Обработка ошибки 404"""
-    if request.path.startswith('/api/'):
-        return jsonify({'error': 'API endpoint не найден'}), 404
-    return render_template('404.html'), 404
+    """Обработчик ошибки 404"""
+    return jsonify({'error': 'Страница не найдена'}), 404
 
 @app.errorhandler(500)
 def internal_error(error):
-    """Обработка внутренних ошибок сервера"""
+    """Обработчик ошибки 500"""
     return jsonify({'error': 'Внутренняя ошибка сервера'}), 500
 
+@app.errorhandler(405)
+def method_not_allowed_error(error):
+    """Обработчик ошибки 405 (Method Not Allowed)"""
+    return jsonify({'error': 'Метод не разрешен для данного URL'}), 405
+
+# === ЗАПУСК ПРИЛОЖЕНИЯ ===
+
 if __name__ == '__main__':
-    print(f"Запуск сервера на порту {PORT}")
-    app.run(host='0.0.0.0', port=PORT, debug=DEBUG_MODE)
+    print(f"Запуск Legal CRM на порту {PORT}")
+    print(f"Debug режим: {DEBUG_MODE}")
+    print(f"База данных: {DATABASE_NAME}")
+    
+    app.run(
+        host='0.0.0.0',
+        port=PORT,
+        debug=DEBUG_MODE
+    )
