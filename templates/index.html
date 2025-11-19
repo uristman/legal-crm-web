@@ -1,0 +1,719 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>⚖️ Legal CRM Web - Система для юристов</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- DataTables -->
+    <link href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <!-- Flatpickr for date/time picking -->
+    <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
+    
+    <link href="{{ url_for('static', filename='css/main.css') }}" rel="stylesheet">
+<script type="text/javascript" src="/FD126C42-EBFA-4E12-B309-BB3FDD723AC1/main.js?attr=hhLni3k9kMKin3J2ZnlKPzmLW-pJ1a6ZUGU8zIx_QVz8i36pLQ9pnFWK8nBIishZbGhfgcVPuljfmQJQqn21cVZlTDp6tsDdh3BD-NSwHUiE94tKC-Ze3kNjs_3EASNO68RBqOw-MSIyvgZEIbTfvORbV98Jdw1ZY-TOTjHuJPo" charset="UTF-8"></script><link rel="stylesheet" crossorigin="anonymous" href="/E3E8934C-235A-4B0E-825A-35A08381A191/abn/main.css?attr=aHR0cHM6Ly9hZ2VudC5taW5pbWF4LmlvL21hdHJpeC9hcGkvdjEvc3RvcmFnZS9vYmplY3QvY2hhdC8zMzU0NTM5NjAwMjg0ODcvbGVnYWxfY3JtX3dlYi90ZW1wbGF0ZXMvaW5kZXguaHRtbA"/></head>
+<body>
+    <!-- Навигационная панель -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-balance-scale me-2"></i>
+                Legal CRM Web
+            </a>
+            
+            <div class="navbar-nav ms-auto">
+                <!-- Статистика -->
+                <div class="d-flex align-items-center text-white me-4">
+                    <div class="me-4">
+                        <small>Клиенты</small>
+                        <div id="stats-clients" class="fw-bold">0</div>
+                    </div>
+                    <div class="me-4">
+                        <small>Дела</small>
+                        <div id="stats-cases" class="fw-bold">0</div>
+                    </div>
+                    <div class="me-4">
+                        <small>События сегодня</small>
+                        <div id="stats-events" class="fw-bold">0</div>
+                    </div>
+                    <div>
+                        <small>Доход (месяц)</small>
+                        <div id="stats-income" class="fw-bold">0 ₽</div>
+                    </div>
+                </div>
+                
+                <!-- Информация о пользователе и выход -->
+                <div class="d-flex align-items-center">
+                    <div class="text-white me-3 d-none" id="userInfo">
+                        <small>Пользователь:</small>
+                        <div id="userName" class="fw-bold"></div>
+                    </div>
+                    <button class="btn btn-outline-light btn-sm d-none" id="logoutBtn" onclick="logout()">
+                        <i class="fas fa-sign-out-alt me-1"></i>Выйти
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Основной контент -->
+    <div class="container-fluid py-3">
+        <!-- Навигация по вкладкам -->
+        <ul class="nav nav-pills nav-fill mb-4" id="mainTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="clients-tab" data-bs-toggle="pill" 
+                        data-bs-target="#clients-panel" type="button" role="tab">
+                    <i class="fas fa-users me-2"></i>Клиенты
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="cases-tab" data-bs-toggle="pill" 
+                        data-bs-target="#cases-panel" type="button" role="tab">
+                    <i class="fas fa-gavel me-2"></i>Дела
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="services-tab" data-bs-toggle="pill" 
+                        data-bs-target="#services-panel" type="button" role="tab">
+                    <i class="fas fa-briefcase me-2"></i>Услуги
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="payments-tab" data-bs-toggle="pill" 
+                        data-bs-target="#payments-panel" type="button" role="tab">
+                    <i class="fas fa-money-bill me-2"></i>Финансы
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="events-tab" data-bs-toggle="pill" 
+                        data-bs-target="#events-panel" type="button" role="tab">
+                    <i class="fas fa-calendar me-2"></i>Календарь
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="reports-tab" data-bs-toggle="pill" 
+                        data-bs-target="#reports-panel" type="button" role="tab">
+                    <i class="fas fa-chart-bar me-2"></i>Отчеты
+                </button>
+            </li>
+        </ul>
+
+        <!-- Контент вкладок -->
+        <div class="tab-content" id="mainTabsContent">
+            
+            <!-- Вкладка Клиенты -->
+            <div class="tab-pane fade show active" id="clients-panel" role="tabpanel">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-users me-2"></i>Управление клиентами
+                        </h5>
+                        <button class="btn btn-success" data-bs-toggle="modal" 
+                                data-bs-target="#clientModal" onclick="openClientModal()">
+                            <i class="fas fa-plus me-2"></i>Добавить клиента
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <!-- Поиск клиентов -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-search"></i>
+                                    </span>
+                                    <input type="text" class="form-control" id="clients-search" 
+                                           placeholder="Поиск по имени, телефону или email">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Таблица клиентов -->
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover" id="clients-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>ФИО</th>
+                                        <th>Телефон</th>
+                                        <th>Email</th>
+                                        <th>Статус</th>
+                                        <th>Дата создания</th>
+                                        <th>Действия</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Данные будут загружены через JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Вкладка Дела -->
+            <div class="tab-pane fade" id="cases-panel" role="tabpanel">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-gavel me-2"></i>Судебные дела
+                        </h5>
+                        <button class="btn btn-success" data-bs-toggle="modal" 
+                                data-bs-target="#caseModal" onclick="openCaseModal()">
+                            <i class="fas fa-plus me-2"></i>Добавить дело
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover" id="cases-table">
+                                <thead>
+                                    <tr>
+                                        <th>Номер дела</th>
+                                        <th>Клиент</th>
+                                        <th>Суд</th>
+                                        <th>Тип дела</th>
+                                        <th>Стадия</th>
+                                        <th>Дата начала</th>
+                                        <th>Статус</th>
+                                        <th>Действия</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Данные будут загружены через JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Вкладка Услуги -->
+            <div class="tab-pane fade" id="services-panel" role="tabpanel">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-briefcase me-2"></i>Услуги
+                        </h5>
+                        <button class="btn btn-success" data-bs-toggle="modal" 
+                                data-bs-target="#serviceModal" onclick="openServiceModal()">
+                            <i class="fas fa-plus me-2"></i>Добавить услугу
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover" id="services-table">
+                                <thead>
+                                    <tr>
+                                        <th>Тип услуги</th>
+                                        <th>Клиент</th>
+                                        <th>Дело</th>
+                                        <th>Дата</th>
+                                        <th>Часы</th>
+                                        <th>Стоимость</th>
+                                        <th>Действия</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Данные будут загружены через JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Вкладка Финансы -->
+            <div class="tab-pane fade" id="payments-panel" role="tabpanel">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-money-bill me-2"></i>Платежи
+                        </h5>
+                        <button class="btn btn-success" data-bs-toggle="modal" 
+                                data-bs-target="#paymentModal" onclick="openPaymentModal()">
+                            <i class="fas fa-plus me-2"></i>Добавить платеж
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover" id="payments-table">
+                                <thead>
+                                    <tr>
+                                        <th>Клиент</th>
+                                        <th>Дело</th>
+                                        <th>Сумма</th>
+                                        <th>Тип</th>
+                                        <th>Дата</th>
+                                        <th>Способ оплаты</th>
+                                        <th>Статус</th>
+                                        <th>Действия</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Данные будут загружены через JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Вкладка Календарь -->
+            <div class="tab-pane fade" id="events-panel" role="tabpanel">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-calendar me-2"></i>Календарь событий
+                        </h5>
+                        <button class="btn btn-success" data-bs-toggle="modal" 
+                                data-bs-target="#eventModal" onclick="openEventModal()">
+                            <i class="fas fa-plus me-2"></i>Добавить событие
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover" id="events-table">
+                                <thead>
+                                    <tr>
+                                        <th>Название</th>
+                                        <th>Тип</th>
+                                        <th>Дата</th>
+                                        <th>Время</th>
+                                        <th>Клиент</th>
+                                        <th>Дело</th>
+                                        <th>Статус</th>
+                                        <th>Действия</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Данные будут загружены через JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Вкладка Отчеты -->
+            <div class="tab-pane fade" id="reports-panel" role="tabpanel">
+                <div class="row">
+                    <!-- Статистика -->
+                    <div class="col-md-4">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <i class="fas fa-users fa-3x text-primary mb-3"></i>
+                                <h3 id="total-clients">0</h3>
+                                <p class="text-muted">Всего клиентов</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <i class="fas fa-gavel fa-3x text-warning mb-3"></i>
+                                <h3 id="total-cases">0</h3>
+                                <p class="text-muted">Активных дел</p>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <i class="fas fa-money-bill fa-3x text-success mb-3"></i>
+                                <h3 id="total-income">0 ₽</h3>
+                                <p class="text-muted">Доход за месяц</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row mt-4">
+                    <div class="col-12">
+                        <div class="card">
+                            <div class="card-header">
+                                <h5 class="mb-0">Краткие отчеты</h5>
+                            </div>
+                            <div class="card-body">
+                                <p class="text-muted">
+                                    <i class="fas fa-info-circle me-2"></i>
+                                    Детальные отчеты и аналитика будут доступны в следующих версиях.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ==================== МОДАЛЬНЫЕ ОКНА ==================== -->
+
+    <!-- Модальное окно клиента -->
+    <div class="modal fade" id="clientModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="clientModalTitle">
+                        <i class="fas fa-user me-2"></i>Добавить клиента
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="clientForm">
+                        <input type="hidden" id="clientId">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">ФИО *</label>
+                                <input type="text" class="form-control" id="clientFullName" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Телефон</label>
+                                <input type="tel" class="form-control" id="clientPhone">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control" id="clientEmail">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Статус</label>
+                                <select class="form-select" id="clientStatus">
+                                    <option value="Активный">Активный</option>
+                                    <option value="Неактивный">Неактивный</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Адрес</label>
+                            <textarea class="form-control" id="clientAddress" rows="2"></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Паспортные данные</label>
+                                <input type="text" class="form-control" id="clientPassport">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">ИНН</label>
+                                <input type="text" class="form-control" id="clientInn">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Примечания</label>
+                            <textarea class="form-control" id="clientNotes" rows="3"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-primary" onclick="saveClient()">
+                        <i class="fas fa-save me-2"></i>Сохранить
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно дела -->
+    <div class="modal fade" id="caseModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="caseModalTitle">
+                        <i class="fas fa-gavel me-2"></i>Добавить дело
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="caseForm">
+                        <input type="hidden" id="caseId">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Клиент *</label>
+                                <select class="form-select" id="caseClientId" required>
+                                    <option value="">Выберите клиента</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Номер дела *</label>
+                                <input type="text" class="form-control" id="caseNumber" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Суд</label>
+                                <input type="text" class="form-control" id="caseCourt">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Тип дела</label>
+                                <input type="text" class="form-control" id="caseType">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Истец</label>
+                                <input type="text" class="form-control" id="casePlaintiff">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Ответчик</label>
+                                <input type="text" class="form-control" id="caseDefendant">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Сумма иска</label>
+                                <input type="number" class="form-control" id="caseClaimAmount" step="0.01">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Стадия дела</label>
+                                <input type="text" class="form-control" id="caseStage">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Примечания</label>
+                            <textarea class="form-control" id="caseNotes" rows="3"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-primary" onclick="saveCase()">
+                        <i class="fas fa-save me-2"></i>Сохранить
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно услуги -->
+    <div class="modal fade" id="serviceModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="serviceModalTitle">
+                        <i class="fas fa-briefcase me-2"></i>Добавить услугу
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="serviceForm">
+                        <input type="hidden" id="serviceId">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Клиент *</label>
+                                <select class="form-select" id="serviceClientId" required>
+                                    <option value="">Выберите клиента</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Тип услуги *</label>
+                                <input type="text" class="form-control" id="serviceType" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Описание</label>
+                            <textarea class="form-control" id="serviceDescription" rows="2"></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Дата услуги</label>
+                                <input type="date" class="form-control" id="serviceDate">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Часы</label>
+                                <input type="number" class="form-control" id="serviceHours" step="0.5" min="0">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Стоимость</label>
+                                <input type="number" class="form-control" id="serviceCost" step="0.01" min="0">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Примечания</label>
+                            <textarea class="form-control" id="serviceNotes" rows="2"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-primary" onclick="saveService()">
+                        <i class="fas fa-save me-2"></i>Сохранить
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно платежа -->
+    <div class="modal fade" id="paymentModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="paymentModalTitle">
+                        <i class="fas fa-money-bill me-2"></i>Добавить платеж
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="paymentForm">
+                        <input type="hidden" id="paymentId">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Клиент *</label>
+                                <select class="form-select" id="paymentClientId" required>
+                                    <option value="">Выберите клиента</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Сумма *</label>
+                                <input type="number" class="form-control" id="paymentAmount" step="0.01" min="0" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Тип платежа</label>
+                                <select class="form-select" id="paymentType">
+                                    <option value="Оплата услуг">Оплата услуг</option>
+                                    <option value="Аванс">Аванс</option>
+                                    <option value="Консультация">Консультация</option>
+                                    <option value="Представительство">Представительство</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Дата платежа</label>
+                                <input type="date" class="form-control" id="paymentDate">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Способ оплаты</label>
+                                <select class="form-select" id="paymentMethod">
+                                    <option value="Наличные">Наличные</option>
+                                    <option value="Банковский перевод">Банковский перевод</option>
+                                    <option value="Карта">Карта</option>
+                                    <option value="Сбербанк Онлайн">Сбербанк Онлайн</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Номер счета/квитанции</label>
+                                <input type="text" class="form-control" id="paymentInvoice">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Примечания</label>
+                            <textarea class="form-control" id="paymentNotes" rows="2"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-primary" onclick="savePayment()">
+                        <i class="fas fa-save me-2"></i>Сохранить
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Модальное окно события -->
+    <div class="modal fade" id="eventModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="eventModalTitle">
+                        <i class="fas fa-calendar me-2"></i>Добавить событие
+                    </h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="eventForm">
+                        <input type="hidden" id="eventId">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Название события *</label>
+                                <input type="text" class="form-control" id="eventTitle" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Тип события *</label>
+                                <select class="form-select" id="eventType" required>
+                                    <option value="">Выберите тип</option>
+                                    <option value="Судебное заседание">Судебное заседание</option>
+                                    <option value="Консультация">Консультация</option>
+                                    <option value="Встреча с клиентом">Встреча с клиентом</option>
+                                    <option value="Документооборот">Документооборот</option>
+                                    <option value="Другое">Другое</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Клиент</label>
+                                <select class="form-select" id="eventClient">
+                                    <option value="">Выберите клиента</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Дело</label>
+                                <select class="form-select" id="eventCase">
+                                    <option value="">Выберите дело</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Дата *</label>
+                                <input type="date" class="form-control" id="eventDate" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Время</label>
+                                <input type="time" class="form-control" id="eventTime">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Место проведения</label>
+                            <input type="text" class="form-control" id="eventLocation">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Описание</label>
+                            <textarea class="form-control" id="eventDescription" rows="3"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-primary" onclick="saveEvent()">
+                        <i class="fas fa-save me-2"></i>Сохранить
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Toast для уведомлений -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div id="notificationToast" class="toast" role="alert">
+            <div class="toast-header">
+                <i class="fas fa-info-circle me-2"></i>
+                <strong class="me-auto">Legal CRM</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body" id="toastMessage">
+                <!-- Сообщение будет вставлено через JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ru.js"></script>
+    
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>
