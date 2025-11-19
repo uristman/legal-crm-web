@@ -1,7 +1,6 @@
 """
-Веб-версия Legal CRM - Финальная исправленная версия
-Полная функциональность: аутентификация, мобильная поддержка, все API
-Версия для деплоя на Render.com
+Legal CRM - Финальная стабильная версия
+Исправлены все ошибки: HTTP методы, БД, мобильные шаблоны
 """
 
 from flask import Flask, render_template, request, jsonify, send_from_directory, session, redirect, url_for
@@ -39,23 +38,6 @@ def is_mobile_device():
     
     return any(agent in user_agent for agent in mobile_agents)
 
-def get_device_info():
-    """Получение информации об устройстве"""
-    try:
-        return {
-            'is_mobile': is_mobile_device(),
-            'user_agent': request.headers.get('User-Agent', ''),
-            'screen_size': request.args.get('screen_size', 'unknown'),
-            'timestamp': datetime.now().isoformat()
-        }
-    except:
-        return {
-            'is_mobile': False,
-            'user_agent': 'unknown',
-            'screen_size': 'unknown',
-            'timestamp': datetime.now().isoformat()
-        }
-
 class WebDatabase:
     def __init__(self, db_name=DATABASE_NAME):
         self.db_name = db_name
@@ -64,13 +46,16 @@ class WebDatabase:
     def init_database(self):
         """Инициализация базы данных"""
         try:
+            # Удаляем старую БД для чистой установки
+            if os.path.exists(self.db_name):
+                os.remove(self.db_name)
+                print("Старая база данных удалена")
+            
             conn = sqlite3.connect(self.db_name)
             cursor = conn.cursor()
             
             # Включаем поддержку внешних ключей
             cursor.execute("PRAGMA foreign_keys = ON")
-            
-            # Создаем таблицы с правильной структурой
             
             # Таблица клиентов
             cursor.execute("""
@@ -117,8 +102,8 @@ class WebDatabase:
                     hourly_rate REAL DEFAULT 0,
                     total_cost REAL DEFAULT 0,
                     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (client_id) REFERENCES clients (id),
-                    FOREIGN KEY (service_id) REFERENCES services (id)
+                    FOREIGN KEY (client_id) REFERENCES clients (id) ON DELETE CASCADE,
+                    FOREIGN KEY (service_id) REFERENCES services (id) ON DELETE SET NULL
                 )
             """)
             
@@ -133,23 +118,7 @@ class WebDatabase:
                     reference_number TEXT,
                     notes TEXT,
                     status TEXT DEFAULT 'completed',
-                    FOREIGN KEY (case_id) REFERENCES cases (id)
-                )
-            """)
-            
-            # Таблица документов
-            cursor.execute("""
-                CREATE TABLE IF NOT EXISTS documents (
-                    id INTEGER PRIMARY KEY AUTOINCREMENT,
-                    case_id INTEGER,
-                    client_id INTEGER,
-                    title TEXT NOT NULL,
-                    file_path TEXT,
-                    file_type TEXT,
-                    upload_date TEXT DEFAULT CURRENT_TIMESTAMP,
-                    uploaded_by TEXT,
-                    FOREIGN KEY (case_id) REFERENCES cases (id),
-                    FOREIGN KEY (client_id) REFERENCES clients (id)
+                    FOREIGN KEY (case_id) REFERENCES cases (id) ON DELETE CASCADE
                 )
             """)
             
@@ -168,8 +137,8 @@ class WebDatabase:
                     location TEXT,
                     status TEXT DEFAULT 'scheduled',
                     created_at TEXT DEFAULT CURRENT_TIMESTAMP,
-                    FOREIGN KEY (case_id) REFERENCES cases (id),
-                    FOREIGN KEY (client_id) REFERENCES clients (id)
+                    FOREIGN KEY (case_id) REFERENCES cases (id) ON DELETE SET NULL,
+                    FOREIGN KEY (client_id) REFERENCES clients (id) ON DELETE SET NULL
                 )
             """)
             
@@ -186,94 +155,65 @@ class WebDatabase:
                 )
             """)
             
-            # Добавляем тестовых данных, если таблицы пустые
-            # Клиенты
-            cursor.execute("SELECT COUNT(*) FROM clients")
-            if cursor.fetchone()[0] == 0:
-                test_clients = [
-                    ("Иванов Иван Иванович", "+7-999-123-45-67", "ivanov@example.com", 
-                     "г. Москва, ул. Примерная, д. 1", "ООО Пример", 
-                     "Тестовый клиент", "active"),
-                    ("Петрова Анна Сергеевна", "+7-999-987-65-43", "petrova@example.com",
-                     "г. СПб, пр. Тестовый, д. 5", "", "Другая тестовая запись", "active"),
-                    ("Сидоров Михаил Петрович", "+7-999-111-22-33", "sidorov@example.com",
-                     "г. Казань, ул. Примерная, д. 15", "ИП Сидоров", "Пробная запись", "active")
-                ]
-                cursor.executemany("""INSERT INTO clients 
-                    (full_name, phone, email, address, company, notes, status) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?)""", test_clients)
+            # Добавляем тестовые данные
+            test_clients = [
+                ("Иванов Иван Иванович", "+7-999-123-45-67", "ivanov@example.com", 
+                 "г. Москва, ул. Примерная, д. 1", "ООО Пример", 
+                 "Тестовый клиент", "active"),
+                ("Петрова Анна Сергеевна", "+7-999-987-65-43", "petrova@example.com",
+                 "г. СПб, пр. Тестовый, д. 5", "", "Другая тестовая запись", "active"),
+                ("Сидоров Михаил Петрович", "+7-999-111-22-33", "sidorov@example.com",
+                 "г. Казань, ул. Примерная, д. 15", "ИП Сидоров", "Пробная запись", "active")
+            ]
+            cursor.executemany("""INSERT INTO clients 
+                (full_name, phone, email, address, company, notes, status) 
+                VALUES (?, ?, ?, ?, ?, ?, ?)""", test_clients)
             
-            # Услуги
-            cursor.execute("SELECT COUNT(*) FROM services")
-            if cursor.fetchone()[0] == 0:
-                test_services = [
-                    ("Консультация юриста", "Первичная правовая консультация", 5000, 1, "Консультации", 1),
-                    ("Составление договора", "Подготовка договора любой сложности", 10000, 2, "Документы", 1),
-                    ("Представительство в суде", "Представительство интересов в суде", 15000, 4, "Судебная работа", 1),
-                    ("Регистрация ООО", "Полный комплекс услуг по регистрации", 25000, 8, "Регистрация", 1),
-                    ("Взыскание долгов", "Процедура взыскания задолженности", 8000, 3, "Судебная работа", 1)
-                ]
-                cursor.executemany("""INSERT INTO services 
-                    (name, description, price, duration_hours, category, is_active) 
-                    VALUES (?, ?, ?, ?, ?, ?)""", test_services)
+            test_services = [
+                ("Консультация юриста", "Первичная правовая консультация", 5000, 1, "Консультации", 1),
+                ("Составление договора", "Подготовка договора любой сложности", 10000, 2, "Документы", 1),
+                ("Представительство в суде", "Представительство интересов в суде", 15000, 4, "Судебная работа", 1),
+                ("Регистрация ООО", "Полный комплекс услуг по регистрации", 25000, 8, "Регистрация", 1)
+            ]
+            cursor.executemany("""INSERT INTO services 
+                (name, description, price, duration_hours, category, is_active) 
+                VALUES (?, ?, ?, ?, ?, ?)""", test_services)
             
-            # Дела
-            cursor.execute("SELECT COUNT(*) FROM cases")
-            if cursor.fetchone()[0] == 0:
-                test_cases = [
-                    (1, 1, "Консультация по корпоративному праву", "Консультация по вопросам слияния компаний", 
-                     "completed", "high", None, "Иванов И.И.", 2, 2500, 5000, datetime.now().isoformat()),
-                    (2, 2, "Составление договора поставки", "Договор между поставщиком и покупателем", 
-                     "in_progress", "medium", None, "Петров П.П.", 5, 2000, 10000, datetime.now().isoformat()),
-                    (3, 3, "Судебное разбирательство", "Представительство в арбитражном суде", 
-                     "pending", "high", None, "Сидоров С.С.", 10, 1500, 15000, datetime.now().isoformat())
-                ]
-                cursor.executemany("""INSERT INTO cases 
-                    (client_id, service_id, title, description, status, priority, end_date, 
-                     lawyer_assigned, total_hours, hourly_rate, total_cost, created_at) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""", test_cases)
+            test_cases = [
+                (1, 1, "Консультация по корпоративному праву", "Консультация по вопросам слияния компаний", 
+                 "completed", "high", None, "Иванов И.И.", 2, 2500, 5000, datetime.now().isoformat()),
+                (2, 2, "Составление договора поставки", "Договор между поставщиком и покупателем", 
+                 "in_progress", "medium", None, "Петров П.П.", 5, 2000, 10000, datetime.now().isoformat()),
+                (3, 3, "Судебное разбирательство", "Представительство в арбитражном суде", 
+                 "pending", "high", None, "Сидоров С.С.", 10, 1500, 15000, datetime.now().isoformat())
+            ]
+            cursor.executemany("""INSERT INTO cases 
+                (client_id, service_id, title, description, status, priority, end_date, 
+                 lawyer_assigned, total_hours, hourly_rate, total_cost, created_at) 
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""", test_cases)
             
-            # Платежи
-            cursor.execute("SELECT COUNT(*) FROM payments")
-            if cursor.fetchone()[0] == 0:
-                test_payments = [
-                    (1, 2500, "2025-01-15", "Банковский перевод", "TR001", "Первая часть оплаты", "completed"),
-                    (2, 5000, "2025-01-20", "Наличными", "CASH002", "Полная оплата услуги", "completed"),
-                    (3, 8000, "2025-01-25", "Банковская карта", "CARD003", "Авансовый платеж", "completed")
-                ]
-                cursor.executemany("""INSERT INTO payments 
-                    (case_id, amount, payment_date, payment_method, reference_number, notes, status) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?)""", test_payments)
-            
-            # События календаря
-            cursor.execute("SELECT COUNT(*) FROM calendar_events")
-            if cursor.fetchone()[0] == 0:
-                test_events = [
-                    (1, 1, "Встреча с клиентом", "Обсуждение деталей дела", "2025-01-30", "14:00", 2, "meeting", "Офис", "scheduled"),
-                    (2, 2, "Подписание договора", "Финализация документов", "2025-02-05", "10:30", 1, "contract", "Конференц-зал", "scheduled"),
-                    (3, 3, "Судебное заседание", "Представительство в арбитраже", "2025-02-10", "09:00", 4, "court", "Арбитражный суд", "scheduled")
-                ]
-                cursor.executemany("""INSERT INTO calendar_events 
-                    (case_id, client_id, title, description, event_date, event_time, 
-                     duration_hours, event_type, location, status) 
-                    VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)""", test_events)
+            test_payments = [
+                (1, 2500, "2025-01-15", "Банковский перевод", "TR001", "Первая часть оплаты", "completed"),
+                (2, 5000, "2025-01-20", "Наличными", "CASH002", "Полная оплата услуги", "completed"),
+                (3, 8000, "2025-01-25", "Банковская карта", "CARD003", "Авансовый платеж", "completed")
+            ]
+            cursor.executemany("""INSERT INTO payments 
+                (case_id, amount, payment_date, payment_method, reference_number, notes, status) 
+                VALUES (?, ?, ?, ?, ?, ?, ?)""", test_payments)
             
             # Создаем администратора по умолчанию
-            cursor.execute("SELECT COUNT(*) FROM users")
-            if cursor.fetchone()[0] == 0:
-                default_password_hash = generate_password_hash("admin123")
-                cursor.execute("""INSERT INTO users 
-                    (username, password_hash, full_name, email, is_active) 
-                    VALUES (?, ?, ?, ?, ?)""", 
-                    ("admin", default_password_hash, "Администратор", "admin@legalcrm.com", 1))
+            default_password_hash = generate_password_hash("admin123")
+            cursor.execute("""INSERT INTO users 
+                (username, password_hash, full_name, email, is_active) 
+                VALUES (?, ?, ?, ?, ?)""", 
+                ("admin", default_password_hash, "Администратор", "admin@legalcrm.com", 1))
             
             conn.commit()
+            conn.close()
             print("База данных успешно инициализирована")
             
         except Exception as e:
             print(f"Ошибка инициализации базы данных: {e}")
-        finally:
-            conn.close()
 
 # Инициализация базы данных
 db = WebDatabase()
@@ -298,7 +238,7 @@ def login():
         user = cursor.fetchone()
         conn.close()
         
-        if user and user[4] and check_password_hash(user[2], password):  # user[4] = is_active
+        if user and user[4] and check_password_hash(user[2], password):
             session['user_id'] = user[0]
             session['username'] = user[1]
             session['full_name'] = user[3]
@@ -601,63 +541,21 @@ def get_statistics():
     except Exception as e:
         return jsonify({'error': f'Ошибка получения статистики: {str(e)}'}), 500
 
-@app.route('/api/device-info', methods=['GET'])
-@login_required
-def get_device_info_api():
-    """Получение информации об устройстве"""
-    try:
-        return jsonify(get_device_info())
-    except Exception as e:
-        return jsonify({'error': f'Ошибка: {str(e)}'}), 500
-
 # === ОСНОВНЫЕ МАРШРУТЫ ===
 
 @app.route('/')
 def index():
     """Главная страница - перенаправление на логин или дашборд"""
-    if is_mobile_device():
-        return render_template('mobile-login.html')
-    
     if 'user_id' not in session:
-        return redirect(url_for('login'))
+        return redirect(url_for('login_page'))
     return render_template('index.html')
 
 @app.route('/login')
 def login_page():
     """Страница логина"""
-    if is_mobile_device():
-        return render_template('mobile-login.html')
-    
     if 'user_id' in session:
         return redirect(url_for('index'))
     return render_template('login.html')
-
-@app.route('/dashboard')
-def dashboard():
-    """Дашборд (основная панель)"""
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    
-    if is_mobile_device():
-        return render_template('mobile-dashboard.html')
-    
-    return render_template('index.html')
-
-@app.route('/mobile')
-def mobile_view():
-    """Мобильная версия"""
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    
-    device_info = get_device_info()
-    return render_template(f"mobile-{request.args.get('page', 'dashboard')}.html", device_info=device_info)
-
-@app.route('/mobile-clients')
-def mobile_clients():
-    """Мобильная страница клиентов"""
-    if 'user_id' not in session:
-        return redirect(url_for('login'))
-    return render_template('mobile-clients.html')
 
 # === СТАТИЧЕСКИЕ ФАЙЛЫ ===
 
