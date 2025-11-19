@@ -1,10 +1,10 @@
 """
 Веб-версия Legal CRM - Flask Backend
 Система учета клиентов и активностей для юридической практики
-Упрощенная версия для диагностики ошибки
+Версия с исправленной аутентификацией
 """
 
-from flask import Flask, render_template, request, jsonify, send_from_directory
+from flask import Flask, render_template, request, jsonify, send_from_directory, session
 from flask_cors import CORS
 import sqlite3
 import os
@@ -171,7 +171,20 @@ class WebDatabase:
                 )
             """)
             
-            # Добавляем тестовые данные, если таблицы пустые
+            # Таблица пользователей для аутентификации
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS users (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    username TEXT UNIQUE NOT NULL,
+                    password TEXT NOT NULL,
+                    full_name TEXT,
+                    email TEXT,
+                    is_active BOOLEAN DEFAULT 1,
+                    created_at TEXT DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            # Добавляем тестовых данных, если таблицы пустые
             cursor.execute("SELECT COUNT(*) FROM clients")
             if cursor.fetchone()[0] == 0:
                 test_data = [
@@ -201,6 +214,14 @@ class WebDatabase:
                     VALUES (?, ?, ?, ?, ?, ?)
                 """, test_services)
             
+            # Добавляем пользователя по умолчанию
+            cursor.execute("SELECT COUNT(*) FROM users")
+            if cursor.fetchone()[0] == 0:
+                cursor.execute("""
+                    INSERT INTO users (username, password, full_name, email)
+                    VALUES (?, ?, ?, ?)
+                """, ("admin", "admin123", "Администратор", "admin@example.com"))
+            
             conn.commit()
             conn.close()
             print("База данных успешно инициализирована")
@@ -220,6 +241,82 @@ class WebDatabase:
 
 # Инициализация базы данных
 db = WebDatabase()
+
+# ==================== АУТЕНТИФИКАЦИЯ ====================
+
+@app.route('/api/auth/login', methods=['POST'])
+def api_auth_login():
+    """API для входа в систему"""
+    try:
+        data = request.get_json()
+        username = data.get('username', '').strip()
+        password = data.get('password', '').strip()
+        
+        if not username or not password:
+            return jsonify({'error': 'Username и password обязательны'}), 400
+        
+        conn = db.get_connection()
+        if not conn:
+            return jsonify({'error': 'Database connection failed'}), 500
+        
+        cursor = conn.cursor()
+        cursor.execute("SELECT * FROM users WHERE username = ? AND password = ? AND is_active = 1", 
+                      (username, password))
+        user = cursor.fetchone()
+        conn.close()
+        
+        if user:
+            session['user_id'] = user['id']
+            session['username'] = user['username']
+            session['full_name'] = user['full_name']
+            
+            return jsonify({
+                'success': True,
+                'user': {
+                    'id': user['id'],
+                    'username': user['username'],
+                    'full_name': user['full_name'],
+                    'email': user['email']
+                }
+            })
+        else:
+            return jsonify({'error': 'Неверные учетные данные'}), 401
+            
+    except Exception as e:
+        print(f"Ошибка аутентификации: {e}")
+        return jsonify({'error': str(e)}), 500
+
+@app.route('/api/auth/check')
+def api_auth_check():
+    """API для проверки аутентификации"""
+    try:
+        if 'user_id' in session:
+            return jsonify({
+                'authenticated': True,
+                'user': {
+                    'id': session['user_id'],
+                    'username': session['username'],
+                    'full_name': session['full_name']
+                }
+            })
+        else:
+            return jsonify({'authenticated': False})
+            
+    except Exception as e:
+        print(f"Ошибка проверки аутентификации: {e}")
+        return jsonify({'authenticated': False})
+
+@app.route('/api/auth/logout')
+def api_auth_logout():
+    """API для выхода из системы"""
+    try:
+        session.clear()
+        return jsonify({'success': True})
+    except Exception as e:
+        print(f"Ошибка выхода: {e}")
+        return jsonify({'error': str(e)}), 500
+
+# ==================== ОСНОВНЫЕ МАРШРУТЫ ====================
 
 @app.route('/')
 def index():
@@ -584,6 +681,8 @@ if __name__ == '__main__':
         print(f"Запуск Legal CRM на порту {PORT}")
         print(f"Режим отладки: {DEBUG_MODE}")
         print(f"База данных: {DATABASE_NAME}")
+        print(f"Аутентификация включена")
+        print(f"Тестовые учетные данные: admin / admin123")
         app.run(host='0.0.0.0', port=PORT, debug=DEBUG_MODE)
     except Exception as e:
         print(f"Ошибка при запуске приложения: {e}")
