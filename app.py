@@ -10,7 +10,6 @@ import sqlite3
 import os
 from datetime import datetime
 import json
-import re
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
 CORS(app)  # Разрешаем CORS для фронтенда
@@ -28,41 +27,29 @@ PORT = int(os.environ.get('PORT', 5000))
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'default-secret-key-for-legal-crm')
 app.config['DEBUG'] = DEBUG_MODE
 
-def is_mobile_device(request):
+def is_mobile_device():
     """Определение мобильного устройства по User-Agent и параметрам"""
+    # Получаем User-Agent из окружения запроса
+    with app.test_request_context():
+        user_agent = request.headers.get('User-Agent', '').lower() if request else ''
+    
     # Проверяем мобильные устройства по User-Agent
     mobile_agents = [
-        'Mobile', 'Android', 'iPhone', 'iPad', 'iPod', 'BlackBerry', 
-        'Windows Phone', 'webOS', 'Opera Mobi', 'Opera Mini'
+        'mobile', 'android', 'iphone', 'ipad', 'ipod', 'blackberry', 
+        'windows phone', 'webos', 'opera mobi', 'opera mini'
     ]
-    
-    user_agent = request.headers.get('User-Agent', '').lower()
     
     # Проверяем по User-Agent
     mobile = any(agent.lower() in user_agent for agent in mobile_agents)
     
-    # Проверяем по параметрам запроса (для принудительного включения мобильной версии)
-    if request.args.get('mobile') == '1':
-        return True
-    
-    # Проверяем по cookies
-    if request.cookies.get('force_mobile') == 'true':
-        return True
-    
-    # Проверяем размер экрана (если передан в запросе)
-    if 'screen_width' in request.args:
-        screen_width = request.args.get('screen_width', type=int)
-        if screen_width and screen_width <= 768:
-            return True
-    
     return mobile
 
-def get_device_info(request):
+def get_device_info():
     """Получение информации об устройстве"""
     return {
-        'is_mobile': is_mobile_device(request),
-        'user_agent': request.headers.get('User-Agent', ''),
-        'accept': request.headers.get('Accept', '')
+        'is_mobile': is_mobile_device(),
+        'user_agent': request.headers.get('User-Agent', '') if request else '',
+        'accept': request.headers.get('Accept', '') if request else ''
     }
 
 class WebDatabase:
@@ -189,20 +176,6 @@ class WebDatabase:
             )
         """)
         
-        # Таблица пользователей для аутентификации
-        cursor.execute("""
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT UNIQUE NOT NULL,
-                password_hash TEXT NOT NULL,
-                full_name TEXT NOT NULL,
-                email TEXT,
-                role TEXT DEFAULT 'user',
-                created_date TEXT DEFAULT CURRENT_TIMESTAMP,
-                is_active INTEGER DEFAULT 1
-            )
-        """)
-        
         conn.commit()
         conn.close()
     
@@ -219,52 +192,66 @@ db = WebDatabase()
 @app.route('/')
 def index():
     """Главная страница - определение типа устройства"""
-    device_info = get_device_info(request)
-    
-    if device_info['is_mobile']:
-        return render_template('mobile-base.html', 
-                             page_content='mobile-dashboard.html',
-                             title='Legal CRM - Главная',
-                             device_info=device_info)
-    else:
+    try:
+        device_info = get_device_info()
+        
+        if device_info['is_mobile']:
+            return render_template('mobile-base.html', 
+                                 page_content='mobile-dashboard.html',
+                                 title='Legal CRM - Главная',
+                                 device_info=device_info)
+        else:
+            return render_template('index.html')
+    except Exception as e:
+        # Если есть проблемы с мобильными шаблонами, возвращаемся к десктоп версии
         return render_template('index.html')
 
 @app.route('/login')
 def login():
     """Страница входа"""
-    device_info = get_device_info(request)
-    
-    if device_info['is_mobile']:
-        return render_template('mobile-login.html', 
-                             title='Вход - Legal CRM',
-                             device_info=device_info)
-    else:
+    try:
+        device_info = get_device_info()
+        
+        if device_info['is_mobile']:
+            return render_template('mobile-login.html', 
+                                 title='Вход - Legal CRM',
+                                 device_info=device_info)
+        else:
+            return render_template('login.html')
+    except Exception as e:
+        # Если есть проблемы с мобильными шаблонами, возвращаемся к десктоп версии
         return render_template('login.html')
 
 @app.route('/dashboard')
 def dashboard():
     """Панель управления"""
-    device_info = get_device_info(request)
-    
-    if device_info['is_mobile']:
-        return render_template('mobile-base.html', 
-                             page_content='mobile-dashboard.html',
-                             title='Панель управления - Legal CRM',
-                             device_info=device_info)
-    else:
+    try:
+        device_info = get_device_info()
+        
+        if device_info['is_mobile']:
+            return render_template('mobile-base.html', 
+                                 page_content='mobile-dashboard.html',
+                                 title='Панель управления - Legal CRM',
+                                 device_info=device_info)
+        else:
+            return render_template('index.html')
+    except Exception as e:
         return render_template('index.html')
 
 @app.route('/clients')
 def clients():
     """Страница клиентов"""
-    device_info = get_device_info(request)
-    
-    if device_info['is_mobile']:
-        return render_template('mobile-base.html', 
-                             page_content='mobile-clients.html',
-                             title='Клиенты - Legal CRM',
-                             device_info=device_info)
-    else:
+    try:
+        device_info = get_device_info()
+        
+        if device_info['is_mobile']:
+            return render_template('mobile-base.html', 
+                                 page_content='mobile-clients.html',
+                                 title='Клиенты - Legal CRM',
+                                 device_info=device_info)
+        else:
+            return render_template('index.html')
+    except Exception as e:
         return render_template('index.html')
 
 # ==================== PWA SUPPORT ====================
@@ -363,21 +350,24 @@ def service_worker():
 @app.route('/api/device-info', methods=['GET'])
 def get_device_info_endpoint():
     """Информация об устройстве"""
-    device_info = get_device_info(request)
+    device_info = get_device_info()
     return jsonify({'success': True, 'data': device_info})
 
 @app.route('/api/mobile-toggle', methods=['POST'])
 def toggle_mobile_mode():
     """Переключение режима отображения"""
-    device_info = get_device_info(request)
-    
-    # В реальном приложении здесь была бы логика переключения cookies
-    force_mobile = request.json.get('force_mobile', False)
-    
-    response = jsonify({'success': True, 'is_mobile': force_mobile})
-    response.set_cookie('force_mobile', 'true' if force_mobile else 'false', max_age=30*24*60*60)
-    
-    return response
+    try:
+        device_info = get_device_info()
+        
+        # В реальном приложении здесь была бы логика переключения cookies
+        force_mobile = request.json.get('force_mobile', False) if request.json else False
+        
+        response = jsonify({'success': True, 'is_mobile': force_mobile})
+        response.set_cookie('force_mobile', 'true' if force_mobile else 'false', max_age=30*24*60*60)
+        
+        return response
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
 
 # ==================== API ENDPOINTS ====================
 
