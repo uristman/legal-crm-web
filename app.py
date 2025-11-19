@@ -1,12 +1,14 @@
 """
-Веб-версия Legal CRM - Flask Backend
-Система учета клиентов и активностей для юридической практики
+Веб-версия Legal CRM с аутентификацией - Flask Backend
+Система учета клиентов и активностей для юридической практики с защитой
 """
 
-from flask import Flask, render_template, request, jsonify, send_from_directory
+from flask import Flask, render_template, request, jsonify, redirect, url_for, session, flash
 from flask_cors import CORS
+from werkzeug.security import generate_password_hash, check_password_hash
 import sqlite3
 import os
+import secrets
 from datetime import datetime
 import json
 
@@ -18,28 +20,44 @@ DATABASE_NAME = os.environ.get('DATABASE_NAME', 'legal_crm.db')
 STATIC_FOLDER = 'static'
 TEMPLATES_FOLDER = 'templates'
 
+# Настройки безопасности
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', secrets.token_hex(32))
+app.config['SESSION_COOKIE_SECURE'] = True
+app.config['SESSION_COOKIE_HTTPONLY'] = True
+app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+app.config['PERMANENT_SESSION_LIFETIME'] = 3600 * 8  # 8 часов
+
 # Настройки для облачного развертывания
 DEBUG_MODE = os.environ.get('DEBUG', 'False').lower() == 'true'
 PORT = int(os.environ.get('PORT', 5000))
 
-# Настройки Flask для production
-app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'default-secret-key-for-legal-crm')
-app.config['DEBUG'] = DEBUG_MODE
-
-class WebDatabase:
+class AuthDatabase:
     def __init__(self, db_name=DATABASE_NAME):
         self.db_name = db_name
         self.init_database()
     
     def init_database(self):
-        """Инициализация базы данных"""
+        """Инициализация базы данных с таблицей пользователей"""
         conn = sqlite3.connect(self.db_name)
         cursor = conn.cursor()
         
         # Включаем поддержку внешних ключей
         cursor.execute("PRAGMA foreign_keys = ON")
         
-        # Создаем таблицы (тот же код что и в desktop версии)
+        # Таблица пользователей (добавляем аутентификацию)
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT UNIQUE NOT NULL,
+                password_hash TEXT NOT NULL,
+                email TEXT UNIQUE NOT NULL,
+                full_name TEXT,
+                role TEXT NOT NULL DEFAULT 'user',
+                created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+                last_login DATETIME,
+                is_active BOOLEAN DEFAULT 1
+            )
+        """)
         
         # Таблица клиентов
         cursor.execute("""
@@ -150,6 +168,24 @@ class WebDatabase:
             )
         """)
         
+        # Создаем администратора по умолчанию, если его нет
+        cursor.execute("SELECT COUNT(*) FROM users")
+        user_count = cursor.fetchone()[0]
+        
+        if user_count == 0:
+            admin_password = os.environ.get('ADMIN_PASSWORD', 'admin123')
+            admin_hash = generate_password_hash(admin_password)
+            
+            cursor.execute("""
+                INSERT INTO users (username, password_hash, email, full_name, role)
+                VALUES (?, ?, ?, ?, ?)
+            """, ('admin', admin_hash, 'admin@legal-crm.com', 'Администратор', 'admin'))
+            
+            print(f"🔑 Создан администратор по умолчанию:")
+            print(f"   Логин: admin")
+            print(f"   Пароль: {admin_password}")
+            print(f"   ⚠️  Обязательно смените пароль после первого входа!")
+        
         conn.commit()
         conn.close()
     
@@ -159,16 +195,164 @@ class WebDatabase:
         conn.row_factory = sqlite3.Row  # Для получения данных как словарей
         return conn
 
-db = WebDatabase()
+db = AuthDatabase()
 
-# ==================== API ENDPOINTS ====================
+# ==================== СИСТЕМА АУТЕНТИФИКАЦИИ ====================
+
+def login_required(f):
+    """Декоратор для защищенных маршрутов"""
+    from functools import wraps
+    
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    
+    return decorated_function
+
+def api_login_required(f):
+    """Декоратор для защищенных API маршрутов"""
+    from functools import wraps
+    
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            return jsonify({'success': False, 'error': 'Требуется аутентификация'}), 401
+        return f(*args, **kwargs)
+    
+    return decorated_function
+
+@app.route('/login')
+def login():
+    """Страница входа в систему"""
+    if 'user_id' in session:
+        return redirect(url_for('index'))
+    return render_template('login.html')
+
+@app.route('/api/auth/login', methods=['POST'])
+def api_login():
+    """API для входа в систему"""
+    try:
+        data = request.json
+        username = data.get('username')
+        password = data.get('password')
+        
+        if not username or not password:
+            return jsonify({'success': False, 'error': 'Логин и пароль обязательны'}), 400
+        
+        with db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT * FROM users WHERE username = ? AND is_active = 1",
+                (username,)
+            )
+            user = cursor.fetchone()
+            
+            if user and check_password_hash(user['password_hash'], password):
+                # Успешная аутентификация
+                session['user_id'] = user['id']
+                session['username'] = user['username']
+                session['role'] = user['role']
+                session.permanent = True
+                
+                # Обновляем время последнего входа
+                cursor.execute(
+                    "UPDATE users SET last_login = ? WHERE id = ?",
+                    (datetime.now(), user['id'])
+                )
+                conn.commit()
+                
+                return jsonify({
+                    'success': True,
+                    'user': {
+                        'id': user['id'],
+                        'username': user['username'],
+                        'full_name': user['full_name'],
+                        'role': user['role']
+                    }
+                })
+            else:
+                return jsonify({'success': False, 'error': 'Неверный логин или пароль'}), 401
+                
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+@app.route('/api/auth/logout', methods=['POST'])
+@api_login_required
+def api_logout():
+    """API для выхода из системы"""
+    session.clear()
+    return jsonify({'success': True, 'message': 'Вы успешно вышли из системы'})
+
+@app.route('/api/auth/check', methods=['GET'])
+def check_auth():
+    """Проверка аутентификации"""
+    if 'user_id' in session:
+        return jsonify({
+            'authenticated': True,
+            'user': {
+                'id': session['user_id'],
+                'username': session['username'],
+                'role': session['role']
+            }
+        })
+    return jsonify({'authenticated': False})
+
+@app.route('/api/auth/change-password', methods=['POST'])
+@api_login_required
+def change_password():
+    """Смена пароля пользователя"""
+    try:
+        data = request.json
+        current_password = data.get('current_password')
+        new_password = data.get('new_password')
+        
+        if not current_password or not new_password:
+            return jsonify({'success': False, 'error': 'Все поля обязательны'}), 400
+        
+        with db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute(
+                "SELECT * FROM users WHERE id = ?",
+                (session['user_id'],)
+            )
+            user = cursor.fetchone()
+            
+            if not check_password_hash(user['password_hash'], current_password):
+                return jsonify({'success': False, 'error': 'Неверный текущий пароль'}), 400
+            
+            # Обновляем пароль
+            new_hash = generate_password_hash(new_password)
+            cursor.execute(
+                "UPDATE users SET password_hash = ? WHERE id = ?",
+                (new_hash, session['user_id'])
+            )
+            conn.commit()
+            
+            return jsonify({'success': True, 'message': 'Пароль успешно изменен'})
+            
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+# ==================== ГЛАВНЫЕ МАРШРУТЫ ====================
 
 @app.route('/')
+@login_required
 def index():
-    """Главная страница"""
+    """Главная страница (защищена)"""
     return render_template('index.html')
 
+@app.route('/logout')
+def logout():
+    """Выход из системы"""
+    session.clear()
+    return redirect(url_for('login'))
+
+# ==================== ЗАЩИЩЕННЫЕ API ENDPOINTS ====================
+
 @app.route('/api/clients', methods=['GET'])
+@api_login_required
 def get_clients():
     """Получение всех клиентов"""
     try:
@@ -200,6 +384,7 @@ def get_clients():
         return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/clients', methods=['POST'])
+@api_login_required
 def add_client():
     """Добавление клиента"""
     try:
@@ -228,6 +413,7 @@ def add_client():
         return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/clients/<int:client_id>', methods=['PUT'])
+@api_login_required
 def update_client(client_id):
     """Обновление клиента"""
     try:
@@ -255,6 +441,7 @@ def update_client(client_id):
         return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/clients/<int:client_id>', methods=['DELETE'])
+@api_login_required
 def delete_client(client_id):
     """Удаление клиента"""
     try:
@@ -269,6 +456,7 @@ def delete_client(client_id):
 
 # Аналогичные endpoints для дел, услуг, платежей, событий и документов
 @app.route('/api/cases', methods=['GET'])
+@api_login_required
 def get_cases():
     """Получение всех дел"""
     try:
@@ -302,6 +490,7 @@ def get_cases():
         return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/cases', methods=['POST'])
+@api_login_required
 def add_case():
     """Добавление дела"""
     try:
@@ -335,6 +524,7 @@ def add_case():
         return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/services', methods=['GET'])
+@api_login_required
 def get_services():
     """Получение всех услуг"""
     try:
@@ -357,6 +547,7 @@ def get_services():
         return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/services', methods=['POST'])
+@api_login_required
 def add_service():
     """Добавление услуги"""
     try:
@@ -387,6 +578,7 @@ def add_service():
         return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/payments', methods=['GET'])
+@api_login_required
 def get_payments():
     """Получение всех платежей"""
     try:
@@ -409,6 +601,7 @@ def get_payments():
         return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/payments', methods=['POST'])
+@api_login_required
 def add_payment():
     """Добавление платежа"""
     try:
@@ -441,6 +634,7 @@ def add_payment():
         return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/events', methods=['GET'])
+@api_login_required
 def get_events():
     """Получение всех событий"""
     try:
@@ -463,6 +657,7 @@ def get_events():
         return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/events/<int:event_id>', methods=['GET'])
+@api_login_required
 def get_event(event_id):
     """Получение конкретного события по ID"""
     try:
@@ -489,6 +684,7 @@ def get_event(event_id):
         return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/events', methods=['POST'])
+@api_login_required
 def add_event():
     """Добавление события"""
     try:
@@ -519,7 +715,168 @@ def add_event():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
+@app.route('/api/events/<int:event_id>', methods=['PUT'])
+@api_login_required
+def update_event(event_id):
+    """Обновление события"""
+    try:
+        data = request.json
+        with db.get_connection() as conn:
+            cursor = conn.cursor()
+            
+            fields = []
+            values = []
+            
+            for key, value in data.items():
+                if key != 'id':
+                    fields.append(f"{key} = ?")
+                    values.append(value)
+            
+            if fields:
+                values.append(event_id)
+                query = f"UPDATE events SET {', '.join(fields)} WHERE id = ?"
+                cursor.execute(query, values)
+                conn.commit()
+            
+            return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/events/<int:event_id>', methods=['DELETE'])
+@api_login_required
+def delete_event(event_id):
+    """Удаление события"""
+    try:
+        with db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM events WHERE id = ?", (event_id,))
+            conn.commit()
+            return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/cases/<int:case_id>', methods=['PUT'])
+@api_login_required
+def update_case(case_id):
+    """Обновление дела"""
+    try:
+        data = request.json
+        with db.get_connection() as conn:
+            cursor = conn.cursor()
+            
+            fields = []
+            values = []
+            
+            for key, value in data.items():
+                if key != 'id':
+                    fields.append(f"{key} = ?")
+                    values.append(value)
+            
+            if fields:
+                values.append(case_id)
+                query = f"UPDATE cases SET {', '.join(fields)} WHERE id = ?"
+                cursor.execute(query, values)
+                conn.commit()
+            
+            return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/cases/<int:case_id>', methods=['DELETE'])
+@api_login_required
+def delete_case(case_id):
+    """Удаление дела"""
+    try:
+        with db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM cases WHERE id = ?", (case_id,))
+            conn.commit()
+            return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/services/<int:service_id>', methods=['PUT'])
+@api_login_required
+def update_service(service_id):
+    """Обновление услуги"""
+    try:
+        data = request.json
+        with db.get_connection() as conn:
+            cursor = conn.cursor()
+            
+            fields = []
+            values = []
+            
+            for key, value in data.items():
+                if key != 'id':
+                    fields.append(f"{key} = ?")
+                    values.append(value)
+            
+            if fields:
+                values.append(service_id)
+                query = f"UPDATE services SET {', '.join(fields)} WHERE id = ?"
+                cursor.execute(query, values)
+                conn.commit()
+            
+            return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/services/<int:service_id>', methods=['DELETE'])
+@api_login_required
+def delete_service(service_id):
+    """Удаление услуги"""
+    try:
+        with db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM services WHERE id = ?", (service_id,))
+            conn.commit()
+            return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/payments/<int:payment_id>', methods=['PUT'])
+@api_login_required
+def update_payment(payment_id):
+    """Обновление платежа"""
+    try:
+        data = request.json
+        with db.get_connection() as conn:
+            cursor = conn.cursor()
+            
+            fields = []
+            values = []
+            
+            for key, value in data.items():
+                if key != 'id':
+                    fields.append(f"{key} = ?")
+                    values.append(value)
+            
+            if fields:
+                values.append(payment_id)
+                query = f"UPDATE payments SET {', '.join(fields)} WHERE id = ?"
+                cursor.execute(query, values)
+                conn.commit()
+            
+            return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/payments/<int:payment_id>', methods=['DELETE'])
+@api_login_required
+def delete_payment(payment_id):
+    """Удаление платежа"""
+    try:
+        with db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM payments WHERE id = ?", (payment_id,))
+            conn.commit()
+            return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
 @app.route('/api/statistics', methods=['GET'])
+@api_login_required
 def get_statistics():
     """Получение статистики"""
     try:
@@ -556,163 +913,10 @@ def get_statistics():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
-# ==================== ДОПОЛНИТЕЛЬНЫЕ API ENDPOINTS ====================
-
-@app.route('/api/cases/<int:case_id>', methods=['PUT'])
-def update_case(case_id):
-    """Обновление дела"""
-    try:
-        data = request.json
-        with db.get_connection() as conn:
-            cursor = conn.cursor()
-            
-            fields = []
-            values = []
-            
-            for key, value in data.items():
-                if key != 'id':
-                    fields.append(f"{key} = ?")
-                    values.append(value)
-            
-            if fields:
-                values.append(case_id)
-                query = f"UPDATE cases SET {', '.join(fields)} WHERE id = ?"
-                cursor.execute(query, values)
-                conn.commit()
-            
-            return jsonify({'success': True})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/cases/<int:case_id>', methods=['DELETE'])
-def delete_case(case_id):
-    """Удаление дела"""
-    try:
-        with db.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute("DELETE FROM cases WHERE id = ?", (case_id,))
-            conn.commit()
-            return jsonify({'success': True})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/services/<int:service_id>', methods=['PUT'])
-def update_service(service_id):
-    """Обновление услуги"""
-    try:
-        data = request.json
-        with db.get_connection() as conn:
-            cursor = conn.cursor()
-            
-            fields = []
-            values = []
-            
-            for key, value in data.items():
-                if key != 'id':
-                    fields.append(f"{key} = ?")
-                    values.append(value)
-            
-            if fields:
-                values.append(service_id)
-                query = f"UPDATE services SET {', '.join(fields)} WHERE id = ?"
-                cursor.execute(query, values)
-                conn.commit()
-            
-            return jsonify({'success': True})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/services/<int:service_id>', methods=['DELETE'])
-def delete_service(service_id):
-    """Удаление услуги"""
-    try:
-        with db.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute("DELETE FROM services WHERE id = ?", (service_id,))
-            conn.commit()
-            return jsonify({'success': True})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/payments/<int:payment_id>', methods=['PUT'])
-def update_payment(payment_id):
-    """Обновление платежа"""
-    try:
-        data = request.json
-        with db.get_connection() as conn:
-            cursor = conn.cursor()
-            
-            fields = []
-            values = []
-            
-            for key, value in data.items():
-                if key != 'id':
-                    fields.append(f"{key} = ?")
-                    values.append(value)
-            
-            if fields:
-                values.append(payment_id)
-                query = f"UPDATE payments SET {', '.join(fields)} WHERE id = ?"
-                cursor.execute(query, values)
-                conn.commit()
-            
-            return jsonify({'success': True})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/payments/<int:payment_id>', methods=['DELETE'])
-def delete_payment(payment_id):
-    """Удаление платежа"""
-    try:
-        with db.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute("DELETE FROM payments WHERE id = ?", (payment_id,))
-            conn.commit()
-            return jsonify({'success': True})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/events/<int:event_id>', methods=['PUT'])
-def update_event(event_id):
-    """Обновление события"""
-    try:
-        data = request.json
-        with db.get_connection() as conn:
-            cursor = conn.cursor()
-            
-            fields = []
-            values = []
-            
-            for key, value in data.items():
-                if key != 'id':
-                    fields.append(f"{key} = ?")
-                    values.append(value)
-            
-            if fields:
-                values.append(event_id)
-                query = f"UPDATE events SET {', '.join(fields)} WHERE id = ?"
-                cursor.execute(query, values)
-                conn.commit()
-            
-            return jsonify({'success': True})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
-@app.route('/api/events/<int:event_id>', methods=['DELETE'])
-def delete_event(event_id):
-    """Удаление события"""
-    try:
-        with db.get_connection() as conn:
-            cursor = conn.cursor()
-            cursor.execute("DELETE FROM events WHERE id = ?", (event_id,))
-            conn.commit()
-            return jsonify({'success': True})
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)})
-
 # ==================== DEMO DATA ENDPOINT ====================
 
 @app.route('/api/demo-data', methods=['POST'])
+@api_login_required
 def create_demo_data():
     """Создание демонстрационных данных"""
     try:
@@ -800,10 +1004,11 @@ if __name__ == '__main__':
     os.makedirs(TEMPLATES_FOLDER, exist_ok=True)
     
     # Запускаем сервер для облачного развертывания
-    print("🚀 Запуск веб-версии Legal CRM...")
+    print("🚀 Запуск веб-версии Legal CRM с аутентификацией...")
     print(f"📡 Сервер доступен по адресу: http://localhost:{PORT}")
-    print("⚖️  Legal CRM Web - Система для юристов")
+    print("⚖️  Legal CRM Web - Защищенная система для юристов")
     print("💡 Для создания демо-данных перейдите на /api/demo-data (POST)")
+    print("🔐 Главная страница защищена - требуется авторизация")
     
     # Для production окружения используем переменную PORT
     app.run(debug=DEBUG_MODE, host='0.0.0.0', port=PORT)
