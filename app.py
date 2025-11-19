@@ -161,12 +161,44 @@ class WebDatabase:
 
 db = WebDatabase()
 
+# ==================== AUTH ENDPOINTS ====================
+
+@app.route('/api/auth/check', methods=['GET'])
+def check_auth():
+    """Проверка аутентификации"""
+    return jsonify({'authenticated': True})  # По умолчанию авторизация не требуется
+
+@app.route('/api/auth/login', methods=['POST'])
+def login():
+    """Вход в систему"""
+    try:
+        data = request.json
+        username = data.get('username', '').strip()
+        password = data.get('password', '').strip()
+        
+        if not username or not password:
+            return jsonify({'success': False, 'error': 'Логин и пароль обязательны для заполнения'})
+        
+        # Простая проверка (можно расширить для реальной авторизации)
+        if username == 'admin' and password == '12345':
+            return jsonify({'success': True, 'message': 'Успешный вход'})
+        else:
+            return jsonify({'success': False, 'error': 'Неверный логин или пароль'})
+            
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
 # ==================== API ENDPOINTS ====================
 
 @app.route('/')
 def index():
     """Главная страница"""
     return render_template('index.html')
+
+@app.route('/login')
+def login():
+    """Страница входа"""
+    return render_template('login.html')
 
 @app.route('/api/clients', methods=['GET'])
 def get_clients():
@@ -793,6 +825,18 @@ def create_demo_data():
             return jsonify({'success': True, 'message': 'Демонстрационные данные созданы!'})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
+
+# ==================== ERROR HANDLERS ====================
+
+@app.errorhandler(404)
+def not_found_error(error):
+    """Обработчик 404 ошибок"""
+    return render_template('404.html'), 404
+
+@app.errorhandler(500)
+def internal_error(error):
+    """Обработчик 500 ошибок"""
+    return jsonify({'success': False, 'error': 'Внутренняя ошибка сервера'}), 500
 
 if __name__ == '__main__':
     # Создаем папки для статических файлов и шаблонов
