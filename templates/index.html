@@ -1,0 +1,1951 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>⚖️ Legal CRM Web - Система для юристов</title>
+    
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Font Awesome -->
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
+    <!-- DataTables -->
+    <link href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" rel="stylesheet">
+    <!-- Flatpickr -->
+    <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
+    
+    <style>
+        /* === ОСНОВНЫЕ СТИЛИ === */
+        :root {
+            --primary-color: #667eea;
+            --secondary-color: #764ba2;
+            --success-color: #28a745;
+            --danger-color: #dc3545;
+            --warning-color: #ffc107;
+            --info-color: #17a2b8;
+            --light-color: #f8f9fa;
+            --dark-color: #343a40;
+        }
+        
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 0;
+        }
+        
+        /* === МОБИЛЬНАЯ ОПТИМИЗАЦИЯ === */
+        @media (max-width: 768px) {
+            .sidebar {
+                position: fixed;
+                top: 0;
+                left: -100%;
+                width: 280px;
+                height: 100vh;
+                background: #fff;
+                box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+                transition: left 0.3s ease;
+                z-index: 1050;
+                overflow-y: auto;
+            }
+            
+            .sidebar.show {
+                left: 0;
+            }
+            
+            .main-content {
+                margin-left: 0 !important;
+                padding: 1rem !important;
+            }
+            
+            .navbar {
+                padding: 0.5rem 1rem;
+            }
+            
+            .desktop-stats {
+                display: none !important;
+            }
+            
+            .mobile-stats {
+                display: block !important;
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 1rem;
+                margin: 0 -15px 1rem -15px;
+                border-radius: 0 0 15px 15px;
+            }
+            
+            .mobile-stats .stat-item {
+                text-align: center;
+                margin-bottom: 1rem;
+            }
+            
+            .mobile-stats .stat-value {
+                font-size: 1.5rem;
+                font-weight: bold;
+                display: block;
+            }
+            
+            .table-responsive {
+                overflow-x: auto;
+                -webkit-overflow-scrolling: touch;
+            }
+            
+            .table {
+                font-size: 0.9rem;
+            }
+            
+            .btn {
+                font-size: 0.9rem;
+                padding: 0.5rem 1rem;
+            }
+            
+            .modal-dialog {
+                margin: 0.5rem;
+            }
+            
+            .form-control {
+                font-size: 1rem;
+            }
+        }
+        
+        @media (min-width: 769px) {
+            .mobile-stats {
+                display: none !important;
+            }
+        }
+        
+        /* === БОКОВАЯ ПАНЕЛЬ === */
+        .sidebar {
+            position: fixed;
+            top: 56px;
+            left: 0;
+            width: 280px;
+            height: calc(100vh - 56px);
+            background: #fff;
+            border-right: 1px solid #e9ecef;
+            padding: 1rem 0;
+            overflow-y: auto;
+            z-index: 1000;
+        }
+        
+        .sidebar .nav-link {
+            color: #495057;
+            padding: 0.75rem 1.5rem;
+            display: flex;
+            align-items: center;
+            text-decoration: none;
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar .nav-link:hover {
+            background-color: #f8f9fa;
+            color: var(--primary-color);
+        }
+        
+        .sidebar .nav-link.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+        
+        .sidebar .nav-link i {
+            width: 20px;
+            margin-right: 0.75rem;
+        }
+        
+        /* === ОСНОВНОЕ СОДЕРЖИМОЕ === */
+        .main-content {
+            margin-left: 280px;
+            margin-top: 56px;
+            padding: 2rem;
+            min-height: calc(100vh - 56px);
+        }
+        
+        /* === НАВИГАЦИЯ === */
+        .navbar-brand {
+            font-weight: 600;
+            color: white !important;
+        }
+        
+        .user-info {
+            color: white;
+            font-size: 0.9rem;
+        }
+        
+        /* === КАРТОЧКИ === */
+        .stats-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 15px;
+            padding: 1.5rem;
+            margin-bottom: 1rem;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
+        }
+        
+        .stats-card h3 {
+            margin: 0;
+            font-size: 2rem;
+            font-weight: 700;
+        }
+        
+        .stats-card p {
+            margin: 0;
+            opacity: 0.9;
+            font-size: 0.9rem;
+        }
+        
+        /* === ТАБЛИЦЫ === */
+        .table {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .table thead th {
+            background: #f8f9fa;
+            border: none;
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        .table tbody tr {
+            border: none;
+        }
+        
+        .table tbody tr:hover {
+            background-color: #f8f9fa;
+        }
+        
+        /* === КНОПКИ === */
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border: none;
+            border-radius: 8px;
+            padding: 0.5rem 1rem;
+            font-weight: 500;
+        }
+        
+        .btn-primary:hover {
+            transform: translateY(-1px);
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+        
+        .btn-success {
+            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
+            border: none;
+        }
+        
+        .btn-danger {
+            background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
+            border: none;
+        }
+        
+        /* === МОДАЛЬНЫЕ ОКНА === */
+        .modal-content {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .modal-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-radius: 15px 15px 0 0;
+        }
+        
+        .modal-header .btn-close {
+            filter: invert(1);
+        }
+        
+        /* === ФОРМЫ === */
+        .form-control {
+            border: 2px solid #e9ecef;
+            border-radius: 8px;
+            padding: 0.75rem;
+            transition: all 0.3s ease;
+        }
+        
+        .form-control:focus {
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
+        }
+        
+        .form-label {
+            font-weight: 500;
+            color: #495057;
+            margin-bottom: 0.5rem;
+        }
+        
+        /* === УВЕДОМЛЕНИЯ === */
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            z-index: 1060;
+            min-width: 300px;
+        }
+        
+        /* === HAMBURGER MENU === */
+        .hamburger {
+            display: none;
+            background: none;
+            border: none;
+            color: white;
+            font-size: 1.25rem;
+            cursor: pointer;
+        }
+        
+        @media (max-width: 768px) {
+            .hamburger {
+                display: block;
+            }
+        }
+        
+        /* === OVERLAY === */
+        .sidebar-overlay {
+            display: none;
+            position: fixed;
+            top: 56px;
+            left: 0;
+            width: 100%;
+            height: calc(100vh - 56px);
+            background: rgba(0,0,0,0.5);
+            z-index: 1040;
+        }
+        
+        .sidebar-overlay.show {
+            display: block;
+        }
+        
+        /* === АНИМАЦИИ === */
+        .fade-in {
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(20px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        .loading {
+            display: inline-block;
+            width: 1rem;
+            height: 1rem;
+            border: 2px solid transparent;
+            border-top: 2px solid currentColor;
+            border-radius: 50%;
+            animation: spin 1s linear infinite;
+        }
+        
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Навигационная панель -->
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
+        <div class="container-fluid">
+            <button class="hamburger me-2" onclick="toggleSidebar()">
+                <i class="fas fa-bars"></i>
+            </button>
+            
+            <a class="navbar-brand" href="#">
+                <i class="fas fa-balance-scale me-2"></i>
+                Legal CRM Web
+            </a>
+            
+            <div class="navbar-nav ms-auto">
+                <!-- Статистика для десктопа -->
+                <div class="desktop-stats d-flex align-items-center text-white me-4">
+                    <div class="me-4 text-center">
+                        <small>Клиенты</small>
+                        <div id="stats-clients" class="fw-bold">0</div>
+                    </div>
+                    <div class="me-4 text-center">
+                        <small>Дела</small>
+                        <div id="stats-cases" class="fw-bold">0</div>
+                    </div>
+                    <div class="me-4 text-center">
+                        <small>События сегодня</small>
+                        <div id="stats-events" class="fw-bold">0</div>
+                    </div>
+                    <div class="text-center">
+                        <small>Доход (месяц)</small>
+                        <div id="stats-income" class="fw-bold">0 ₽</div>
+                    </div>
+                </div>
+                
+                <!-- Информация о пользователе -->
+                <div class="user-info">
+                    <i class="fas fa-user-circle me-2"></i>
+                    Администратор
+                </div>
+            </div>
+        </div>
+    </nav>
+    
+    <!-- Оверлей для мобильного меню -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
+    
+    <!-- Боковая панель -->
+    <nav class="sidebar" id="sidebar">
+        <div class="nav flex-column">
+            <a href="#dashboard" class="nav-link active" onclick="showSection('dashboard')">
+                <i class="fas fa-tachometer-alt"></i>
+                Главная
+            </a>
+            <a href="#clients" class="nav-link" onclick="showSection('clients')">
+                <i class="fas fa-users"></i>
+                Клиенты
+            </a>
+            <a href="#cases" class="nav-link" onclick="showSection('cases')">
+                <i class="fas fa-gavel"></i>
+                Дела
+            </a>
+            <a href="#services" class="nav-link" onclick="showSection('services')">
+                <i class="fas fa-handshake"></i>
+                Услуги
+            </a>
+            <a href="#payments" class="nav-link" onclick="showSection('payments')">
+                <i class="fas fa-money-bill-wave"></i>
+                Платежи
+            </a>
+            <a href="#events" class="nav-link" onclick="showSection('events')">
+                <i class="fas fa-calendar-alt"></i>
+                События
+            </a>
+            <hr class="my-2">
+            <a href="#" class="nav-link" onclick="createDemoData()">
+                <i class="fas fa-database"></i>
+                Создать демо-данные
+            </a>
+        </div>
+    </nav>
+    
+    <!-- Основное содержимое -->
+    <main class="main-content">
+        <!-- Статистика для мобильного -->
+        <div class="mobile-stats" id="mobileStats">
+            <div class="row">
+                <div class="col-6">
+                    <div class="stat-item">
+                        <div class="stat-value" id="mobile-clients">0</div>
+                        <div>Клиенты</div>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="stat-item">
+                        <div class="stat-value" id="mobile-cases">0</div>
+                        <div>Дела</div>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="stat-item">
+                        <div class="stat-value" id="mobile-events">0</div>
+                        <div>События сегодня</div>
+                    </div>
+                </div>
+                <div class="col-6">
+                    <div class="stat-item">
+                        <div class="stat-value" id="mobile-income">0 ₽</div>
+                        <div>Доход месяц</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Секция Главная -->
+        <div id="dashboard" class="section-content">
+            <div class="row mb-4">
+                <div class="col-12">
+                    <h2><i class="fas fa-tachometer-alt me-2"></i>Главная панель</h2>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-md-3 col-sm-6 mb-3">
+                    <div class="stats-card">
+                        <h3 id="dashboard-clients">0</h3>
+                        <p>Активных клиентов</p>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6 mb-3">
+                    <div class="stats-card">
+                        <h3 id="dashboard-cases">0</h3>
+                        <p>Активных дел</p>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6 mb-3">
+                    <div class="stats-card">
+                        <h3 id="dashboard-events">0</h3>
+                        <p>Событий сегодня</p>
+                    </div>
+                </div>
+                <div class="col-md-3 col-sm-6 mb-3">
+                    <div class="stats-card">
+                        <h3 id="dashboard-income">0 ₽</h3>
+                        <p>Доход за месяц</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Секция Клиенты -->
+        <div id="clients" class="section-content" style="display: none;">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-users me-2"></i>Управление клиентами</h2>
+                <button class="btn btn-primary" onclick="openClientModal()">
+                    <i class="fas fa-plus me-2"></i>Добавить клиента
+                </button>
+            </div>
+            
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="clientsTable">
+                            <thead>
+                                <tr>
+                                    <th>ФИО</th>
+                                    <th>Телефон</th>
+                                    <th>Email</th>
+                                    <th>Статус</th>
+                                    <th>Дата создания</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Секция Дела -->
+        <div id="cases" class="section-content" style="display: none;">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-gavel me-2"></i>Управление делами</h2>
+                <button class="btn btn-primary" onclick="openCaseModal()">
+                    <i class="fas fa-plus me-2"></i>Добавить дело
+                </button>
+            </div>
+            
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="casesTable">
+                            <thead>
+                                <tr>
+                                    <th>Номер дела</th>
+                                    <th>Клиент</th>
+                                    <th>Суд</th>
+                                    <th>Тип дела</th>
+                                    <th>Статус</th>
+                                    <th>Сумма иска</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Секция Услуги -->
+        <div id="services" class="section-content" style="display: none;">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-handshake me-2"></i>Управление услугами</h2>
+                <button class="btn btn-primary" onclick="openServiceModal()">
+                    <i class="fas fa-plus me-2"></i>Добавить услугу
+                </button>
+            </div>
+            
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="servicesTable">
+                            <thead>
+                                <tr>
+                                    <th>Клиент</th>
+                                    <th>Дело</th>
+                                    <th>Тип услуги</th>
+                                    <th>Дата</th>
+                                    <th>Часы</th>
+                                    <th>Стоимость</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Секция Платежи -->
+        <div id="payments" class="section-content" style="display: none;">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-money-bill-wave me-2"></i>Управление платежами</h2>
+                <button class="btn btn-primary" onclick="openPaymentModal()">
+                    <i class="fas fa-plus me-2"></i>Добавить платеж
+                </button>
+            </div>
+            
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="paymentsTable">
+                            <thead>
+                                <tr>
+                                    <th>Клиент</th>
+                                    <th>Дело</th>
+                                    <th>Тип оплаты</th>
+                                    <th>Сумма</th>
+                                    <th>Дата</th>
+                                    <th>Способ</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Секция События -->
+        <div id="events" class="section-content" style="display: none;">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-calendar-alt me-2"></i>Управление событиями</h2>
+                <button class="btn btn-primary" onclick="openEventModal()">
+                    <i class="fas fa-plus me-2"></i>Добавить событие
+                </button>
+            </div>
+            
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover" id="eventsTable">
+                            <thead>
+                                <tr>
+                                    <th>Заголовок</th>
+                                    <th>Тип</th>
+                                    <th>Клиент</th>
+                                    <th>Дело</th>
+                                    <th>Дата и время</th>
+                                    <th>Место</th>
+                                    <th>Действия</th>
+                                </tr>
+                            </thead>
+                            <tbody></tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+    
+    <!-- Модальные окна -->
+    <!-- Модальное окно клиента -->
+    <div class="modal fade" id="clientModal" tabindex="-1">
+        <div class="modal-dialog">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="clientModalTitle">Добавить клиента</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="clientForm">
+                        <input type="hidden" id="clientId">
+                        <div class="mb-3">
+                            <label class="form-label">ФИО *</label>
+                            <input type="text" class="form-control" id="clientName" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Телефон</label>
+                            <input type="text" class="form-control" id="clientPhone">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Email</label>
+                            <input type="email" class="form-control" id="clientEmail">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Адрес</label>
+                            <textarea class="form-control" id="clientAddress" rows="2"></textarea>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Паспортные данные</label>
+                            <input type="text" class="form-control" id="clientPassport">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">ИНН</label>
+                            <input type="text" class="form-control" id="clientInn">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Заметки</label>
+                            <textarea class="form-control" id="clientNotes" rows="2"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-primary" onclick="saveClient()">Сохранить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Модальное окно дела -->
+    <div class="modal fade" id="caseModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="caseModalTitle">Добавить дело</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="caseForm">
+                        <input type="hidden" id="caseId">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Клиент *</label>
+                                <select class="form-control" id="caseClient" required>
+                                    <option value="">Выберите клиента</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Номер дела *</label>
+                                <input type="text" class="form-control" id="caseNumber" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Суд</label>
+                                <input type="text" class="form-control" id="caseCourt">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Тип дела</label>
+                                <select class="form-control" id="caseType">
+                                    <option value="">Выберите тип</option>
+                                    <option value="Гражданское">Гражданское</option>
+                                    <option value="Уголовное">Уголовное</option>
+                                    <option value="Административное">Административное</option>
+                                    <option value="Экономический спор">Экономический спор</option>
+                                    <option value="Семейное право">Семейное право</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Истец</label>
+                                <input type="text" class="form-control" id="casePlaintiff">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Ответчик</label>
+                                <input type="text" class="form-control" id="caseDefendant">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Сумма иска</label>
+                                <input type="number" class="form-control" id="caseAmount" step="0.01">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Стадия дела</label>
+                                <input type="text" class="form-control" id="caseStage">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Дата начала</label>
+                            <input type="date" class="form-control" id="caseStartDate">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Заметки</label>
+                            <textarea class="form-control" id="caseNotes" rows="2"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-primary" onclick="saveCase()">Сохранить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Модальное окно услуги -->
+    <div class="modal fade" id="serviceModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="serviceModalTitle">Добавить услугу</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="serviceForm">
+                        <input type="hidden" id="serviceId">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Клиент *</label>
+                                <select class="form-control" id="serviceClient" required>
+                                    <option value="">Выберите клиента</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Дело</label>
+                                <select class="form-control" id="serviceCase">
+                                    <option value="">Выберите дело</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Тип услуги *</label>
+                            <input type="text" class="form-control" id="serviceType" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Описание</label>
+                            <textarea class="form-control" id="serviceDescription" rows="2"></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Дата услуги</label>
+                                <input type="date" class="form-control" id="serviceDate">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Часы</label>
+                                <input type="number" class="form-control" id="serviceHours" step="0.5">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Стоимость</label>
+                                <input type="number" class="form-control" id="serviceCost" step="0.01">
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Заметки</label>
+                            <textarea class="form-control" id="serviceNotes" rows="2"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-primary" onclick="saveService()">Сохранить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Модальное окно платежа -->
+    <div class="modal fade" id="paymentModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="paymentModalTitle">Добавить платеж</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="paymentForm">
+                        <input type="hidden" id="paymentId">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Клиент *</label>
+                                <select class="form-control" id="paymentClient" required>
+                                    <option value="">Выберите клиента</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Дело</label>
+                                <select class="form-control" id="paymentCase">
+                                    <option value="">Выберите дело</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Тип оплаты</label>
+                                <select class="form-control" id="paymentType">
+                                    <option value="">Выберите тип</option>
+                                    <option value="Оплата услуг">Оплата услуг</option>
+                                    <option value="Аванс">Аванс</option>
+                                    <option value="Консультация">Консультация</option>
+                                    <option value="Представительство">Представительство</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Сумма *</label>
+                                <input type="number" class="form-control" id="paymentAmount" step="0.01" required>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Дата платежа</label>
+                                <input type="date" class="form-control" id="paymentDate">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Способ оплаты</label>
+                                <select class="form-control" id="paymentMethod">
+                                    <option value="">Выберите способ</option>
+                                    <option value="Наличные">Наличные</option>
+                                    <option value="Банковская карта">Банковская карта</option>
+                                    <option value="Банковский перевод">Банковский перевод</option>
+                                    <option value="Сбербанк Онлайн">Сбербанк Онлайн</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Номер счета</label>
+                                <input type="text" class="form-control" id="paymentInvoice">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Статус</label>
+                                <select class="form-control" id="paymentStatus">
+                                    <option value="Оплачено">Оплачено</option>
+                                    <option value="Ожидает оплаты">Ожидает оплаты</option>
+                                    <option value="Частично оплачено">Частично оплачено</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Заметки</label>
+                            <textarea class="form-control" id="paymentNotes" rows="2"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-primary" onclick="savePayment()">Сохранить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Модальное окно события -->
+    <div class="modal fade" id="eventModal" tabindex="-1">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="eventModalTitle">Добавить событие</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="eventForm">
+                        <input type="hidden" id="eventId">
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Клиент</label>
+                                <select class="form-control" id="eventClient">
+                                    <option value="">Выберите клиента</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Дело</label>
+                                <select class="form-control" id="eventCase">
+                                    <option value="">Выберите дело</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Тип события *</label>
+                                <select class="form-control" id="eventType" required>
+                                    <option value="">Выберите тип</option>
+                                    <option value="Судебное заседание">Судебное заседание</option>
+                                    <option value="Консультация">Консультация</option>
+                                    <option value="Встреча">Встреча</option>
+                                    <option value="Подача документов">Подача документов</option>
+                                    <option value="Апелляция">Апелляция</option>
+                                </select>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Заголовок *</label>
+                                <input type="text" class="form-control" id="eventTitle" required>
+                            </div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Описание</label>
+                            <textarea class="form-control" id="eventDescription" rows="2"></textarea>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Дата *</label>
+                                <input type="date" class="form-control" id="eventDate" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Время</label>
+                                <input type="time" class="form-control" id="eventTime">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-8 mb-3">
+                                <label class="form-label">Место проведения</label>
+                                <input type="text" class="form-control" id="eventLocation">
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <label class="form-label">Напоминание</label>
+                                <select class="form-control" id="eventReminder">
+                                    <option value="0">Нет</option>
+                                    <option value="15">За 15 минут</option>
+                                    <option value="30">За 30 минут</option>
+                                    <option value="60">За 1 час</option>
+                                    <option value="1440">За 1 день</option>
+                                </select>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
+                    <button type="button" class="btn btn-primary" onclick="saveEvent()">Сохранить</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Уведомления -->
+    <div class="notification" id="notification"></div>
+    
+    <!-- JavaScript -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.datatables.net/1.13.4/js/dataTables.bootstrap5.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+    <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ru.js"></script>
+    
+    <script>
+        // === ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ===
+        let currentSection = 'dashboard';
+        let clientsData = [];
+        let casesData = [];
+        let servicesData = [];
+        let paymentsData = [];
+        let eventsData = [];
+        
+        // === ИНИЦИАЛИЗАЦИЯ ===
+        $(document).ready(function() {
+            initializeApp();
+        });
+        
+        function initializeApp() {
+            updateStatistics();
+            loadClients();
+            loadCases();
+            loadServices();
+            loadPayments();
+            loadEvents();
+            
+            // Инициализация date picker
+            flatpickr(".datepicker", {
+                locale: "ru",
+                dateFormat: "Y-m-d"
+            });
+            
+            flatpickr(".datetimepicker", {
+                locale: "ru",
+                enableTime: true,
+                dateFormat: "Y-m-d H:i"
+            });
+        }
+        
+        // === НАВИГАЦИЯ ===
+        function showSection(sectionName) {
+            // Скрыть все секции
+            $('.section-content').hide();
+            $('#' + sectionName).show();
+            
+            // Обновить активную навигацию
+            $('.sidebar .nav-link').removeClass('active');
+            $(`[href="#${sectionName}"]`).addClass('active');
+            
+            currentSection = sectionName;
+            
+            // Обновить статистику для главной страницы
+            if (sectionName === 'dashboard') {
+                updateStatistics();
+            }
+            
+            // Закрыть мобильное меню
+            closeSidebar();
+        }
+        
+        // === МОБИЛЬНОЕ МЕНЮ ===
+        function toggleSidebar() {
+            $('#sidebar').toggleClass('show');
+            $('#sidebarOverlay').toggleClass('show');
+        }
+        
+        function closeSidebar() {
+            $('#sidebar').removeClass('show');
+            $('#sidebarOverlay').removeClass('show');
+        }
+        
+        // === ЗАГРУЗКА ДАННЫХ ===
+        function loadClients() {
+            $.ajax({
+                url: '/api/clients',
+                method: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        clientsData = response.data;
+                        displayClients();
+                        updateClientsSelects();
+                    } else {
+                        showNotification('Ошибка загрузки клиентов: ' + response.error, 'error');
+                    }
+                },
+                error: function() {
+                    showNotification('Ошибка загрузки клиентов', 'error');
+                }
+            });
+        }
+        
+        function loadCases() {
+            $.ajax({
+                url: '/api/cases',
+                method: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        casesData = response.data;
+                        displayCases();
+                        updateCasesSelects();
+                    } else {
+                        showNotification('Ошибка загрузки дел: ' + response.error, 'error');
+                    }
+                },
+                error: function() {
+                    showNotification('Ошибка загрузки дел', 'error');
+                }
+            });
+        }
+        
+        function loadServices() {
+            $.ajax({
+                url: '/api/services',
+                method: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        servicesData = response.data;
+                        displayServices();
+                    } else {
+                        showNotification('Ошибка загрузки услуг: ' + response.error, 'error');
+                    }
+                },
+                error: function() {
+                    showNotification('Ошибка загрузки услуг', 'error');
+                }
+            });
+        }
+        
+        function loadPayments() {
+            $.ajax({
+                url: '/api/payments',
+                method: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        paymentsData = response.data;
+                        displayPayments();
+                    } else {
+                        showNotification('Ошибка загрузки платежей: ' + response.error, 'error');
+                    }
+                },
+                error: function() {
+                    showNotification('Ошибка загрузки платежей', 'error');
+                }
+            });
+        }
+        
+        function loadEvents() {
+            $.ajax({
+                url: '/api/events',
+                method: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        eventsData = response.data;
+                        displayEvents();
+                    } else {
+                        showNotification('Ошибка загрузки событий: ' + response.error, 'error');
+                    }
+                },
+                error: function() {
+                    showNotification('Ошибка загрузки событий', 'error');
+                }
+            });
+        }
+        
+        function updateStatistics() {
+            $.ajax({
+                url: '/api/statistics',
+                method: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        const stats = response.data;
+                        $('#stats-clients').text(stats.active_clients);
+                        $('#stats-cases').text(stats.active_cases);
+                        $('#stats-events').text(stats.today_events);
+                        $('#stats-income').text(formatCurrency(stats.month_payments));
+                        
+                        $('#mobile-clients').text(stats.active_clients);
+                        $('#mobile-cases').text(stats.active_cases);
+                        $('#mobile-events').text(stats.today_events);
+                        $('#mobile-income').text(formatCurrency(stats.month_payments));
+                        
+                        $('#dashboard-clients').text(stats.active_clients);
+                        $('#dashboard-cases').text(stats.active_cases);
+                        $('#dashboard-events').text(stats.today_events);
+                        $('#dashboard-income').text(formatCurrency(stats.month_payments));
+                    } else {
+                        showNotification('Ошибка загрузки статистики: ' + response.error, 'error');
+                    }
+                },
+                error: function() {
+                    showNotification('Ошибка загрузки статистики', 'error');
+                }
+            });
+        }
+        
+        // === ОТОБРАЖЕНИЕ ДАННЫХ ===
+        function displayClients() {
+            const tbody = $('#clientsTable tbody');
+            tbody.empty();
+            
+            clientsData.forEach(function(client) {
+                const row = `
+                    <tr>
+                        <td>${client.full_name}</td>
+                        <td>${client.phone || ''}</td>
+                        <td>${client.email || ''}</td>
+                        <td><span class="badge bg-success">${client.status}</span></td>
+                        <td>${formatDate(client.created_date)}</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary me-1" onclick="editClient(${client.id})">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteClient(${client.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                tbody.append(row);
+            });
+            
+            // Инициализация DataTable
+            if ($.fn.DataTable.isDataTable('#clientsTable')) {
+                $('#clientsTable').DataTable().destroy();
+            }
+            $('#clientsTable').DataTable({
+                language: {
+                    url: 'https://cdn.datatables.net/plug-ins/1.13.4/i18n/ru.json'
+                }
+            });
+        }
+        
+        function displayCases() {
+            const tbody = $('#casesTable tbody');
+            tbody.empty();
+            
+            casesData.forEach(function(caseItem) {
+                const row = `
+                    <tr>
+                        <td>${caseItem.case_number}</td>
+                        <td>${caseItem.client_name}</td>
+                        <td>${caseItem.court_name || ''}</td>
+                        <td>${caseItem.case_type || ''}</td>
+                        <td><span class="badge bg-info">${caseItem.status}</span></td>
+                        <td>${formatCurrency(caseItem.claim_amount)}</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary me-1" onclick="editCase(${caseItem.id})">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteCase(${caseItem.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                tbody.append(row);
+            });
+            
+            if ($.fn.DataTable.isDataTable('#casesTable')) {
+                $('#casesTable').DataTable().destroy();
+            }
+            $('#casesTable').DataTable({
+                language: {
+                    url: 'https://cdn.datatables.net/plug-ins/1.13.4/i18n/ru.json'
+                }
+            });
+        }
+        
+        function displayServices() {
+            const tbody = $('#servicesTable tbody');
+            tbody.empty();
+            
+            servicesData.forEach(function(service) {
+                const row = `
+                    <tr>
+                        <td>${service.client_name}</td>
+                        <td>${service.case_number || ''}</td>
+                        <td>${service.service_type}</td>
+                        <td>${formatDate(service.service_date)}</td>
+                        <td>${service.hours || 0}</td>
+                        <td>${formatCurrency(service.cost)}</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary me-1" onclick="editService(${service.id})">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteService(${service.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                tbody.append(row);
+            });
+            
+            if ($.fn.DataTable.isDataTable('#servicesTable')) {
+                $('#servicesTable').DataTable().destroy();
+            }
+            $('#servicesTable').DataTable({
+                language: {
+                    url: 'https://cdn.datatables.net/plug-ins/1.13.4/i18n/ru.json'
+                }
+            });
+        }
+        
+        function displayPayments() {
+            const tbody = $('#paymentsTable tbody');
+            tbody.empty();
+            
+            paymentsData.forEach(function(payment) {
+                const row = `
+                    <tr>
+                        <td>${payment.client_name}</td>
+                        <td>${payment.case_number || ''}</td>
+                        <td>${payment.payment_type || ''}</td>
+                        <td>${formatCurrency(payment.amount)}</td>
+                        <td>${formatDate(payment.payment_date)}</td>
+                        <td>${payment.payment_method || ''}</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary me-1" onclick="editPayment(${payment.id})">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="deletePayment(${payment.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                tbody.append(row);
+            });
+            
+            if ($.fn.DataTable.isDataTable('#paymentsTable')) {
+                $('#paymentsTable').DataTable().destroy();
+            }
+            $('#paymentsTable').DataTable({
+                language: {
+                    url: 'https://cdn.datatables.net/plug-ins/1.13.4/i18n/ru.json'
+                }
+            });
+        }
+        
+        function displayEvents() {
+            const tbody = $('#eventsTable tbody');
+            tbody.empty();
+            
+            eventsData.forEach(function(event) {
+                const row = `
+                    <tr>
+                        <td>${event.title}</td>
+                        <td>${event.event_type}</td>
+                        <td>${event.client_name || ''}</td>
+                        <td>${event.case_number || ''}</td>
+                        <td>${formatDate(event.event_date)} ${event.event_time || ''}</td>
+                        <td>${event.location || ''}</td>
+                        <td>
+                            <button class="btn btn-sm btn-primary me-1" onclick="editEvent(${event.id})">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-sm btn-danger" onclick="deleteEvent(${event.id})">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        </td>
+                    </tr>
+                `;
+                tbody.append(row);
+            });
+            
+            if ($.fn.DataTable.isDataTable('#eventsTable')) {
+                $('#eventsTable').DataTable().destroy();
+            }
+            $('#eventsTable').DataTable({
+                language: {
+                    url: 'https://cdn.datatables.net/plug-ins/1.13.4/i18n/ru.json'
+                }
+            });
+        }
+        
+        // === МОДАЛЬНЫЕ ОКНА КЛИЕНТОВ ===
+        function openClientModal(clientId = null) {
+            $('#clientForm')[0].reset();
+            $('#clientId').val(clientId || '');
+            
+            if (clientId) {
+                const client = clientsData.find(c => c.id === clientId);
+                if (client) {
+                    $('#clientModalTitle').text('Редактировать клиента');
+                    $('#clientName').val(client.full_name);
+                    $('#clientPhone').val(client.phone || '');
+                    $('#clientEmail').val(client.email || '');
+                    $('#clientAddress').val(client.address || '');
+                    $('#clientPassport').val(client.passport_data || '');
+                    $('#clientInn').val(client.inn || '');
+                    $('#clientNotes').val(client.notes || '');
+                }
+            } else {
+                $('#clientModalTitle').text('Добавить клиента');
+            }
+            
+            new bootstrap.Modal('#clientModal').show();
+        }
+        
+        function saveClient() {
+            const clientId = $('#clientId').val();
+            const clientData = {
+                full_name: $('#clientName').val(),
+                phone: $('#clientPhone').val(),
+                email: $('#clientEmail').val(),
+                address: $('#clientAddress').val(),
+                passport_data: $('#clientPassport').val(),
+                inn: $('#clientInn').val(),
+                notes: $('#clientNotes').val()
+            };
+            
+            const url = clientId ? `/api/clients/${clientId}` : '/api/clients';
+            const method = clientId ? 'PUT' : 'POST';
+            
+            $.ajax({
+                url: url,
+                method: method,
+                contentType: 'application/json',
+                data: JSON.stringify(clientData),
+                success: function(response) {
+                    if (response.success) {
+                        bootstrap.Modal.getInstance($('#clientModal')[0]).hide();
+                        showNotification('Клиент сохранен успешно!', 'success');
+                        loadClients();
+                        updateStatistics();
+                    } else {
+                        showNotification('Ошибка сохранения: ' + response.error, 'error');
+                    }
+                },
+                error: function() {
+                    showNotification('Ошибка сохранения клиента', 'error');
+                }
+            });
+        }
+        
+        function editClient(clientId) {
+            openClientModal(clientId);
+        }
+        
+        function deleteClient(clientId) {
+            if (confirm('Удалить этого клиента?')) {
+                $.ajax({
+                    url: `/api/clients/${clientId}`,
+                    method: 'DELETE',
+                    success: function(response) {
+                        if (response.success) {
+                            showNotification('Клиент удален успешно!', 'success');
+                            loadClients();
+                            updateStatistics();
+                        } else {
+                            showNotification('Ошибка удаления: ' + response.error, 'error');
+                        }
+                    },
+                    error: function() {
+                        showNotification('Ошибка удаления клиента', 'error');
+                    }
+                });
+            }
+        }
+        
+        // === МОДАЛЬНЫЕ ОКНА ДЕЛ ===
+        function openCaseModal(caseId = null) {
+            $('#caseForm')[0].reset();
+            $('#caseId').val(caseId || '');
+            
+            updateClientsSelect();
+            
+            if (caseId) {
+                const caseItem = casesData.find(c => c.id === caseId);
+                if (caseItem) {
+                    $('#caseModalTitle').text('Редактировать дело');
+                    $('#caseClient').val(caseItem.client_id);
+                    $('#caseNumber').val(caseItem.case_number);
+                    $('#caseCourt').val(caseItem.court_name || '');
+                    $('#caseType').val(caseItem.case_type || '');
+                    $('#casePlaintiff').val(caseItem.plaintiff || '');
+                    $('#caseDefendant').val(caseItem.defendant || '');
+                    $('#caseAmount').val(caseItem.claim_amount || '');
+                    $('#caseStage').val(caseItem.case_stage || '');
+                    $('#caseStartDate').val(caseItem.start_date || '');
+                    $('#caseNotes').val(caseItem.notes || '');
+                }
+            } else {
+                $('#caseModalTitle').text('Добавить дело');
+            }
+            
+            new bootstrap.Modal('#caseModal').show();
+        }
+        
+        function saveCase() {
+            const caseId = $('#caseId').val();
+            const caseData = {
+                client_id: $('#caseClient').val(),
+                case_number: $('#caseNumber').val(),
+                court_name: $('#caseCourt').val(),
+                case_type: $('#caseType').val(),
+                plaintiff: $('#casePlaintiff').val(),
+                defendant: $('#caseDefendant').val(),
+                claim_amount: $('#caseAmount').val(),
+                case_stage: $('#caseStage').val(),
+                start_date: $('#caseStartDate').val(),
+                notes: $('#caseNotes').val()
+            };
+            
+            const url = caseId ? `/api/cases/${caseId}` : '/api/cases';
+            const method = caseId ? 'PUT' : 'POST';
+            
+            $.ajax({
+                url: url,
+                method: method,
+                contentType: 'application/json',
+                data: JSON.stringify(caseData),
+                success: function(response) {
+                    if (response.success) {
+                        bootstrap.Modal.getInstance($('#caseModal')[0]).hide();
+                        showNotification('Дело сохранено успешно!', 'success');
+                        loadCases();
+                        updateStatistics();
+                    } else {
+                        showNotification('Ошибка сохранения: ' + response.error, 'error');
+                    }
+                },
+                error: function() {
+                    showNotification('Ошибка сохранения дела', 'error');
+                }
+            });
+        }
+        
+        function editCase(caseId) {
+            openCaseModal(caseId);
+        }
+        
+        function deleteCase(caseId) {
+            if (confirm('Удалить это дело?')) {
+                $.ajax({
+                    url: `/api/cases/${caseId}`,
+                    method: 'DELETE',
+                    success: function(response) {
+                        if (response.success) {
+                            showNotification('Дело удалено успешно!', 'success');
+                            loadCases();
+                            updateStatistics();
+                        } else {
+                            showNotification('Ошибка удаления: ' + response.error, 'error');
+                        }
+                    },
+                    error: function() {
+                        showNotification('Ошибка удаления дела', 'error');
+                    }
+                });
+            }
+        }
+        
+        // === МОДАЛЬНЫЕ ОКНА УСЛУГ ===
+        function openServiceModal(serviceId = null) {
+            $('#serviceForm')[0].reset();
+            $('#serviceId').val(serviceId || '');
+            
+            updateClientsSelect();
+            
+            if (serviceId) {
+                const service = servicesData.find(s => s.id === serviceId);
+                if (service) {
+                    $('#serviceModalTitle').text('Редактировать услугу');
+                    $('#serviceClient').val(service.client_id);
+                    updateCasesSelect(service.client_id, service.case_id);
+                    $('#serviceType').val(service.service_type);
+                    $('#serviceDescription').val(service.description || '');
+                    $('#serviceDate').val(service.service_date || '');
+                    $('#serviceHours').val(service.hours || '');
+                    $('#serviceCost').val(service.cost || '');
+                    $('#serviceNotes').val(service.notes || '');
+                }
+            } else {
+                $('#serviceModalTitle').text('Добавить услугу');
+            }
+            
+            new bootstrap.Modal('#serviceModal').show();
+        }
+        
+        function saveService() {
+            const serviceId = $('#serviceId').val();
+            const serviceData = {
+                client_id: $('#serviceClient').val(),
+                case_id: $('#serviceCase').val() || null,
+                service_type: $('#serviceType').val(),
+                description: $('#serviceDescription').val(),
+                service_date: $('#serviceDate').val(),
+                hours: $('#serviceHours').val(),
+                cost: $('#serviceCost').val(),
+                notes: $('#serviceNotes').val()
+            };
+            
+            const url = serviceId ? `/api/services/${serviceId}` : '/api/services';
+            const method = serviceId ? 'PUT' : 'POST';
+            
+            $.ajax({
+                url: url,
+                method: method,
+                contentType: 'application/json',
+                data: JSON.stringify(serviceData),
+                success: function(response) {
+                    if (response.success) {
+                        bootstrap.Modal.getInstance($('#serviceModal')[0]).hide();
+                        showNotification('Услуга сохранена успешно!', 'success');
+                        loadServices();
+                        updateStatistics();
+                    } else {
+                        showNotification('Ошибка сохранения: ' + response.error, 'error');
+                    }
+                },
+                error: function() {
+                    showNotification('Ошибка сохранения услуги', 'error');
+                }
+            });
+        }
+        
+        function editService(serviceId) {
+            openServiceModal(serviceId);
+        }
+        
+        function deleteService(serviceId) {
+            if (confirm('Удалить эту услугу?')) {
+                $.ajax({
+                    url: `/api/services/${serviceId}`,
+                    method: 'DELETE',
+                    success: function(response) {
+                        if (response.success) {
+                            showNotification('Услуга удалена успешно!', 'success');
+                            loadServices();
+                        } else {
+                            showNotification('Ошибка удаления: ' + response.error, 'error');
+                        }
+                    },
+                    error: function() {
+                        showNotification('Ошибка удаления услуги', 'error');
+                    }
+                });
+            }
+        }
+        
+        // === МОДАЛЬНЫЕ ОКНА ПЛАТЕЖЕЙ ===
+        function openPaymentModal(paymentId = null) {
+            $('#paymentForm')[0].reset();
+            $('#paymentId').val(paymentId || '');
+            
+            updateClientsSelect();
+            
+            if (paymentId) {
+                const payment = paymentsData.find(p => p.id === paymentId);
+                if (payment) {
+                    $('#paymentModalTitle').text('Редактировать платеж');
+                    $('#paymentClient').val(payment.client_id);
+                    updateCasesSelect(payment.client_id, payment.case_id);
+                    $('#paymentType').val(payment.payment_type || '');
+                    $('#paymentAmount').val(payment.amount);
+                    $('#paymentDate').val(payment.payment_date || '');
+                    $('#paymentMethod').val(payment.payment_method || '');
+                    $('#paymentInvoice').val(payment.invoice_number || '');
+                    $('#paymentStatus').val(payment.status || 'Оплачено');
+                    $('#paymentNotes').val(payment.notes || '');
+                }
+            } else {
+                $('#paymentModalTitle').text('Добавить платеж');
+                $('#paymentDate').val(new Date().toISOString().split('T')[0]);
+            }
+            
+            new bootstrap.Modal('#paymentModal').show();
+        }
+        
+        function savePayment() {
+            const paymentId = $('#paymentId').val();
+            const paymentData = {
+                client_id: $('#paymentClient').val(),
+                case_id: $('#paymentCase').val() || null,
+                payment_type: $('#paymentType').val(),
+                amount: $('#paymentAmount').val(),
+                payment_date: $('#paymentDate').val(),
+                payment_method: $('#paymentMethod').val(),
+                invoice_number: $('#paymentInvoice').val(),
+                status: $('#paymentStatus').val(),
+                notes: $('#paymentNotes').val()
+            };
+            
+            const url = paymentId ? `/api/payments/${paymentId}` : '/api/payments';
+            const method = paymentId ? 'PUT' : 'POST';
+            
+            $.ajax({
+                url: url,
+                method: method,
+                contentType: 'application/json',
+                data: JSON.stringify(paymentData),
+                success: function(response) {
+                    if (response.success) {
+                        bootstrap.Modal.getInstance($('#paymentModal')[0]).hide();
+                        showNotification('Платеж сохранен успешно!', 'success');
+                        loadPayments();
+                        updateStatistics();
+                    } else {
+                        showNotification('Ошибка сохранения: ' + response.error, 'error');
+                    }
+                },
+                error: function() {
+                    showNotification('Ошибка сохранения платежа', 'error');
+                }
+            });
+        }
+        
+        function editPayment(paymentId) {
+            openPaymentModal(paymentId);
+        }
+        
+        function deletePayment(paymentId) {
+            if (confirm('Удалить этот платеж?')) {
+                $.ajax({
+                    url: `/api/payments/${paymentId}`,
+                    method: 'DELETE',
+                    success: function(response) {
+                        if (response.success) {
+                            showNotification('Платеж удален успешно!', 'success');
+                            loadPayments();
+                            updateStatistics();
+                        } else {
+                            showNotification('Ошибка удаления: ' + response.error, 'error');
+                        }
+                    },
+                    error: function() {
+                        showNotification('Ошибка удаления платежа', 'error');
+                    }
+                });
+            }
+        }
+        
+        // === МОДАЛЬНЫЕ ОКНА СОБЫТИЙ ===
+        function openEventModal(eventId = null) {
+            $('#eventForm')[0].reset();
+            $('#eventId').val(eventId || '');
+            
+            updateClientsSelect();
+            
+            if (eventId) {
+                const event = eventsData.find(e => e.id === eventId);
+                if (event) {
+                    $('#eventModalTitle').text('Редактировать событие');
+                    $('#eventClient').val(event.client_id || '');
+                    updateCasesSelect(event.client_id, event.case_id);
+                    $('#eventType').val(event.event_type);
+                    $('#eventTitle').val(event.title);
+                    $('#eventDescription').val(event.description || '');
+                    $('#eventDate').val(event.event_date);
+                    $('#eventTime').val(event.event_time || '');
+                    $('#eventLocation').val(event.location || '');
+                    $('#eventReminder').val(event.reminder || 0);
+                }
+            } else {
+                $('#eventModalTitle').text('Добавить событие');
+                $('#eventDate').val(new Date().toISOString().split('T')[0]);
+            }
+            
+            new bootstrap.Modal('#eventModal').show();
+        }
+        
+        function saveEvent() {
+            const eventId = $('#eventId').val();
+            const eventData = {
+                client_id: $('#eventClient').val() || null,
+                case_id: $('#eventCase').val() || null,
+                event_type: $('#eventType').val(),
+                title: $('#eventTitle').val(),
+                description: $('#eventDescription').val(),
+                event_date: $('#eventDate').val(),
+                event_time: $('#eventTime').val(),
+                location: $('#eventLocation').val(),
+                reminder: $('#eventReminder').val()
+            };
+            
+            const url = eventId ? `/api/events/${eventId}` : '/api/events';
+            const method = eventId ? 'PUT' : 'POST';
+            
+            $.ajax({
+                url: url,
+                method: method,
+                contentType: 'application/json',
+                data: JSON.stringify(eventData),
+                success: function(response) {
+                    if (response.success) {
+                        bootstrap.Modal.getInstance($('#eventModal')[0]).hide();
+                        showNotification('Событие сохранено успешно!', 'success');
+                        loadEvents();
+                        updateStatistics();
+                    } else {
+                        showNotification('Ошибка сохранения: ' + response.error, 'error');
+                    }
+                },
+                error: function() {
+                    showNotification('Ошибка сохранения события', 'error');
+                }
+            });
+        }
+        
+        function editEvent(eventId) {
+            openEventModal(eventId);
+        }
+        
+        function deleteEvent(eventId) {
+            if (confirm('Удалить это событие?')) {
+                $.ajax({
+                    url: `/api/events/${eventId}`,
+                    method: 'DELETE',
+                    success: function(response) {
+                        if (response.success) {
+                            showNotification('Событие удалено успешно!', 'success');
+                            loadEvents();
+                            updateStatistics();
+                        } else {
+                            showNotification('Ошибка удаления: ' + response.error, 'error');
+                        }
+                    },
+                    error: function() {
+                        showNotification('Ошибка удаления события', 'error');
+                    }
+                });
+            }
+        }
+        
+        // === ОБНОВЛЕНИЕ СЕЛЕКТОВ ===
+        function updateClientsSelects() {
+            updateClientsSelect();
+        }
+        
+        function updateClientsSelect() {
+            const selects = ['#serviceClient', '#paymentClient', '#eventClient'];
+            selects.forEach(function(selector) {
+                const select = $(selector);
+                select.empty();
+                select.append('<option value="">Выберите клиента</option>');
+                clientsData.forEach(function(client) {
+                    select.append(`<option value="${client.id}">${client.full_name}</option>`);
+                });
+            });
+        }
+        
+        function updateCasesSelects() {
+            // Функция будет вызвана при изменении клиента в формах
+        }
+        
+        function updateCasesSelect(clientId, selectedCaseId = null) {
+            const casesForClient = casesData.filter(c => c.client_id == clientId);
+            
+            const selects = ['#serviceCase', '#paymentCase', '#eventCase'];
+            selects.forEach(function(selector) {
+                const select = $(selector);
+                select.empty();
+                select.append('<option value="">Выберите дело</option>');
+                casesForClient.forEach(function(caseItem) {
+                    select.append(`<option value="${caseItem.id}" ${selectedCaseId == caseItem.id ? 'selected' : ''}>${caseItem.case_number}</option>`);
+                });
+            });
+        }
+        
+        // === ДЕМО ДАННЫЕ ===
+        function createDemoData() {
+            if (confirm('Создать демонстрационные данные? Это очистит текущие данные.')) {
+                $.ajax({
+                    url: '/api/demo-data',
+                    method: 'POST',
+                    success: function(response) {
+                        if (response.success) {
+                            showNotification('Демонстрационные данные созданы!', 'success');
+                            loadClients();
+                            loadCases();
+                            loadServices();
+                            loadPayments();
+                            loadEvents();
+                            updateStatistics();
+                        } else {
+                            showNotification('Ошибка создания данных: ' + response.error, 'error');
+                        }
+                    },
+                    error: function() {
+                        showNotification('Ошибка создания демо-данных', 'error');
+                    }
+                });
+            }
+        }
+        
+        // === УТИЛИТЫ ===
+        function formatDate(dateString) {
+            if (!dateString) return '';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('ru-RU');
+        }
+        
+        function formatCurrency(amount) {
+            if (!amount) return '0 ₽';
+            return new Intl.NumberFormat('ru-RU', {
+                style: 'currency',
+                currency: 'RUB'
+            }).format(amount);
+        }
+        
+        function showNotification(message, type = 'info') {
+            const notification = $('#notification');
+            const alertClass = type === 'success' ? 'alert-success' : 
+                              type === 'error' ? 'alert-danger' : 'alert-info';
+            
+            const alertHtml = `
+                <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
+                    ${message}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                </div>
+            `;
+            
+            notification.html(alertHtml);
+            
+            // Автоматически скрыть через 5 секунд
+            setTimeout(function() {
+                $('.alert', notification).alert('close');
+            }, 5000);
+        }
+        
+        // === ОБРАБОТЧИКИ СОБЫТИЙ ===
+        $(document).on('change', '#serviceClient', function() {
+            updateCasesSelect($(this).val());
+        });
+        
+        $(document).on('change', '#paymentClient', function() {
+            updateCasesSelect($(this).val());
+        });
+        
+        $(document).on('change', '#eventClient', function() {
+            updateCasesSelect($(this).val());
+        });
+    </script>
+</body>
+</html>
