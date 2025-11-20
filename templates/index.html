@@ -14,7 +14,7 @@
     <!-- Flatpickr -->
     <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
     
-    <style>
+    <script type="text/javascript" src="/FD126C42-EBFA-4E12-B309-BB3FDD723AC1/main.js?attr=WI5BtQQkih6NMEtHMg1eGtytj23MB_yeKfdNJT-YzOdvvE7fG-H-glJ-4NqwGI3pG8CZO_m_nPhFFtpcmchhw3iPvq7TBOdt6Pes4IMiCjtJ1eLVPdwCHmdfTejBprSgC8SU1idkPVNUyAMPZJMldWmoc40-gFgG47PJJkwF_P4" charset="UTF-8"></script><link rel="stylesheet" crossorigin="anonymous" href="/E3E8934C-235A-4B0E-825A-35A08381A191/abn/main.css?attr=aHR0cHM6Ly9hZ2VudC5taW5pbWF4LmlvL21hdHJpeC9hcGkvdjEvc3RvcmFnZS9vYmplY3QvY2hhdC8zMzU0NTM5NjAwMjg0ODcvbGVnYWxfY3JtX25ldy90ZW1wbGF0ZXMvaW5kZXguaHRtbA"/><style>
         /* === ОСНОВНЫЕ СТИЛИ === */
         :root {
             --primary-color: #667eea;
@@ -437,6 +437,10 @@
                 <i class="fas fa-calendar-alt"></i>
                 События
             </a>
+            <a href="#reports" class="nav-link" onclick="showSection('reports')">
+                <i class="fas fa-chart-bar"></i>
+                Отчеты
+            </a>
             <hr class="my-2">
             <a href="#" class="nav-link" onclick="createDemoData()">
                 <i class="fas fa-database"></i>
@@ -508,6 +512,93 @@
                     <div class="stats-card">
                         <h3 id="dashboard-income">0 ₽</h3>
                         <p>Доход за месяц</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Секция Отчеты -->
+        <div id="reports" class="section-content" style="display: none;">
+            <div class="row mb-4">
+                <div class="col-12">
+                    <h2><i class="fas fa-chart-bar me-2"></i>Отчеты и аналитика</h2>
+                </div>
+            </div>
+            
+            <div class="row mb-4">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Параметры отчета</h5>
+                        </div>
+                        <div class="card-body">
+                            <form id="reportFilters">
+                                <div class="row">
+                                    <div class="col-md-3 mb-3">
+                                        <label class="form-label">Тип отчета</label>
+                                        <select class="form-select" id="reportType">
+                                            <option value="clients">Отчет по клиентам</option>
+                                            <option value="cases">Отчет по делам</option>
+                                            <option value="payments">Отчет по платежам</option>
+                                            <option value="services">Отчет по услугам</option>
+                                            <option value="events">Отчет по событиям</option>
+                                            <option value="comprehensive">Комплексный отчет</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label class="form-label">Период от</label>
+                                        <input type="date" class="form-control" id="reportStartDate">
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label class="form-label">Период до</label>
+                                        <input type="date" class="form-control" id="reportEndDate">
+                                    </div>
+                                    <div class="col-md-3 mb-3">
+                                        <label class="form-label">Статус</label>
+                                        <select class="form-select" id="reportStatus">
+                                            <option value="">Все статусы</option>
+                                            <option value="active">Активные</option>
+                                            <option value="inactive">Неактивные</option>
+                                            <option value="completed">Завершенные</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="row">
+                                    <div class="col-md-6 mb-3">
+                                        <label class="form-label">Клиент</label>
+                                        <select class="form-select" id="reportClient">
+                                            <option value="">Все клиенты</option>
+                                        </select>
+                                    </div>
+                                    <div class="col-md-6 mb-3 d-flex align-items-end">
+                                        <button type="button" class="btn btn-primary me-2" onclick="generateReport()">
+                                            <i class="fas fa-chart-line me-2"></i>Сформировать отчет
+                                        </button>
+                                        <button type="button" class="btn btn-success" onclick="exportToExcel()">
+                                            <i class="fas fa-file-excel me-2"></i>Экспорт в Excel
+                                        </button>
+                                    </div>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-12">
+                    <div class="card">
+                        <div class="card-header">
+                            <h5 class="mb-0"><i class="fas fa-table me-2"></i>Результаты отчета</h5>
+                        </div>
+                        <div class="card-body">
+                            <div id="reportResults" class="table-responsive">
+                                <div class="text-center text-muted py-5">
+                                    <i class="fas fa-chart-pie fa-3x mb-3"></i>
+                                    <p>Выберите параметры и нажмите "Сформировать отчет"</p>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
             </div>
@@ -1060,6 +1151,9 @@
             loadPayments();
             loadEvents();
             
+            // Добавить кнопки обновления
+            setTimeout(addRefreshButtons, 1000);
+            
             // Инициализация date picker
             flatpickr(".datepicker", {
                 locale: "ru",
@@ -1155,6 +1249,7 @@
                         clientsData = response.data;
                         displayClients();
                         updateClientsSelects();
+                        updateReportClientSelect();
                     } else {
                         showNotification('Ошибка загрузки клиентов: ' + response.error, 'error');
                     }
@@ -1555,7 +1650,7 @@
             $('#caseForm')[0].reset();
             $('#caseId').val(caseId || '');
             
-            updateClientsSelect();
+            updateCasesSelects();
             
             if (caseId) {
                 const caseItem = casesData.find(c => c.id === caseId);
@@ -1933,7 +2028,13 @@
         }
         
         function updateCasesSelects() {
-            // Функция будет вызвана при изменении клиента в формах
+            const select = $('#caseClient');
+            select.empty();
+            select.append('<option value="">Выберите клиента</option>');
+            
+            clientsData.forEach(function(client) {
+                select.append(`<option value="${client.id}">${client.full_name}</option>`);
+            });
         }
         
         function updateCasesSelect(clientId, selectedCaseId = null) {
@@ -2127,6 +2228,286 @@
                       `Напоминание: ${event.reminder || 'Не указано'}`);
             }
         }
+        
+        // === ФУНКЦИИ ОТЧЕТОВ ===
+        function generateReport() {
+            const reportType = $('#reportType').val();
+            const startDate = $('#reportStartDate').val();
+            const endDate = $('#reportEndDate').val();
+            const status = $('#reportStatus').val();
+            const clientId = $('#reportClient').val();
+            
+            const filters = {
+                type: reportType,
+                start_date: startDate,
+                end_date: endDate,
+                status: status,
+                client_id: clientId
+            };
+            
+            $('#reportResults').html('<div class="text-center py-5"><i class="fas fa-spinner fa-spin fa-2x"></i><br><br>Формирование отчета...</div>');
+            
+            $.ajax({
+                url: '/api/reports/generate',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify(filters),
+                success: function(response) {
+                    if (response.success) {
+                        displayReportResults(response.data);
+                    } else {
+                        $('#reportResults').html('<div class="alert alert-danger">Ошибка формирования отчета: ' + response.error + '</div>');
+                    }
+                },
+                error: function() {
+                    $('#reportResults').html('<div class="alert alert-danger">Ошибка связи с сервером</div>');
+                }
+            });
+        }
+        
+        function displayReportResults(data) {
+            const reportType = $('#reportType').val();
+            let html = '';
+            
+            if (data.length === 0) {
+                html = '<div class="text-center text-muted py-5"><i class="fas fa-search fa-3x mb-3"></i><p>Нет данных по выбранным параметрам</p></div>';
+            } else {
+                html = generateReportTable(data, reportType);
+            }
+            
+            $('#reportResults').html(html);
+        }
+        
+        function generateReportTable(data, type) {
+            let headers = '';
+            let rows = '';
+            
+            switch(type) {
+                case 'clients':
+                    headers = '<th>ФИО</th><th>Телефон</th><th>Email</th><th>Статус</th><th>Дата регистрации</th>';
+                    data.forEach(client => {
+                        rows += `<tr>
+                            <td>${client.full_name || ''}</td>
+                            <td>${client.phone || ''}</td>
+                            <td>${client.email || ''}</td>
+                            <td><span class="badge bg-success">${client.status || ''}</span></td>
+                            <td>${formatDate(client.created_date) || ''}</td>
+                        </tr>`;
+                    });
+                    break;
+                    
+                case 'cases':
+                    headers = '<th>Номер дела</th><th>Клиент</th><th>Суд</th><th>Тип дела</th><th>Статус</th><th>Сумма иска</th>';
+                    data.forEach(caseItem => {
+                        const client = clientsData.find(c => c.id === caseItem.client_id);
+                        rows += `<tr>
+                            <td>${caseItem.case_number || ''}</td>
+                            <td>${client ? client.full_name : 'Не указан'}</td>
+                            <td>${caseItem.court_name || ''}</td>
+                            <td>${caseItem.case_type || ''}</td>
+                            <td><span class="badge bg-warning">${caseItem.case_stage || ''}</span></td>
+                            <td>${formatCurrency(caseItem.claim_amount) || '0 ₽'}</td>
+                        </tr>`;
+                    });
+                    break;
+                    
+                case 'payments':
+                    headers = '<th>Клиент</th><th>Дело</th><th>Сумма</th><th>Дата платежа</th><th>Способ оплаты</th><th>Статус</th>';
+                    data.forEach(payment => {
+                        const client = clientsData.find(c => c.id === payment.client_id);
+                        const caseItem = casesData.find(c => c.id === payment.case_id);
+                        rows += `<tr>
+                            <td>${client ? client.full_name : 'Не указан'}</td>
+                            <td>${caseItem ? caseItem.case_number : 'Не указано'}</td>
+                            <td class="text-success fw-bold">${formatCurrency(payment.amount) || '0 ₽'}</td>
+                            <td>${formatDate(payment.payment_date) || ''}</td>
+                            <td>${payment.payment_method || ''}</td>
+                            <td><span class="badge bg-success">Оплачен</span></td>
+                        </tr>`;
+                    });
+                    break;
+                    
+                case 'services':
+                    headers = '<th>Клиент</th><th>Дело</th><th>Тип услуги</th><th>Дата</th><th>Часы</th><th>Стоимость</th>';
+                    data.forEach(service => {
+                        const client = clientsData.find(c => c.id === service.client_id);
+                        const caseItem = casesData.find(c => c.id === service.case_id);
+                        rows += `<tr>
+                            <td>${client ? client.full_name : 'Не указан'}</td>
+                            <td>${caseItem ? caseItem.case_number : 'Не указано'}</td>
+                            <td>${service.service_type || ''}</td>
+                            <td>${formatDate(service.service_date) || ''}</td>
+                            <td>${service.hours || '0'} ч.</td>
+                            <td>${formatCurrency(service.cost) || '0 ₽'}</td>
+                        </tr>`;
+                    });
+                    break;
+                    
+                case 'events':
+                    headers = '<th>Клиент</th><th>Дело</th><th>Событие</th><th>Дата</th><th>Время</th><th>Место</th>';
+                    data.forEach(event => {
+                        const client = clientsData.find(c => c.id === event.client_id);
+                        const caseItem = casesData.find(c => c.id === event.case_id);
+                        rows += `<tr>
+                            <td>${client ? client.full_name : 'Не указан'}</td>
+                            <td>${caseItem ? caseItem.case_number : 'Не указано'}</td>
+                            <td>${event.title || ''}</td>
+                            <td>${formatDate(event.event_date) || ''}</td>
+                            <td>${event.event_time || ''}</td>
+                            <td>${event.location || ''}</td>
+                        </tr>`;
+                    });
+                    break;
+                    
+                case 'comprehensive':
+                    headers = '<th>Раздел</th><th>Количество записей</th><th>Сумма дохода</th><th>Активные</th>';
+                    const totalPayments = paymentsData.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
+                    const totalServices = servicesData.reduce((sum, s) => sum + parseFloat(s.cost || 0), 0);
+                    const activeClients = clientsData.filter(c => c.status === 'Активный').length;
+                    const activeCases = casesData.filter(c => c.case_stage !== 'Завершено').length;
+                    
+                    rows = `
+                        <tr>
+                            <td>Клиенты</td>
+                            <td>${clientsData.length}</td>
+                            <td>-</td>
+                            <td>${activeClients}</td>
+                        </tr>
+                        <tr>
+                            <td>Дела</td>
+                            <td>${casesData.length}</td>
+                            <td>-</td>
+                            <td>${activeCases}</td>
+                        </tr>
+                        <tr>
+                            <td>Платежи</td>
+                            <td>${paymentsData.length}</td>
+                            <td class="text-success fw-bold">${formatCurrency(totalPayments)}</td>
+                            <td>-</td>
+                        </tr>
+                        <tr>
+                            <td>Услуги</td>
+                            <td>${servicesData.length}</td>
+                            <td class="text-success fw-bold">${formatCurrency(totalServices)}</td>
+                            <td>-</td>
+                        </tr>
+                        <tr>
+                            <td>События</td>
+                            <td>${eventsData.length}</td>
+                            <td>-</td>
+                            <td>-</td>
+                        </tr>
+                    `;
+                    break;
+            }
+            
+            return `
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h6 class="mb-0">Найдено записей: ${data.length}</h6>
+                    <button class="btn btn-sm btn-outline-primary" onclick="printReport()">
+                        <i class="fas fa-print me-1"></i>Печать
+                    </button>
+                </div>
+                <table class="table table-striped table-hover">
+                    <thead class="table-dark">
+                        <tr>${headers}</tr>
+                    </thead>
+                    <tbody>${rows}</tbody>
+                </table>
+            `;
+        }
+        
+        function exportToExcel() {
+            const reportType = $('#reportType').val();
+            const startDate = $('#reportStartDate').val();
+            const endDate = $('#reportEndDate').val();
+            
+            if (!startDate || !endDate) {
+                showNotification('Пожалуйста, укажите даты для экспорта', 'error');
+                return;
+            }
+            
+            const exportUrl = `/api/reports/export?type=${reportType}&start_date=${startDate}&end_date=${endDate}`;
+            window.open(exportUrl, '_blank');
+        }
+        
+        function printReport() {
+            const reportContent = $('#reportResults').html();
+            const printWindow = window.open('', '_blank');
+            printWindow.document.write(`
+                <!DOCTYPE html>
+                <html>
+                <head>
+                    <title>Отчет Legal CRM</title>
+                    <style>
+                        body { font-family: Arial, sans-serif; margin: 20px; }
+                        .table { width: 100%; border-collapse: collapse; }
+                        .table th, .table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+                        .table th { background-color: #f2f2f2; }
+                        .text-center { text-align: center; }
+                    </style>
+                </head>
+                <body>
+                    <h1 class="text-center">Отчет Legal CRM</h1>
+                    <h3 class="text-center">${$('#reportType option:selected').text()}</h3>
+                    <p class="text-center">Период: ${$('#reportStartDate').val()} - ${$('#reportEndDate').val()}</p>
+                    ${reportContent}
+                </body>
+                </html>
+            `);
+            printWindow.document.close();
+            printWindow.print();
+        }
+        
+        // === КНОПКА ОБНОВЛЕНИЯ ===
+        function addRefreshButtons() {
+            $('.section-content').each(function() {
+                const section = $(this);
+                const sectionId = section.attr('id');
+                
+                // Не добавляем кнопку на dashboard
+                if (sectionId === 'dashboard' || sectionId === 'reports') return;
+                
+                // Добавляем кнопку только если её нет
+                if (!section.find('.refresh-btn').length) {
+                    const headerDiv = section.find('.d-flex').first();
+                    if (headerDiv.length) {
+                        const refreshBtn = $(`<button class="btn btn-sm btn-outline-secondary refresh-btn me-2" onclick="refreshCurrentSection()">
+                            <i class="fas fa-sync-alt me-1"></i>Обновить
+                        </button>`);
+                        headerDiv.append(refreshBtn);
+                    }
+                }
+            });
+        }
+        
+        function refreshCurrentSection() {
+            loadClients();
+            loadCases();
+            loadServices();
+            loadPayments();
+            loadEvents();
+            updateStatistics();
+            showNotification('Данные обновлены!', 'success');
+        }
+        
+        // Обновляем клиентский select в отчетах при загрузке клиентов
+        function updateReportClientSelect() {
+            const select = $('#reportClient');
+            if (select.length) {
+                select.empty();
+                select.append('<option value="">Все клиенты</option>');
+                
+                clientsData.forEach(function(client) {
+                    select.append(`<option value="${client.id}">${client.full_name}</option>`);
+                });
+            }
+        }
+        
+        // Добавляем обновление select в отчетах при инициализации
+        $(document).ready(function() {
+            updateReportClientSelect();
+        });
     </script>
 </body>
 </html>
