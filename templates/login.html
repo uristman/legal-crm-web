@@ -240,7 +240,7 @@
                 const response = await fetch('/api/auth/check');
                 const data = await response.json();
                 
-                if (data.authenticated) {
+                if (data.authenticated === true) {
                     // Если пользователь уже авторизован, перенаправляем на главную
                     window.location.href = '/';
                 }
@@ -308,7 +308,7 @@
                         window.location.href = '/';
                     }, 1000);
                 } else {
-                    showError(data.error || 'Ошибка входа в систему');
+                    showError(data.error || 'Неверный логин или пароль');
                 }
             } catch (error) {
                 console.error('Ошибка входа:', error);
