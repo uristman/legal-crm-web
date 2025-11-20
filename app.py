@@ -27,6 +27,7 @@ PORT = int(os.environ.get('PORT', 5000))
 # Настройки Flask
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'legal-crm-web-secret-key-2025')
 app.config['DEBUG'] = DEBUG_MODE
+app.secret_key = os.environ.get('SECRET_KEY', 'legal-crm-web-secret-key-2025')
 
 class Database:
     """Класс для работы с базой данных"""
@@ -185,10 +186,12 @@ def login():
 
 # ==================== AUTH ENDPOINTS ====================
 
+from flask import session
+
 @app.route('/api/auth/check', methods=['GET'])
 def check_auth():
     """Проверка аутентификации"""
-    return jsonify({'authenticated': True})
+    return jsonify({'authenticated': session.get('logged_in', False), 'username': session.get('username')})
 
 @app.route('/api/auth/login', methods=['POST'])
 def login_api():
@@ -203,6 +206,8 @@ def login_api():
         
         # Простая проверка авторизации
         if username == 'admin' and password == '12345':
+            session['logged_in'] = True
+            session['username'] = username
             return jsonify({'success': True, 'message': 'Успешный вход'})
         else:
             return jsonify({'success': False, 'error': 'Неверный логин или пароль'})
@@ -210,6 +215,12 @@ def login_api():
     except Exception as e:
         logger.error(f"Ошибка авторизации: {e}")
         return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/auth/logout', methods=['POST'])
+def logout():
+    """Выход из системы"""
+    session.clear()
+    return jsonify({'success': True, 'message': 'Выход выполнен успешно'})
 
 # ==================== CLIENTS API ====================
 
