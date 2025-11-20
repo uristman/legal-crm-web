@@ -903,6 +903,102 @@ def create_demo_data():
         logger.error(f"Ошибка создания демо-данных: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
+# ==================== REPORTS API ====================
+
+@app.route('/api/reports/generate', methods=['POST'])
+def generate_report():
+    """Генерация отчетов"""
+    try:
+        data = request.get_json()
+        report_type = data.get('type', 'clients')
+        start_date = data.get('start_date')
+        end_date = data.get('end_date')
+        status = data.get('status')
+        client_id = data.get('client_id')
+        
+        conn = sqlite3.connect(DB_PATH)
+        conn.row_factory = sqlite3.Row
+        cursor = conn.cursor()
+        
+        # Базовый SQL с фильтрами
+        base_queries = {
+            'clients': "SELECT * FROM clients WHERE 1=1",
+            'cases': "SELECT * FROM cases WHERE 1=1",
+            'services': "SELECT * FROM services WHERE 1=1",
+            'payments': "SELECT * FROM payments WHERE 1=1",
+            'events': "SELECT * FROM events WHERE 1=1"
+        }
+        
+        if report_type not in base_queries:
+            return jsonify({'success': False, 'error': 'Неверный тип отчета'})
+        
+        query = base_queries[report_type]
+        params = []
+        
+        # Добавляем фильтры
+        if start_date:
+            if report_type in ['clients', 'cases', 'services', 'payments', 'events']:
+                if report_type == 'clients':
+                    query += " AND date(created_date) >= ?"
+                elif report_type in ['cases', 'payments']:
+                    query += " AND date(start_date) >= ?"
+                elif report_type == 'services':
+                    query += " AND date(service_date) >= ?"
+                elif report_type == 'events':
+                    query += " AND date(event_date) >= ?"
+                params.append(start_date)
+        
+        if end_date:
+            if report_type in ['clients', 'cases', 'services', 'payments', 'events']:
+                if report_type == 'clients':
+                    query += " AND date(created_date) <= ?"
+                elif report_type in ['cases', 'payments']:
+                    query += " AND date(start_date) <= ?"
+                elif report_type == 'services':
+                    query += " AND date(service_date) <= ?"
+                elif report_type == 'events':
+                    query += " AND date(event_date) <= ?"
+                params.append(end_date)
+        
+        if client_id and report_type != 'clients':
+            query += " AND client_id = ?"
+            params.append(client_id)
+        
+        if status:
+            if report_type == 'clients':
+                query += " AND status = ?"
+            elif report_type == 'cases':
+                query += " AND case_stage = ?"
+            params.append(status)
+        
+        cursor.execute(query, params)
+        results = [dict(row) for row in cursor.fetchall()]
+        
+        conn.close()
+        
+        return jsonify({'success': True, 'data': results})
+    except Exception as e:
+        logger.error(f"Ошибка генерации отчета: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/reports/export')
+def export_report():
+    """Экспорт отчета в Excel"""
+    try:
+        report_type = request.args.get('type', 'clients')
+        start_date = request.args.get('start_date')
+        end_date = request.args.get('end_date')
+        
+        # Заглушка - возвращаем JSON вместо Excel
+        # В реальном приложении здесь был бы генератор Excel
+        return jsonify({
+            'success': True,
+            'message': f'Экспорт типа {report_type} за период {start_date} - {end_date}'
+        })
+    except Exception as e:
+        logger.error(f"Ошибка экспорта отчета: {e}")
+        return jsonify({'success': False, 'error': str(e)})
+
 # ==================== ERROR HANDLERS ====================
 
 @app.errorhandler(404)
