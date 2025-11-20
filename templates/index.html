@@ -107,6 +107,19 @@
             .form-control {
                 font-size: 1rem;
             }
+            
+            .user-info {
+                margin-bottom: 0.5rem;
+                text-align: center;
+                padding: 0.5rem;
+                background: rgba(255,255,255,0.1);
+                border-radius: 5px;
+            }
+            
+            .btn-outline-light {
+                width: 100%;
+                margin-top: 0.5rem;
+            }
         }
         
         @media (min-width: 769px) {
@@ -380,10 +393,16 @@
                 </div>
                 
                 <!-- Информация о пользователе -->
-                <div class="user-info">
+                <div class="user-info me-3">
                     <i class="fas fa-user-circle me-2"></i>
                     Администратор
                 </div>
+                
+                <!-- Кнопка выхода -->
+                <button class="btn btn-outline-light btn-sm" onclick="logout()" title="Выйти из системы">
+                    <i class="fas fa-sign-out-alt"></i>
+                    <span class="d-none d-md-inline">Выход</span>
+                </button>
             </div>
         </div>
     </nav>
@@ -1031,12 +1050,43 @@
         });
         
         function initializeApp() {
+            // Проверка авторизации
+            checkAuthStatus();
+            
             updateStatistics();
             loadClients();
             loadCases();
             loadServices();
             loadPayments();
             loadEvents();
+            
+            // Инициализация date picker
+            flatpickr(".datepicker", {
+                locale: "ru",
+                dateFormat: "Y-m-d"
+            });
+            
+            flatpickr(".datetimepicker", {
+                locale: "ru",
+                enableTime: true,
+                dateFormat: "Y-m-d H:i"
+            });
+        }
+        
+        function checkAuthStatus() {
+            $.ajax({
+                url: '/api/auth/check',
+                method: 'GET',
+                success: function(response) {
+                    if (!response.authenticated) {
+                        window.location.href = '/login';
+                    }
+                },
+                error: function() {
+                    window.location.href = '/login';
+                }
+            });
+        }
             
             // Инициализация date picker
             flatpickr(".datepicker", {
@@ -1074,14 +1124,39 @@
         
         // === МОБИЛЬНОЕ МЕНЮ ===
         function toggleSidebar() {
-            $('#sidebar').toggleClass('show');
-            $('#sidebarOverlay').toggleClass('show');
+            const sidebar = $('#sidebar');
+            const overlay = $('#sidebarOverlay');
+            
+            if (sidebar.hasClass('show')) {
+                sidebar.removeClass('show');
+                overlay.removeClass('show');
+            } else {
+                sidebar.addClass('show');
+                overlay.addClass('show');
+            }
         }
         
         function closeSidebar() {
             $('#sidebar').removeClass('show');
             $('#sidebarOverlay').removeClass('show');
         }
+        
+        // Закрытие мобильного меню при клике вне его
+        $(document).on('click', function(e) {
+            if ($(window).width() <= 768) {
+                if (!$(e.target).closest('#sidebar').length && 
+                    !$(e.target).closest('.hamburger').length) {
+                    closeSidebar();
+                }
+            }
+        });
+        
+        // Закрытие мобильного меню при клике на элементы навигации
+        $(document).on('click', '.sidebar .nav-link', function() {
+            if ($(window).width() <= 768) {
+                closeSidebar();
+            }
+        });
         
         // === ЗАГРУЗКА ДАННЫХ ===
         function loadClients() {
@@ -1221,10 +1296,13 @@
                         <td><span class="badge bg-success">${client.status}</span></td>
                         <td>${formatDate(client.created_date)}</td>
                         <td>
-                            <button class="btn btn-sm btn-primary me-1" onclick="editClient(${client.id})">
+                            <button class="btn btn-sm btn-info me-1" onclick="viewClient(${client.id})" title="Просмотр">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn btn-sm btn-primary me-1" onclick="editClient(${client.id})" title="Редактировать">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button class="btn btn-sm btn-danger" onclick="deleteClient(${client.id})">
+                            <button class="btn btn-sm btn-danger" onclick="deleteClient(${client.id})" title="Удалить">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </td>
@@ -1258,10 +1336,13 @@
                         <td><span class="badge bg-info">${caseItem.status}</span></td>
                         <td>${formatCurrency(caseItem.claim_amount)}</td>
                         <td>
-                            <button class="btn btn-sm btn-primary me-1" onclick="editCase(${caseItem.id})">
+                            <button class="btn btn-sm btn-info me-1" onclick="viewCase(${caseItem.id})" title="Просмотр">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn btn-sm btn-primary me-1" onclick="editCase(${caseItem.id})" title="Редактировать">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button class="btn btn-sm btn-danger" onclick="deleteCase(${caseItem.id})">
+                            <button class="btn btn-sm btn-danger" onclick="deleteCase(${caseItem.id})" title="Удалить">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </td>
@@ -1294,10 +1375,13 @@
                         <td>${service.hours || 0}</td>
                         <td>${formatCurrency(service.cost)}</td>
                         <td>
-                            <button class="btn btn-sm btn-primary me-1" onclick="editService(${service.id})">
+                            <button class="btn btn-sm btn-info me-1" onclick="viewService(${service.id})" title="Просмотр">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn btn-sm btn-primary me-1" onclick="editService(${service.id})" title="Редактировать">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button class="btn btn-sm btn-danger" onclick="deleteService(${service.id})">
+                            <button class="btn btn-sm btn-danger" onclick="deleteService(${service.id})" title="Удалить">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </td>
@@ -1330,10 +1414,13 @@
                         <td>${formatDate(payment.payment_date)}</td>
                         <td>${payment.payment_method || ''}</td>
                         <td>
-                            <button class="btn btn-sm btn-primary me-1" onclick="editPayment(${payment.id})">
+                            <button class="btn btn-sm btn-info me-1" onclick="viewPayment(${payment.id})" title="Просмотр">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn btn-sm btn-primary me-1" onclick="editPayment(${payment.id})" title="Редактировать">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button class="btn btn-sm btn-danger" onclick="deletePayment(${payment.id})">
+                            <button class="btn btn-sm btn-danger" onclick="deletePayment(${payment.id})" title="Удалить">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </td>
@@ -1366,10 +1453,13 @@
                         <td>${formatDate(event.event_date)} ${event.event_time || ''}</td>
                         <td>${event.location || ''}</td>
                         <td>
-                            <button class="btn btn-sm btn-primary me-1" onclick="editEvent(${event.id})">
+                            <button class="btn btn-sm btn-info me-1" onclick="viewEvent(${event.id})" title="Просмотр">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                            <button class="btn btn-sm btn-primary me-1" onclick="editEvent(${event.id})" title="Редактировать">
                                 <i class="fas fa-edit"></i>
                             </button>
-                            <button class="btn btn-sm btn-danger" onclick="deleteEvent(${event.id})">
+                            <button class="btn btn-sm btn-danger" onclick="deleteEvent(${event.id})" title="Удалить">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </td>
@@ -1946,6 +2036,110 @@
         $(document).on('change', '#eventClient', function() {
             updateCasesSelect($(this).val());
         });
+        
+        // === ВЫХОД ИЗ СИСТЕМЫ ===
+        function logout() {
+            if (confirm('Вы уверены, что хотите выйти из системы?')) {
+                $.ajax({
+                    url: '/api/auth/logout',
+                    method: 'POST',
+                    success: function(response) {
+                        if (response.success) {
+                            window.location.href = '/login';
+                        } else {
+                            showNotification('Ошибка выхода: ' + response.error, 'error');
+                        }
+                    },
+                    error: function() {
+                        window.location.href = '/login';
+                    }
+                });
+            }
+        }
+        
+        // === ФУНКЦИИ ПРОСМОТРА ===
+        function viewClient(clientId) {
+            const client = clientsData.find(c => c.id === clientId);
+            if (client) {
+                alert(`ПРОСМОТР КЛИЕНТА\n\n` +
+                      `ФИО: ${client.full_name || 'Не указано'}\n` +
+                      `Телефон: ${client.phone || 'Не указано'}\n` +
+                      `Email: ${client.email || 'Не указано'}\n` +
+                      `Адрес: ${client.address || 'Не указано'}\n` +
+                      `Данные паспорта: ${client.passport_data || 'Не указано'}\n` +
+                      `ИНН: ${client.inn || 'Не указано'}\n` +
+                      `Статус: ${client.status || 'Не указано'}\n` +
+                      `Дата создания: ${formatDate(client.created_date) || 'Не указано'}\n` +
+                      `Заметки: ${client.notes || 'Не указано'}`);
+            }
+        }
+        
+        function viewCase(caseId) {
+            const caseItem = casesData.find(c => c.id === caseId);
+            if (caseItem) {
+                alert(`ПРОСМОТР ДЕЛА\n\n` +
+                      `Номер дела: ${caseItem.case_number || 'Не указано'}\n` +
+                      `Клиент: ${caseItem.client_name || 'Не указано'}\n` +
+                      `Суд: ${caseItem.court_name || 'Не указано'}\n` +
+                      `Тип дела: ${caseItem.case_type || 'Не указано'}\n` +
+                      `Истец: ${caseItem.plaintiff || 'Не указано'}\n` +
+                      `Ответчик: ${caseItem.defendant || 'Не указано'}\n` +
+                      `Сумма иска: ${formatCurrency(caseItem.claim_amount) || 'Не указано'}\n` +
+                      `Стадия: ${caseItem.case_stage || 'Не указано'}\n` +
+                      `Дата начала: ${formatDate(caseItem.start_date) || 'Не указано'}\n` +
+                      `Дата окончания: ${formatDate(caseItem.end_date) || 'Не указано'}\n` +
+                      `Результат: ${caseItem.result || 'Не указано'}\n` +
+                      `Статус: ${caseItem.status || 'Не указано'}\n` +
+                      `Заметки: ${caseItem.notes || 'Не указано'}`);
+            }
+        }
+        
+        function viewService(serviceId) {
+            const service = servicesData.find(s => s.id === serviceId);
+            if (service) {
+                alert(`ПРОСМОТР УСЛУГИ\n\n` +
+                      `Клиент: ${service.client_name || 'Не указано'}\n` +
+                      `Дело: ${service.case_number || 'Не указано'}\n` +
+                      `Тип услуги: ${service.service_type || 'Не указано'}\n` +
+                      `Описание: ${service.description || 'Не указано'}\n` +
+                      `Дата услуги: ${formatDate(service.service_date) || 'Не указано'}\n` +
+                      `Часы: ${service.hours || 'Не указано'}\n` +
+                      `Стоимость: ${formatCurrency(service.cost) || 'Не указано'}\n` +
+                      `Заметки: ${service.notes || 'Не указано'}`);
+            }
+        }
+        
+        function viewPayment(paymentId) {
+            const payment = paymentsData.find(p => p.id === paymentId);
+            if (payment) {
+                alert(`ПРОСМОТР ПЛАТЕЖА\n\n` +
+                      `Клиент: ${payment.client_name || 'Не указано'}\n` +
+                      `Дело: ${payment.case_number || 'Не указано'}\n` +
+                      `Тип оплаты: ${payment.payment_type || 'Не указано'}\n` +
+                      `Сумма: ${formatCurrency(payment.amount) || 'Не указано'}\n` +
+                      `Дата платежа: ${formatDate(payment.payment_date) || 'Не указано'}\n` +
+                      `Способ оплаты: ${payment.payment_method || 'Не указано'}\n` +
+                      `Номер счета: ${payment.invoice_number || 'Не указано'}\n` +
+                      `Статус: ${payment.status || 'Не указано'}\n` +
+                      `Заметки: ${payment.notes || 'Не указано'}`);
+            }
+        }
+        
+        function viewEvent(eventId) {
+            const event = eventsData.find(e => e.id === eventId);
+            if (event) {
+                alert(`ПРОСМОТР СОБЫТИЯ\n\n` +
+                      `Заголовок: ${event.title || 'Не указано'}\n` +
+                      `Тип события: ${event.event_type || 'Не указано'}\n` +
+                      `Клиент: ${event.client_name || 'Не указано'}\n` +
+                      `Дело: ${event.case_number || 'Не указано'}\n` +
+                      `Дата: ${formatDate(event.event_date) || 'Не указано'}\n` +
+                      `Время: ${event.event_time || 'Не указано'}\n` +
+                      `Место проведения: ${event.location || 'Не указано'}\n` +
+                      `Описание: ${event.description || 'Не указано'}\n` +
+                      `Напоминание: ${event.reminder || 'Не указано'}`);
+            }
+        }
     </script>
 </body>
 </html>
