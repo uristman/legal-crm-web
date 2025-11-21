@@ -169,7 +169,7 @@ def check_auth():
     return jsonify({'authenticated': True})  # По умолчанию авторизация не требуется
 
 @app.route('/api/auth/login', methods=['POST'])
-def login():
+def api_login():
     """Вход в систему"""
     try:
         data = request.json
