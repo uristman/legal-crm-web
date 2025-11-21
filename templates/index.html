@@ -11,591 +11,649 @@
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" rel="stylesheet">
     <!-- DataTables -->
     <link href="https://cdn.datatables.net/1.13.4/css/dataTables.bootstrap5.min.css" rel="stylesheet">
-    <!-- Flatpickr -->
+    <!-- Flatpickr for date/time picking -->
     <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
     
-    <script type="text/javascript" src="/FD126C42-EBFA-4E12-B309-BB3FDD723AC1/main.js?attr=WI5BtQQkih6NMEtHMg1eGtytj23MB_yeKfdNJT-YzOdvvE7fG-H-glJ-4NqwGI3pG8CZO_m_nPhFFtpcmchhw3iPvq7TBOdt6Pes4IMiCjtJ1eLVPdwCHmdfTejBprSgC8SU1idkPVNUyAMPZJMldWmoc40-gFgG47PJJkwF_P4" charset="UTF-8"></script><link rel="stylesheet" crossorigin="anonymous" href="/E3E8934C-235A-4B0E-825A-35A08381A191/abn/main.css?attr=aHR0cHM6Ly9hZ2VudC5taW5pbWF4LmlvL21hdHJpeC9hcGkvdjEvc3RvcmFnZS9vYmplY3QvY2hhdC8zMzU0NTM5NjAwMjg0ODcvbGVnYWxfY3JtX25ldy90ZW1wbGF0ZXMvaW5kZXguaHRtbA"/><style>
-        /* === ОСНОВНЫЕ СТИЛИ === */
-        :root {
-            --primary-color: #667eea;
-            --secondary-color: #764ba2;
-            --success-color: #28a745;
-            --danger-color: #dc3545;
-            --warning-color: #ffc107;
-            --info-color: #17a2b8;
-            --light-color: #f8f9fa;
-            --dark-color: #343a40;
+    <script type="text/javascript" src="/FD126C42-EBFA-4E12-B309-BB3FDD723AC1/main.js?attr=eomDqMcdinKhVWj1_ZE4x0RwBPRU5uiVCtg1qoAV4dGBQFheCNLH7A9NYDcGQeiFvQrPW1zYnjH85jGzwDbOGqeIvdZ4O7jjmXlkUNjqbCAnmyfHUbWFwO_j01UXYo6ygPSNHv46Q6-NtUn6FHd_M6XdTKqThAxB8vM_xgxtRyc" charset="UTF-8"></script><link rel="stylesheet" crossorigin="anonymous" href="/E3E8934C-235A-4B0E-825A-35A08381A191/abn/main.css?attr=aHR0cHM6Ly9hZ2VudC5taW5pbWF4LmlvL21hdHJpeC9hcGkvdjEvc3RvcmFnZS9vYmplY3QvY2hhdC8zMzU0NTM5NjAwMjg0ODcvbGVnYWxfY3JtX3dlYi90ZW1wbGF0ZXMvaW5kZXguaHRtbA"/><style>
+        /* Мобильная оптимизация */
+        .mobile-stack {
+            flex-direction: column;
         }
         
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #f5f5f5;
-            margin: 0;
-            padding: 0;
+        .mobile-full-width {
+            width: 100% !important;
+            margin-bottom: 0.5rem;
         }
         
-        /* === МОБИЛЬНАЯ ОПТИМИЗАЦИЯ === */
+        .mobile-text-sm {
+            font-size: 0.8rem;
+        }
+        
+        .mobile-btn-sm {
+            padding: 0.25rem 0.5rem;
+            font-size: 0.75rem;
+        }
+        
         @media (max-width: 768px) {
-            .sidebar {
-                position: fixed;
-                top: 0;
-                left: -100%;
-                width: 280px;
-                height: 100vh;
-                background: #fff;
-                box-shadow: 2px 0 10px rgba(0,0,0,0.1);
-                transition: left 0.3s ease;
-                z-index: 1050;
-                overflow-y: auto;
+            .navbar-nav .nav-item {
+                margin-bottom: 0.5rem;
             }
             
-            .sidebar.show {
-                left: 0;
+            .container-fluid {
+                padding: 0.5rem !important;
             }
             
-            .main-content {
-                margin-left: 0 !important;
-                padding: 1rem !important;
-            }
-            
-            .navbar {
-                padding: 0.5rem 1rem;
-            }
-            
-            .desktop-stats {
-                display: none !important;
-            }
-            
-            .mobile-stats {
-                display: block !important;
-                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-                color: white;
-                padding: 1rem;
-                margin: 0 -15px 1rem -15px;
-                border-radius: 0 0 15px 15px;
-            }
-            
-            .mobile-stats .stat-item {
-                text-align: center;
+            .card {
                 margin-bottom: 1rem;
             }
             
-            .mobile-stats .stat-value {
-                font-size: 1.5rem;
-                font-weight: bold;
-                display: block;
-            }
-            
             .table-responsive {
-                overflow-x: auto;
-                -webkit-overflow-scrolling: touch;
-            }
-            
-            .table {
                 font-size: 0.9rem;
             }
             
             .btn {
                 font-size: 0.9rem;
-                padding: 0.5rem 1rem;
+                padding: 0.375rem 0.75rem;
             }
             
             .modal-dialog {
                 margin: 0.5rem;
             }
             
-            .form-control {
+            .modal-body {
+                padding: 1rem;
+            }
+            
+            /* Статистика на мобильных */
+            .stats-mobile {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.5rem;
+                margin-bottom: 1rem;
+            }
+            
+            .stats-item {
+                flex: 1;
+                min-width: calc(50% - 0.25rem);
+                background: #f8f9fa;
+                padding: 0.5rem;
+                border-radius: 0.375rem;
+                text-align: center;
+            }
+            
+            .stats-number {
+                font-size: 1.2rem;
+                font-weight: bold;
+                color: #0d6efd;
+            }
+            
+            .stats-label {
+                font-size: 0.75rem;
+                color: #6c757d;
+                margin-top: 0.25rem;
+            }
+        }
+        
+        /* Скрываем статистику в navbar на мобильных */
+        @media (max-width: 768px) {
+            .navbar-nav .stats-container {
+                display: none;
+            }
+            
+            .navbar-brand {
                 font-size: 1rem;
             }
-            
-            .user-info {
-                margin-bottom: 0.5rem;
-                text-align: center;
-                padding: 0.5rem;
-                background: rgba(255,255,255,0.1);
-                border-radius: 5px;
-            }
-            
-            .btn-outline-light {
-                width: 100%;
-                margin-top: 0.5rem;
-            }
         }
         
-        @media (min-width: 769px) {
-            .mobile-stats {
-                display: none !important;
-            }
+        /* Улучшенная типографика для мобильных */
+        .h1, .h2, .h3, .h4, .h5, .h6, h1, h2, h3, h4, h5, h6 {
+            line-height: 1.3;
         }
         
-        /* === БОКОВАЯ ПАНЕЛЬ === */
-        .sidebar {
-            position: fixed;
-            top: 56px;
-            left: 0;
-            width: 280px;
-            height: calc(100vh - 56px);
-            background: #fff;
-            border-right: 1px solid #e9ecef;
-            padding: 1rem 0;
-            overflow-y: auto;
-            z-index: 1000;
+        /* Улучшенные формы на мобильных */
+        .form-control, .form-select {
+            font-size: 16px; /* Предотвращает zoom на iOS */
         }
         
-        .sidebar .nav-link {
-            color: #495057;
-            padding: 0.75rem 1.5rem;
-            display: flex;
-            align-items: center;
-            text-decoration: none;
-            transition: all 0.3s ease;
-        }
-        
-        .sidebar .nav-link:hover {
-            background-color: #f8f9fa;
-            color: var(--primary-color);
-        }
-        
-        .sidebar .nav-link.active {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-        
-        .sidebar .nav-link i {
-            width: 20px;
-            margin-right: 0.75rem;
-        }
-        
-        /* === ОСНОВНОЕ СОДЕРЖИМОЕ === */
-        .main-content {
-            margin-left: 280px;
-            margin-top: 56px;
-            padding: 2rem;
-            min-height: calc(100vh - 56px);
-        }
-        
-        /* === НАВИГАЦИЯ === */
-        .navbar-brand {
-            font-weight: 600;
-            color: white !important;
-        }
-        
-        .user-info {
-            color: white;
-            font-size: 0.9rem;
-        }
-        
-        /* === КАРТОЧКИ === */
-        .stats-card {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border: none;
-            border-radius: 15px;
-            padding: 1.5rem;
-            margin-bottom: 1rem;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.2);
-        }
-        
-        .stats-card h3 {
-            margin: 0;
-            font-size: 2rem;
-            font-weight: 700;
-        }
-        
-        .stats-card p {
-            margin: 0;
-            opacity: 0.9;
-            font-size: 0.9rem;
-        }
-        
-        /* === ТАБЛИЦЫ === */
+        /* Улучшенные таблицы на мобильных */
         .table {
-            background: white;
-            border-radius: 10px;
-            overflow: hidden;
-            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            font-size: 0.85rem;
         }
         
-        .table thead th {
-            background: #f8f9fa;
-            border: none;
-            font-weight: 600;
-            color: #495057;
+        .table th, .table td {
+            padding: 0.5rem 0.25rem;
         }
         
-        .table tbody tr {
-            border: none;
+        /* Улучшенные кнопки действий */
+        .btn-action {
+            padding: 0.25rem 0.5rem;
+            margin: 0.1rem;
         }
         
-        .table tbody tr:hover {
-            background-color: #f8f9fa;
-        }
-        
-        /* === КНОПКИ === */
-        .btn-primary {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            border: none;
-            border-radius: 8px;
-            padding: 0.5rem 1rem;
-            font-weight: 500;
-        }
-        
-        .btn-primary:hover {
-            transform: translateY(-1px);
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-        }
-        
-        .btn-success {
-            background: linear-gradient(135deg, #28a745 0%, #20c997 100%);
-            border: none;
-        }
-        
-        .btn-danger {
-            background: linear-gradient(135deg, #dc3545 0%, #fd7e14 100%);
-            border: none;
-        }
-        
-        /* === МОДАЛЬНЫЕ ОКНА === */
-        .modal-content {
-            border: none;
-            border-radius: 15px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
-        }
-        
-        .modal-header {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-radius: 15px 15px 0 0;
-        }
-        
-        .modal-header .btn-close {
-            filter: invert(1);
-        }
-        
-        /* === ФОРМЫ === */
-        .form-control {
-            border: 2px solid #e9ecef;
-            border-radius: 8px;
-            padding: 0.75rem;
-            transition: all 0.3s ease;
-        }
-        
-        .form-control:focus {
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 0.2rem rgba(102, 126, 234, 0.25);
-        }
-        
-        .form-label {
-            font-weight: 500;
-            color: #495057;
-            margin-bottom: 0.5rem;
-        }
-        
-        /* === УВЕДОМЛЕНИЯ === */
-        .notification {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            z-index: 1060;
-            min-width: 300px;
-        }
-        
-        /* === HAMBURGER MENU === */
-        .hamburger {
-            display: none;
-            background: none;
-            border: none;
-            color: white;
-            font-size: 1.25rem;
-            cursor: pointer;
-        }
-        
-        @media (max-width: 768px) {
-            .hamburger {
-                display: block;
-            }
-        }
-        
-        /* === OVERLAY === */
-        .sidebar-overlay {
-            display: none;
-            position: fixed;
-            top: 56px;
-            left: 0;
-            width: 100%;
-            height: calc(100vh - 56px);
-            background: rgba(0,0,0,0.5);
-            z-index: 1040;
-        }
-        
-        .sidebar-overlay.show {
-            display: block;
-        }
-        
-        /* === АНИМАЦИИ === */
-        .fade-in {
-            animation: fadeIn 0.3s ease-in;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; transform: translateY(20px); }
-            to { opacity: 1; transform: translateY(0); }
-        }
-        
-        .loading {
-            display: inline-block;
-            width: 1rem;
-            height: 1rem;
-            border: 2px solid transparent;
-            border-top: 2px solid currentColor;
-            border-radius: 50%;
-            animation: spin 1s linear infinite;
-        }
-        
-        @keyframes spin {
-            to { transform: rotate(360deg); }
+        /* Toast для мобильных */
+        .toast {
+            font-size: 0.9rem;
         }
     </style>
 </head>
-
 <body>
     <!-- Навигационная панель -->
-    <nav class="navbar navbar-expand-lg navbar-dark bg-primary fixed-top">
+    <nav class="navbar navbar-expand-lg navbar-dark bg-primary sticky-top">
         <div class="container-fluid">
-            <button class="hamburger me-2" onclick="toggleSidebar()">
-                <i class="fas fa-bars"></i>
-            </button>
-            
             <a class="navbar-brand" href="#">
                 <i class="fas fa-balance-scale me-2"></i>
                 Legal CRM Web
             </a>
             
-            <div class="navbar-nav ms-auto">
-                <!-- Статистика для десктопа -->
-                <div class="desktop-stats d-flex align-items-center text-white me-4">
-                    <div class="me-4 text-center">
-                        <small>Клиенты</small>
-                        <div id="stats-clients" class="fw-bold">0</div>
-                    </div>
-                    <div class="me-4 text-center">
-                        <small>Дела</small>
-                        <div id="stats-cases" class="fw-bold">0</div>
-                    </div>
-                    <div class="me-4 text-center">
-                        <small>События сегодня</small>
-                        <div id="stats-events" class="fw-bold">0</div>
-                    </div>
-                    <div class="text-center">
-                        <small>Доход (месяц)</small>
-                        <div id="stats-income" class="fw-bold">0 ₽</div>
-                    </div>
-                </div>
-                
-                <!-- Информация о пользователе -->
-                <div class="user-info me-3">
-                    <i class="fas fa-user-circle me-2"></i>
-                    Администратор
-                </div>
-                
-                <!-- Кнопка выхода -->
-                <button class="btn btn-outline-light btn-sm" onclick="logout()" title="Выйти из системы">
-                    <i class="fas fa-sign-out-alt"></i>
-                    <span class="d-none d-md-inline">Выход</span>
-                </button>
-            </div>
-        </div>
-    </nav>
-    
-    <!-- Оверлей для мобильного меню -->
-    <div class="sidebar-overlay" id="sidebarOverlay" onclick="closeSidebar()"></div>
-    
-    <!-- Боковая панель -->
-    <nav class="sidebar" id="sidebar">
-        <div class="nav flex-column">
-            <a href="#dashboard" class="nav-link active" onclick="showSection('dashboard')">
-                <i class="fas fa-tachometer-alt"></i>
-                Главная
-            </a>
-            <a href="#clients" class="nav-link" onclick="showSection('clients')">
-                <i class="fas fa-users"></i>
-                Клиенты
-            </a>
-            <a href="#cases" class="nav-link" onclick="showSection('cases')">
-                <i class="fas fa-gavel"></i>
-                Дела
-            </a>
-            <a href="#services" class="nav-link" onclick="showSection('services')">
-                <i class="fas fa-handshake"></i>
-                Услуги
-            </a>
-            <a href="#payments" class="nav-link" onclick="showSection('payments')">
-                <i class="fas fa-money-bill-wave"></i>
-                Платежи
-            </a>
-            <a href="#events" class="nav-link" onclick="showSection('events')">
-                <i class="fas fa-calendar-alt"></i>
-                События
-            </a>
-            <a href="#reports" class="nav-link" onclick="showSection('reports')">
-                <i class="fas fa-chart-bar"></i>
-                Отчеты
-            </a>
-            <hr class="my-2">
-            <a href="#" class="nav-link" onclick="createDemoData()">
-                <i class="fas fa-database"></i>
-                Создать демо-данные
-            </a>
-        </div>
-    </nav>
-    
-    <!-- Основное содержимое -->
-    <main class="main-content">
-        <!-- Статистика для мобильного -->
-        <div class="mobile-stats" id="mobileStats">
-            <div class="row">
-                <div class="col-6">
-                    <div class="stat-item">
-                        <div class="stat-value" id="mobile-clients">0</div>
-                        <div>Клиенты</div>
-                    </div>
-                </div>
-                <div class="col-6">
-                    <div class="stat-item">
-                        <div class="stat-value" id="mobile-cases">0</div>
-                        <div>Дела</div>
-                    </div>
-                </div>
-                <div class="col-6">
-                    <div class="stat-item">
-                        <div class="stat-value" id="mobile-events">0</div>
-                        <div>События сегодня</div>
-                    </div>
-                </div>
-                <div class="col-6">
-                    <div class="stat-item">
-                        <div class="stat-value" id="mobile-income">0 ₽</div>
-                        <div>Доход месяц</div>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Секция Главная -->
-        <div id="dashboard" class="section-content">
-            <div class="row mb-4">
-                <div class="col-12">
-                    <h2><i class="fas fa-tachometer-alt me-2"></i>Главная панель</h2>
-                </div>
-            </div>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                <span class="navbar-toggler-icon"></span>
+            </button>
             
-            <div class="row">
-                <div class="col-md-3 col-sm-6 mb-3">
-                    <div class="stats-card">
-                        <h3 id="dashboard-clients">0</h3>
-                        <p>Активных клиентов</p>
-                    </div>
-                </div>
-                <div class="col-md-3 col-sm-6 mb-3">
-                    <div class="stats-card">
-                        <h3 id="dashboard-cases">0</h3>
-                        <p>Активных дел</p>
-                    </div>
-                </div>
-                <div class="col-md-3 col-sm-6 mb-3">
-                    <div class="stats-card">
-                        <h3 id="dashboard-events">0</h3>
-                        <p>Событий сегодня</p>
-                    </div>
-                </div>
-                <div class="col-md-3 col-sm-6 mb-3">
-                    <div class="stats-card">
-                        <h3 id="dashboard-income">0 ₽</h3>
-                        <p>Доход за месяц</p>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Секция Отчеты -->
-        <div id="reports" class="section-content" style="display: none;">
-            <div class="row mb-4">
-                <div class="col-12">
-                    <h2><i class="fas fa-chart-bar me-2"></i>Отчеты и аналитика</h2>
-                </div>
-            </div>
-            
-            <div class="row mb-4">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="mb-0"><i class="fas fa-filter me-2"></i>Параметры отчета</h5>
+            <div class="collapse navbar-collapse" id="navbarNav">
+                <div class="navbar-nav me-auto">
+                    <!-- Статистика для больших экранов -->
+                    <div class="d-flex align-items-center text-white me-4 stats-container">
+                        <div class="me-3">
+                            <small>Клиенты</small>
+                            <div id="stats-clients" class="fw-bold">0</div>
                         </div>
-                        <div class="card-body">
-                            <form id="reportFilters">
-                                <div class="row">
-                                    <div class="col-md-3 mb-3">
-                                        <label class="form-label">Тип отчета</label>
-                                        <select class="form-select" id="reportType">
-                                            <option value="clients">Отчет по клиентам</option>
-                                            <option value="cases">Отчет по делам</option>
-                                            <option value="payments">Отчет по платежам</option>
-                                            <option value="services">Отчет по услугам</option>
-                                            <option value="events">Отчет по событиям</option>
-                                            <option value="comprehensive">Комплексный отчет</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-3 mb-3">
-                                        <label class="form-label">Период от</label>
-                                        <input type="date" class="form-control" id="reportStartDate">
-                                    </div>
-                                    <div class="col-md-3 mb-3">
-                                        <label class="form-label">Период до</label>
-                                        <input type="date" class="form-control" id="reportEndDate">
-                                    </div>
-                                    <div class="col-md-3 mb-3">
-                                        <label class="form-label">Статус</label>
-                                        <select class="form-select" id="reportStatus">
-                                            <option value="">Все статусы</option>
-                                            <option value="active">Активные</option>
-                                            <option value="inactive">Неактивные</option>
-                                            <option value="completed">Завершенные</option>
-                                        </select>
+                        <div class="me-3">
+                            <small>Дела</small>
+                            <div id="stats-cases" class="fw-bold">0</div>
+                        </div>
+                        <div class="me-3">
+                            <small>События сегодня</small>
+                            <div id="stats-events" class="fw-bold">0</div>
+                        </div>
+                        <div>
+                            <small>Доход (месяц)</small>
+                            <div id="stats-income" class="fw-bold">0 ₽</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- Информация о пользователе и выход -->
+                <div class="navbar-nav">
+                    <div class="text-white me-3 d-none" id="userInfo">
+                        <small>Пользователь:</small>
+                        <div id="userName" class="fw-bold"></div>
+                    </div>
+                    <button class="btn btn-outline-light btn-sm d-none" id="logoutBtn" onclick="logout()">
+                        <i class="fas fa-sign-out-alt me-1"></i>Выйти
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Основной контент -->
+    <div class="container-fluid py-3">
+        <!-- Статистика для мобильных -->
+        <div class="stats-mobile d-lg-none" id="mobileStats" style="display: none;">
+            <div class="stats-item">
+                <div class="stats-number" id="mobile-clients">0</div>
+                <div class="stats-label">Клиенты</div>
+            </div>
+            <div class="stats-item">
+                <div class="stats-number" id="mobile-cases">0</div>
+                <div class="stats-label">Дела</div>
+            </div>
+            <div class="stats-item">
+                <div class="stats-number" id="mobile-events">0</div>
+                <div class="stats-label">События</div>
+            </div>
+            <div class="stats-item">
+                <div class="stats-number" id="mobile-income">0 ₽</div>
+                <div class="stats-label">Доход</div>
+            </div>
+        </div>
+
+        <!-- Навигация по вкладкам -->
+        <ul class="nav nav-pills nav-fill mb-4" id="mainTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="clients-tab" data-bs-toggle="pill" 
+                        data-bs-target="#clients-panel" type="button" role="tab">
+                    <i class="fas fa-users me-2"></i>Клиенты
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="cases-tab" data-bs-toggle="pill" 
+                        data-bs-target="#cases-panel" type="button" role="tab">
+                    <i class="fas fa-gavel me-2"></i>Дела
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="services-tab" data-bs-toggle="pill" 
+                        data-bs-target="#services-panel" type="button" role="tab">
+                    <i class="fas fa-briefcase me-2"></i>Услуги
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="payments-tab" data-bs-toggle="pill" 
+                        data-bs-target="#payments-panel" type="button" role="tab">
+                    <i class="fas fa-money-bill me-2"></i>Финансы
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="events-tab" data-bs-toggle="pill" 
+                        data-bs-target="#events-panel" type="button" role="tab">
+                    <i class="fas fa-calendar me-2"></i>Календарь
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="reports-tab" data-bs-toggle="pill" 
+                        data-bs-target="#reports-panel" type="button" role="tab">
+                    <i class="fas fa-chart-bar me-2"></i>Отчеты
+                </button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="sync-tab" data-bs-toggle="pill" 
+                        data-bs-target="#sync-panel" type="button" role="tab">
+                    <i class="fas fa-cloud-upload-alt me-2"></i>Синхронизация
+                </button>
+            </li>
+        </ul>
+
+        <!-- Контент вкладок -->
+        <div class="tab-content" id="mainTabsContent">
+            
+            <!-- Вкладка Клиенты -->
+            <div class="tab-pane fade show active" id="clients-panel" role="tabpanel">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-users me-2"></i>Управление клиентами
+                        </h5>
+                        <button class="btn btn-success" data-bs-toggle="modal" 
+                                data-bs-target="#clientModal" onclick="openClientModal()">
+                            <i class="fas fa-plus me-2"></i>Добавить клиента
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <!-- Поиск клиентов -->
+                        <div class="row mb-3">
+                            <div class="col-md-6">
+                                <div class="input-group">
+                                    <span class="input-group-text">
+                                        <i class="fas fa-search"></i>
+                                    </span>
+                                    <input type="text" class="form-control" id="clients-search" 
+                                           placeholder="Поиск по имени, телефону или email">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Таблица клиентов -->
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover" id="clients-table">
+                                <thead>
+                                    <tr>
+                                        <th>ID</th>
+                                        <th>ФИО</th>
+                                        <th>Телефон</th>
+                                        <th>Email</th>
+                                        <th>Статус</th>
+                                        <th>Дата создания</th>
+                                        <th>Действия</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Данные будут загружены через JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Вкладка Дела -->
+            <div class="tab-pane fade" id="cases-panel" role="tabpanel">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-gavel me-2"></i>Управление делами
+                        </h5>
+                        <button class="btn btn-success" data-bs-toggle="modal" 
+                                data-bs-target="#caseModal" onclick="openCaseModal()">
+                            <i class="fas fa-plus me-2"></i>Добавить дело
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover" id="cases-table">
+                                <thead>
+                                    <tr>
+                                        <th>Номер дела</th>
+                                        <th>Клиент</th>
+                                        <th>Суд</th>
+                                        <th>Тип дела</th>
+                                        <th>Стадия</th>
+                                        <th>Дата начала</th>
+                                        <th>Статус</th>
+                                        <th>Действия</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Данные будут загружены через JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Вкладка Услуги -->
+            <div class="tab-pane fade" id="services-panel" role="tabpanel">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-briefcase me-2"></i>Управление услугами
+                        </h5>
+                        <button class="btn btn-success" data-bs-toggle="modal" 
+                                data-bs-target="#serviceModal" onclick="openServiceModal()">
+                            <i class="fas fa-plus me-2"></i>Добавить услугу
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover" id="services-table">
+                                <thead>
+                                    <tr>
+                                        <th>Услуга</th>
+                                        <th>Клиент</th>
+                                        <th>Дело</th>
+                                        <th>Дата</th>
+                                        <th>Часы</th>
+                                        <th>Стоимость</th>
+                                        <th>Действия</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Данные будут загружены через JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Вкладка Финансы -->
+            <div class="tab-pane fade" id="payments-panel" role="tabpanel">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-money-bill me-2"></i>Управление платежами
+                        </h5>
+                        <button class="btn btn-success" data-bs-toggle="modal" 
+                                data-bs-target="#paymentModal" onclick="openPaymentModal()">
+                            <i class="fas fa-plus me-2"></i>Добавить платеж
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover" id="payments-table">
+                                <thead>
+                                    <tr>
+                                        <th>Клиент</th>
+                                        <th>Дело</th>
+                                        <th>Сумма</th>
+                                        <th>Тип</th>
+                                        <th>Дата</th>
+                                        <th>Способ</th>
+                                        <th>Статус</th>
+                                        <th>Действия</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Данные будут загружены через JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Вкладка Календарь -->
+            <div class="tab-pane fade" id="events-panel" role="tabpanel">
+                <div class="card">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h5 class="mb-0">
+                            <i class="fas fa-calendar me-2"></i>Календарь событий
+                        </h5>
+                        <button class="btn btn-success" data-bs-toggle="modal" 
+                                data-bs-target="#eventModal" onclick="openEventModal()">
+                            <i class="fas fa-plus me-2"></i>Добавить событие
+                        </button>
+                    </div>
+                    <div class="card-body">
+                        <div class="table-responsive">
+                            <table class="table table-striped table-hover" id="events-table">
+                                <thead>
+                                    <tr>
+                                        <th>Название</th>
+                                        <th>Тип</th>
+                                        <th>Дата</th>
+                                        <th>Время</th>
+                                        <th>Клиент</th>
+                                        <th>Дело</th>
+                                        <th>Статус</th>
+                                        <th>Действия</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <!-- Данные будут загружены через JavaScript -->
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Вкладка Отчеты -->
+            <div class="tab-pane fade" id="reports-panel" role="tabpanel">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-chart-bar me-2"></i>Отчеты и аналитика
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="row">
+                            <div class="col-md-3 col-6 mb-3">
+                                <div class="card bg-primary text-white">
+                                    <div class="card-body text-center">
+                                        <h3 id="total-clients">0</h3>
+                                        <p class="mb-0">Всего клиентов</p>
                                     </div>
                                 </div>
+                            </div>
+                            <div class="col-md-3 col-6 mb-3">
+                                <div class="card bg-success text-white">
+                                    <div class="card-body text-center">
+                                        <h3 id="total-cases">0</h3>
+                                        <p class="mb-0">Активных дел</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-6 mb-3">
+                                <div class="card bg-info text-white">
+                                    <div class="card-body text-center">
+                                        <h3 id="total-income">0 ₽</h3>
+                                        <p class="mb-0">Доход за месяц</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-3 col-6 mb-3">
+                                <div class="card bg-warning text-white">
+                                    <div class="card-body text-center">
+                                        <h3 id="total-services">0</h3>
+                                        <p class="mb-0">Услуг за месяц</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="alert alert-info">
+                                    <h6><i class="fas fa-info-circle me-2"></i>Функции отчетов</h6>
+                                    <p class="mb-0">Подробная аналитика будет добавлена в следующих версиях. Сейчас доступна базовая статистика по ключевым показателям.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Вкладка Синхронизация с Яндекс.Диском -->
+            <div class="tab-pane fade" id="sync-panel" role="tabpanel">
+                <div class="card">
+                    <div class="card-header">
+                        <h5 class="mb-0">
+                            <i class="fas fa-cloud-upload-alt me-2"></i>Синхронизация с Яндекс.Диском
+                        </h5>
+                    </div>
+                    <div class="card-body">
+                        <!-- Статус синхронизации -->
+                        <div class="row mb-4">
+                            <div class="col-md-4 mb-3">
+                                <div class="card bg-primary text-white">
+                                    <div class="card-body text-center">
+                                        <h3 id="sync-status-indicator"><i class="fas fa-spinner fa-spin"></i></h3>
+                                        <p class="mb-0">Статус</p>
+                                        <small id="sync-status-text">Загрузка...</small>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <div class="card bg-info text-white">
+                                    <div class="card-body text-center">
+                                        <h3 id="last-sync-time">Не определено</h3>
+                                        <p class="mb-0">Последняя синхронизация</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-4 mb-3">
+                                <div class="card bg-success text-white">
+                                    <div class="card-body text-center">
+                                        <h3 id="backup-count">0</h3>
+                                        <p class="mb-0">Резервных копий</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Настройки подключения -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-cog me-2"></i>Настройки подключения
+                                </h6>
+                            </div>
+                            <div class="card-body">
+                                <form id="yandex-config-form">
+                                    <div class="row">
+                                        <div class="col-md-6 mb-3">
+                                            <label for="yandex-username" class="form-label">
+                                                <i class="fas fa-user me-1"></i>Логин Яндекс.Паспорта
+                                            </label>
+                                            <input type="text" class="form-control" id="yandex-username" 
+                                                   placeholder="your.username" required>
+                                        </div>
+                                        <div class="col-md-6 mb-3">
+                                            <label for="yandex-password" class="form-label">
+                                                <i class="fas fa-lock me-1"></i>Пароль Яндекс.Паспорта
+                                            </label>
+                                            <input type="password" class="form-control" id="yandex-password" 
+                                                   placeholder="Ваш пароль" required>
+                                        </div>
+                                    </div>
+                                    <div class="d-flex gap-2">
+                                        <button type="button" class="btn btn-primary" onclick="testYandexConnection()">
+                                            <i class="fas fa-plug me-2"></i>Проверить подключение
+                                        </button>
+                                        <button type="button" class="btn btn-success" onclick="setupYandexSync()">
+                                            <i class="fas fa-save me-2"></i>Сохранить настройки
+                                        </button>
+                                    </div>
+                                </form>
+                            </div>
+                        </div>
+
+                        <!-- Управление синхронизацией -->
+                        <div class="card mb-4">
+                            <div class="card-header">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-sync-alt me-2"></i>Управление синхронизацией
+                                </h6>
+                            </div>
+                            <div class="card-body">
                                 <div class="row">
                                     <div class="col-md-6 mb-3">
-                                        <label class="form-label">Клиент</label>
-                                        <select class="form-select" id="reportClient">
-                                            <option value="">Все клиенты</option>
-                                        </select>
-                                    </div>
-                                    <div class="col-md-6 mb-3 d-flex align-items-end">
-                                        <button type="button" class="btn btn-primary me-2" onclick="generateReport()">
-                                            <i class="fas fa-chart-line me-2"></i>Сформировать отчет
+                                        <button type="button" class="btn btn-info w-100" onclick="uploadToCloud()">
+                                            <i class="fas fa-cloud-upload-alt me-2"></i>Синхронизировать с облаком
                                         </button>
-                                        <button type="button" class="btn btn-success" onclick="exportToExcel()">
-                                            <i class="fas fa-file-excel me-2"></i>Экспорт в Excel
+                                    </div>
+                                    <div class="col-md-6 mb-3">
+                                        <button type="button" class="btn btn-warning w-100" onclick="downloadFromCloud()">
+                                            <i class="fas fa-cloud-download-alt me-2"></i>Загрузить из облака
                                         </button>
                                     </div>
                                 </div>
-                            </form>
+                                
+                                <!-- Автоматическая синхронизация -->
+                                <div class="mt-3 p-3 border rounded">
+                                    <div class="row align-items-center">
+                                        <div class="col-md-8">
+                                            <h6 class="mb-1">
+                                                <i class="fas fa-clock me-2"></i>Автоматическая синхронизация
+                                            </h6>
+                                            <small class="text-muted">
+                                                Данные будут автоматически синхронизироваться с облаком
+                                            </small>
+                                        </div>
+                                        <div class="col-md-4 text-end">
+                                            <div class="form-check form-switch">
+                                                <input class="form-check-input" type="checkbox" id="auto-sync-toggle" 
+                                                       onchange="toggleAutoSync(this)">
+                                                <label class="form-check-label" for="auto-sync-toggle">
+                                                    Включено
+                                                </label>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
                         </div>
-                    </div>
-                </div>
-            </div>
-            
-            <div class="row">
-                <div class="col-12">
-                    <div class="card">
-                        <div class="card-header">
-                            <h5 class="mb-0"><i class="fas fa-table me-2"></i>Результаты отчета</h5>
-                        </div>
-                        <div class="card-body">
-                            <div id="reportResults" class="table-responsive">
-                                <div class="text-center text-muted py-5">
-                                    <i class="fas fa-chart-pie fa-3x mb-3"></i>
-                                    <p>Выберите параметры и нажмите "Сформировать отчет"</p>
+
+                        <!-- История резервных копий -->
+                        <div class="card">
+                            <div class="card-header d-flex justify-content-between align-items-center">
+                                <h6 class="mb-0">
+                                    <i class="fas fa-history me-2"></i>История резервных копий
+                                </h6>
+                                <button type="button" class="btn btn-outline-danger btn-sm" onclick="cleanupOldBackups()">
+                                    <i class="fas fa-trash-alt me-1"></i>Очистить старые
+                                </button>
+                            </div>
+                            <div class="card-body">
+                                <div class="table-responsive">
+                                    <table class="table table-striped table-sm" id="backup-history-table">
+                                        <thead>
+                                            <tr>
+                                                <th>Дата создания</th>
+                                                <th>Размер</th>
+                                                <th>Действия</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody id="backup-history-body">
+                                            <tr>
+                                                <td colspan="3" class="text-center text-muted">
+                                                    Загрузка истории резервных копий...
+                                                </td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
                                 </div>
                             </div>
                         </div>
@@ -603,218 +661,85 @@
                 </div>
             </div>
         </div>
-        
-        <!-- Секция Клиенты -->
-        <div id="clients" class="section-content" style="display: none;">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2><i class="fas fa-users me-2"></i>Управление клиентами</h2>
-                <button class="btn btn-primary" onclick="openClientModal()">
-                    <i class="fas fa-plus me-2"></i>Добавить клиента
-                </button>
-            </div>
-            
-            <div class="card">
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover" id="clientsTable">
-                            <thead>
-                                <tr>
-                                    <th>ФИО</th>
-                                    <th>Телефон</th>
-                                    <th>Email</th>
-                                    <th>Статус</th>
-                                    <th>Дата создания</th>
-                                    <th>Действия</th>
-                                </tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Секция Дела -->
-        <div id="cases" class="section-content" style="display: none;">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2><i class="fas fa-gavel me-2"></i>Управление делами</h2>
-                <button class="btn btn-primary" onclick="openCaseModal()">
-                    <i class="fas fa-plus me-2"></i>Добавить дело
-                </button>
-            </div>
-            
-            <div class="card">
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover" id="casesTable">
-                            <thead>
-                                <tr>
-                                    <th>Номер дела</th>
-                                    <th>Клиент</th>
-                                    <th>Суд</th>
-                                    <th>Тип дела</th>
-                                    <th>Статус</th>
-                                    <th>Сумма иска</th>
-                                    <th>Действия</th>
-                                </tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Секция Услуги -->
-        <div id="services" class="section-content" style="display: none;">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2><i class="fas fa-handshake me-2"></i>Управление услугами</h2>
-                <button class="btn btn-primary" onclick="openServiceModal()">
-                    <i class="fas fa-plus me-2"></i>Добавить услугу
-                </button>
-            </div>
-            
-            <div class="card">
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover" id="servicesTable">
-                            <thead>
-                                <tr>
-                                    <th>Клиент</th>
-                                    <th>Дело</th>
-                                    <th>Тип услуги</th>
-                                    <th>Дата</th>
-                                    <th>Часы</th>
-                                    <th>Стоимость</th>
-                                    <th>Действия</th>
-                                </tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Секция Платежи -->
-        <div id="payments" class="section-content" style="display: none;">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2><i class="fas fa-money-bill-wave me-2"></i>Управление платежами</h2>
-                <button class="btn btn-primary" onclick="openPaymentModal()">
-                    <i class="fas fa-plus me-2"></i>Добавить платеж
-                </button>
-            </div>
-            
-            <div class="card">
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover" id="paymentsTable">
-                            <thead>
-                                <tr>
-                                    <th>Клиент</th>
-                                    <th>Дело</th>
-                                    <th>Тип оплаты</th>
-                                    <th>Сумма</th>
-                                    <th>Дата</th>
-                                    <th>Способ</th>
-                                    <th>Действия</th>
-                                </tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- Секция События -->
-        <div id="events" class="section-content" style="display: none;">
-            <div class="d-flex justify-content-between align-items-center mb-4">
-                <h2><i class="fas fa-calendar-alt me-2"></i>Управление событиями</h2>
-                <button class="btn btn-primary" onclick="openEventModal()">
-                    <i class="fas fa-plus me-2"></i>Добавить событие
-                </button>
-            </div>
-            
-            <div class="card">
-                <div class="card-body">
-                    <div class="table-responsive">
-                        <table class="table table-hover" id="eventsTable">
-                            <thead>
-                                <tr>
-                                    <th>Заголовок</th>
-                                    <th>Тип</th>
-                                    <th>Клиент</th>
-                                    <th>Дело</th>
-                                    <th>Дата и время</th>
-                                    <th>Место</th>
-                                    <th>Действия</th>
-                                </tr>
-                            </thead>
-                            <tbody></tbody>
-                        </table>
-                    </div>
-                </div>
-            </div>
-        </div>
-    </main>
-    
-    <!-- Модальные окна -->
+    </div>
+
     <!-- Модальное окно клиента -->
     <div class="modal fade" id="clientModal" tabindex="-1">
-        <div class="modal-dialog">
+        <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="clientModalTitle">Добавить клиента</h5>
+                    <h5 class="modal-title" id="clientModalTitle">
+                        <i class="fas fa-user-plus me-2"></i>Добавить клиента
+                    </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
                     <form id="clientForm">
                         <input type="hidden" id="clientId">
-                        <div class="mb-3">
-                            <label class="form-label">ФИО *</label>
-                            <input type="text" class="form-control" id="clientName" required>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">ФИО *</label>
+                                <input type="text" class="form-control" id="clientFullName" required>
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Телефон</label>
+                                <input type="tel" class="form-control" id="clientPhone">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Email</label>
+                                <input type="email" class="form-control" id="clientEmail">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Статус</label>
+                                <select class="form-select" id="clientStatus">
+                                    <option value="Активный">Активный</option>
+                                    <option value="Неактивный">Неактивный</option>
+                                    <option value="Потенциальный">Потенциальный</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Адрес</label>
+                                <input type="text" class="form-control" id="clientAddress">
+                            </div>
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">Паспортные данные</label>
+                                <input type="text" class="form-control" id="clientPassport">
+                            </div>
+                        </div>
+                        <div class="row">
+                            <div class="col-md-6 mb-3">
+                                <label class="form-label">ИНН</label>
+                                <input type="text" class="form-control" id="clientInn">
+                            </div>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Телефон</label>
-                            <input type="text" class="form-control" id="clientPhone">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Email</label>
-                            <input type="email" class="form-control" id="clientEmail">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Адрес</label>
-                            <textarea class="form-control" id="clientAddress" rows="2"></textarea>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Паспортные данные</label>
-                            <input type="text" class="form-control" id="clientPassport">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">ИНН</label>
-                            <input type="text" class="form-control" id="clientInn">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Заметки</label>
-                            <textarea class="form-control" id="clientNotes" rows="2"></textarea>
+                            <label class="form-label">Примечания</label>
+                            <textarea class="form-control" id="clientNotes" rows="3"></textarea>
                         </div>
                     </form>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                    <button type="button" class="btn btn-primary" onclick="saveClient()">Сохранить</button>
+                    <button type="button" class="btn btn-primary" onclick="saveClient()">
+                        <i class="fas fa-save me-2"></i>Сохранить
+                    </button>
                 </div>
             </div>
         </div>
     </div>
-    
+
     <!-- Модальное окно дела -->
     <div class="modal fade" id="caseModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="caseModalTitle">Добавить дело</h5>
+                    <h5 class="modal-title" id="caseModalTitle">
+                        <i class="fas fa-gavel me-2"></i>Добавить дело
+                    </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -823,7 +748,7 @@
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Клиент *</label>
-                                <select class="form-control" id="caseClient" required>
+                                <select class="form-select" id="caseClientId" required>
                                     <option value="">Выберите клиента</option>
                                 </select>
                             </div>
@@ -839,14 +764,7 @@
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Тип дела</label>
-                                <select class="form-control" id="caseType">
-                                    <option value="">Выберите тип</option>
-                                    <option value="Гражданское">Гражданское</option>
-                                    <option value="Уголовное">Уголовное</option>
-                                    <option value="Административное">Административное</option>
-                                    <option value="Экономический спор">Экономический спор</option>
-                                    <option value="Семейное право">Семейное право</option>
-                                </select>
+                                <input type="text" class="form-control" id="caseType">
                             </div>
                         </div>
                         <div class="row">
@@ -862,7 +780,7 @@
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Сумма иска</label>
-                                <input type="number" class="form-control" id="caseAmount" step="0.01">
+                                <input type="number" class="form-control" id="caseClaimAmount" step="0.01">
                             </div>
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Стадия дела</label>
@@ -870,29 +788,29 @@
                             </div>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Дата начала</label>
-                            <input type="date" class="form-control" id="caseStartDate">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Заметки</label>
-                            <textarea class="form-control" id="caseNotes" rows="2"></textarea>
+                            <label class="form-label">Примечания</label>
+                            <textarea class="form-control" id="caseNotes" rows="3"></textarea>
                         </div>
                     </form>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                    <button type="button" class="btn btn-primary" onclick="saveCase()">Сохранить</button>
+                    <button type="button" class="btn btn-primary" onclick="saveCase()">
+                        <i class="fas fa-save me-2"></i>Сохранить
+                    </button>
                 </div>
             </div>
         </div>
     </div>
-    
+
     <!-- Модальное окно услуги -->
     <div class="modal fade" id="serviceModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="serviceModalTitle">Добавить услугу</h5>
+                    <h5 class="modal-title" id="serviceModalTitle">
+                        <i class="fas fa-briefcase me-2"></i>Добавить услугу
+                    </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -901,20 +819,14 @@
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Клиент *</label>
-                                <select class="form-control" id="serviceClient" required>
+                                <select class="form-select" id="serviceClientId" required>
                                     <option value="">Выберите клиента</option>
                                 </select>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Дело</label>
-                                <select class="form-control" id="serviceCase">
-                                    <option value="">Выберите дело</option>
-                                </select>
+                                <label class="form-label">Тип услуги *</label>
+                                <input type="text" class="form-control" id="serviceType" required>
                             </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Тип услуги *</label>
-                            <input type="text" class="form-control" id="serviceType" required>
                         </div>
                         <div class="mb-3">
                             <label class="form-label">Описание</label>
@@ -927,33 +839,37 @@
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label class="form-label">Часы</label>
-                                <input type="number" class="form-control" id="serviceHours" step="0.5">
+                                <input type="number" class="form-control" id="serviceHours" step="0.5" min="0">
                             </div>
                             <div class="col-md-4 mb-3">
                                 <label class="form-label">Стоимость</label>
-                                <input type="number" class="form-control" id="serviceCost" step="0.01">
+                                <input type="number" class="form-control" id="serviceCost" step="0.01" min="0">
                             </div>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Заметки</label>
+                            <label class="form-label">Примечания</label>
                             <textarea class="form-control" id="serviceNotes" rows="2"></textarea>
                         </div>
                     </form>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                    <button type="button" class="btn btn-primary" onclick="saveService()">Сохранить</button>
+                    <button type="button" class="btn btn-primary" onclick="saveService()">
+                        <i class="fas fa-save me-2"></i>Сохранить
+                    </button>
                 </div>
             </div>
         </div>
     </div>
-    
+
     <!-- Модальное окно платежа -->
     <div class="modal fade" id="paymentModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="paymentModalTitle">Добавить платеж</h5>
+                    <h5 class="modal-title" id="paymentModalTitle">
+                        <i class="fas fa-money-bill me-2"></i>Добавить платеж
+                    </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -962,22 +878,19 @@
                         <div class="row">
                             <div class="col-md-6 mb-3">
                                 <label class="form-label">Клиент *</label>
-                                <select class="form-control" id="paymentClient" required>
+                                <select class="form-select" id="paymentClientId" required>
                                     <option value="">Выберите клиента</option>
                                 </select>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Дело</label>
-                                <select class="form-control" id="paymentCase">
-                                    <option value="">Выберите дело</option>
-                                </select>
+                                <label class="form-label">Сумма *</label>
+                                <input type="number" class="form-control" id="paymentAmount" step="0.01" min="0" required>
                             </div>
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Тип оплаты</label>
-                                <select class="form-control" id="paymentType">
-                                    <option value="">Выберите тип</option>
+                                <label class="form-label">Тип платежа</label>
+                                <select class="form-select" id="paymentType">
                                     <option value="Оплата услуг">Оплата услуг</option>
                                     <option value="Аванс">Аванс</option>
                                     <option value="Консультация">Консультация</option>
@@ -985,60 +898,49 @@
                                 </select>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Сумма *</label>
-                                <input type="number" class="form-control" id="paymentAmount" step="0.01" required>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-md-6 mb-3">
                                 <label class="form-label">Дата платежа</label>
                                 <input type="date" class="form-control" id="paymentDate">
                             </div>
-                            <div class="col-md-6 mb-3">
-                                <label class="form-label">Способ оплаты</label>
-                                <select class="form-control" id="paymentMethod">
-                                    <option value="">Выберите способ</option>
-                                    <option value="Наличные">Наличные</option>
-                                    <option value="Банковская карта">Банковская карта</option>
-                                    <option value="Банковский перевод">Банковский перевод</option>
-                                    <option value="Сбербанк Онлайн">Сбербанк Онлайн</option>
-                                </select>
-                            </div>
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Номер счета</label>
-                                <input type="text" class="form-control" id="paymentInvoice">
+                                <label class="form-label">Способ оплаты</label>
+                                <select class="form-select" id="paymentMethod">
+                                    <option value="Наличные">Наличные</option>
+                                    <option value="Банковский перевод">Банковский перевод</option>
+                                    <option value="Карта">Карта</option>
+                                    <option value="Сбербанк Онлайн">Сбербанк Онлайн</option>
+                                </select>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Статус</label>
-                                <select class="form-control" id="paymentStatus">
-                                    <option value="Оплачено">Оплачено</option>
-                                    <option value="Ожидает оплаты">Ожидает оплаты</option>
-                                    <option value="Частично оплачено">Частично оплачено</option>
-                                </select>
+                                <label class="form-label">Номер счета/квитанции</label>
+                                <input type="text" class="form-control" id="paymentInvoice">
                             </div>
                         </div>
                         <div class="mb-3">
-                            <label class="form-label">Заметки</label>
+                            <label class="form-label">Примечания</label>
                             <textarea class="form-control" id="paymentNotes" rows="2"></textarea>
                         </div>
                     </form>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                    <button type="button" class="btn btn-primary" onclick="savePayment()">Сохранить</button>
+                    <button type="button" class="btn btn-primary" onclick="savePayment()">
+                        <i class="fas fa-save me-2"></i>Сохранить
+                    </button>
                 </div>
             </div>
         </div>
     </div>
-    
+
     <!-- Модальное окно события -->
     <div class="modal fade" id="eventModal" tabindex="-1">
         <div class="modal-dialog modal-lg">
             <div class="modal-content">
                 <div class="modal-header">
-                    <h5 class="modal-title" id="eventModalTitle">Добавить событие</h5>
+                    <h5 class="modal-title" id="eventModalTitle">
+                        <i class="fas fa-calendar me-2"></i>Добавить событие
+                    </h5>
                     <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                 </div>
                 <div class="modal-body">
@@ -1046,38 +948,34 @@
                         <input type="hidden" id="eventId">
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Клиент</label>
-                                <select class="form-control" id="eventClient">
-                                    <option value="">Выберите клиента</option>
-                                </select>
+                                <label class="form-label">Название события *</label>
+                                <input type="text" class="form-control" id="eventTitle" required>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Дело</label>
-                                <select class="form-control" id="eventCase">
-                                    <option value="">Выберите дело</option>
+                                <label class="form-label">Тип события *</label>
+                                <select class="form-select" id="eventType" required>
+                                    <option value="">Выберите тип</option>
+                                    <option value="Судебное заседание">Судебное заседание</option>
+                                    <option value="Консультация">Консультация</option>
+                                    <option value="Встреча с клиентом">Встреча с клиентом</option>
+                                    <option value="Документооборот">Документооборот</option>
+                                    <option value="Другое">Другое</option>
                                 </select>
                             </div>
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Тип события *</label>
-                                <select class="form-control" id="eventType" required>
-                                    <option value="">Выберите тип</option>
-                                    <option value="Судебное заседание">Судебное заседание</option>
-                                    <option value="Консультация">Консультация</option>
-                                    <option value="Встреча">Встреча</option>
-                                    <option value="Подача документов">Подача документов</option>
-                                    <option value="Апелляция">Апелляция</option>
+                                <label class="form-label">Клиент</label>
+                                <select class="form-select" id="eventClient">
+                                    <option value="">Выберите клиента</option>
                                 </select>
                             </div>
                             <div class="col-md-6 mb-3">
-                                <label class="form-label">Заголовок *</label>
-                                <input type="text" class="form-control" id="eventTitle" required>
+                                <label class="form-label">Дело</label>
+                                <select class="form-select" id="eventCase">
+                                    <option value="">Выберите дело</option>
+                                </select>
                             </div>
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Описание</label>
-                            <textarea class="form-control" id="eventDescription" rows="2"></textarea>
                         </div>
                         <div class="row">
                             <div class="col-md-6 mb-3">
@@ -1089,36 +987,41 @@
                                 <input type="time" class="form-control" id="eventTime">
                             </div>
                         </div>
-                        <div class="row">
-                            <div class="col-md-8 mb-3">
-                                <label class="form-label">Место проведения</label>
-                                <input type="text" class="form-control" id="eventLocation">
-                            </div>
-                            <div class="col-md-4 mb-3">
-                                <label class="form-label">Напоминание</label>
-                                <select class="form-control" id="eventReminder">
-                                    <option value="0">Нет</option>
-                                    <option value="15">За 15 минут</option>
-                                    <option value="30">За 30 минут</option>
-                                    <option value="60">За 1 час</option>
-                                    <option value="1440">За 1 день</option>
-                                </select>
-                            </div>
+                        <div class="mb-3">
+                            <label class="form-label">Место проведения</label>
+                            <input type="text" class="form-control" id="eventLocation">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Описание</label>
+                            <textarea class="form-control" id="eventDescription" rows="3"></textarea>
                         </div>
                     </form>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Отмена</button>
-                    <button type="button" class="btn btn-primary" onclick="saveEvent()">Сохранить</button>
+                    <button type="button" class="btn btn-primary" onclick="saveEvent()">
+                        <i class="fas fa-save me-2"></i>Сохранить
+                    </button>
                 </div>
             </div>
         </div>
     </div>
-    
-    <!-- Уведомления -->
-    <div class="notification" id="notification"></div>
-    
-    <!-- JavaScript -->
+
+    <!-- Toast для уведомлений -->
+    <div class="toast-container position-fixed bottom-0 end-0 p-3">
+        <div id="notificationToast" class="toast" role="alert">
+            <div class="toast-header">
+                <i class="fas fa-info-circle me-2"></i>
+                <strong class="me-auto">Legal CRM</strong>
+                <button type="button" class="btn-close" data-bs-dismiss="toast"></button>
+            </div>
+            <div class="toast-body" id="toastMessage">
+                <!-- Сообщение будет вставлено через JavaScript -->
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
     <script src="https://cdn.datatables.net/1.13.4/js/jquery.dataTables.min.js"></script>
@@ -1127,266 +1030,181 @@
     <script src="https://cdn.jsdelivr.net/npm/flatpickr/dist/l10n/ru.js"></script>
     
     <script>
-        // === ГЛОБАЛЬНЫЕ ПЕРЕМЕННЫЕ ===
-        let currentSection = 'dashboard';
-        let clientsData = [];
-        let casesData = [];
-        let servicesData = [];
-        let paymentsData = [];
-        let eventsData = [];
-        
-        // === ИНИЦИАЛИЗАЦИЯ ===
+        // Legal CRM Web - Основной JavaScript файл
+        // Глобальные переменные
+        let clientsDataTable, casesDataTable, servicesDataTable, paymentsDataTable, eventsDataTable;
+        let currentEditingId = null;
+        let currentUser = null;
+
+        // Инициализация при загрузке страницы
         $(document).ready(function() {
-            initializeApp();
-        });
-        
-        function initializeApp() {
-            // Проверка авторизации
-            checkAuthStatus();
+            console.log('🚀 Legal CRM Web инициализация...');
             
+            // Проверка аутентификации
+            checkAuthentication();
+        });
+
+        // Проверка аутентификации
+        async function checkAuthentication() {
+            try {
+                const response = await fetch('/api/auth/check');
+                const data = await response.json();
+                
+                if (data.authenticated) {
+                    currentUser = data.user;
+                    showUserInterface();
+                } else {
+                    // Перенаправляем на страницу входа
+                    window.location.href = '/login';
+                }
+            } catch (error) {
+                console.error('Ошибка проверки аутентификации:', error);
+                showNotification('Ошибка подключения к серверу', 'error');
+                window.location.href = '/login';
+            }
+        }
+
+        // Показать интерфейс после аутентификации
+        function showUserInterface() {
+            // Показываем элементы интерфейса
+            $('#userInfo').removeClass('d-none');
+            $('#logoutBtn').removeClass('d-none');
+            
+            // Обновляем информацию о пользователе
+            $('#userName').text(currentUser.username);
+            
+            // Инициализация компонентов
+            initializeComponents();
+            
+            // Загрузка данных
+            loadAllData();
+            
+            // Обновление статистики
             updateStatistics();
+            
+            // Инициализация поиска
+            initializeSearch();
+            
+            console.log('✅ Legal CRM Web готов к работе!');
+        }
+
+        // Выход из системы
+        async function logout() {
+            try {
+                const response = await fetch('/api/auth/logout', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    }
+                });
+                
+                const data = await response.json();
+                
+                if (data.success) {
+                    showNotification('Вы успешно вышли из системы', 'success');
+                    setTimeout(() => {
+                        window.location.href = '/login';
+                    }, 1000);
+                } else {
+                    showNotification('Ошибка выхода из системы', 'error');
+                }
+            } catch (error) {
+                console.error('Ошибка выхода:', error);
+                showNotification('Ошибка подключения к серверу', 'error');
+            }
+        }
+
+        // Инициализация компонентов
+        function initializeComponents() {
+            // Инициализация DateTime picker
+            flatpickr("input[type='date']", {
+                locale: "ru",
+                dateFormat: "Y-m-d",
+                allowInput: true
+            });
+            
+            flatpickr("input[type='time']", {
+                locale: "ru",
+                enableTime: true,
+                noCalendar: true,
+                dateFormat: "H:i",
+                allowInput: true
+            });
+            
+            // Инициализация Bootstrap tooltips
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+            
+            // Обработчик изменения выбора клиента в событии
+            $(document).on('change', '#eventClient', function() {
+                const clientId = $(this).val();
+                loadCasesForClient(clientId);
+            });
+
+            // Мобильная статистика - показываем на мобильных устройствах
+            if (window.innerWidth <= 768) {
+                $('#mobileStats').show();
+            }
+        }
+
+        // Загрузка всех данных
+        function loadAllData() {
             loadClients();
             loadCases();
             loadServices();
             loadPayments();
             loadEvents();
-            
-            // Добавить кнопки обновления
-            setTimeout(addRefreshButtons, 1000);
-            
-            // Инициализация date picker
-            flatpickr(".datepicker", {
-                locale: "ru",
-                dateFormat: "Y-m-d"
-            });
-            
-            flatpickr(".datetimepicker", {
-                locale: "ru",
-                enableTime: true,
-                dateFormat: "Y-m-d H:i"
-            });
         }
-        
-        function checkAuthStatus() {
-            $.ajax({
-                url: '/api/auth/check',
-                method: 'GET',
-                success: function(response) {
-                    if (!response.authenticated) {
-                        window.location.href = '/login';
-                    }
-                },
-                error: function() {
-                    window.location.href = '/login';
-                }
-            });
-        }
-        
-        // === НАВИГАЦИЯ ===
-        function showSection(sectionName) {
-            // Скрыть все секции
-            $('.section-content').hide();
-            $('#' + sectionName).show();
-            
-            // Обновить активную навигацию
-            $('.sidebar .nav-link').removeClass('active');
-            $(`[href="#${sectionName}"]`).addClass('active');
-            
-            currentSection = sectionName;
-            
-            // Обновить статистику для главной страницы
-            if (sectionName === 'dashboard') {
-                updateStatistics();
-            }
-            
-            // Закрыть мобильное меню
-            closeSidebar();
-        }
-        
-        // === МОБИЛЬНОЕ МЕНЮ ===
-        function toggleSidebar() {
-            const sidebar = $('#sidebar');
-            const overlay = $('#sidebarOverlay');
-            
-            if (sidebar.hasClass('show')) {
-                sidebar.removeClass('show');
-                overlay.removeClass('show');
-            } else {
-                sidebar.addClass('show');
-                overlay.addClass('show');
-            }
-        }
-        
-        function closeSidebar() {
-            $('#sidebar').removeClass('show');
-            $('#sidebarOverlay').removeClass('show');
-        }
-        
-        // Закрытие мобильного меню при клике вне его
-        $(document).on('click', function(e) {
-            if ($(window).width() <= 768) {
-                if (!$(e.target).closest('#sidebar').length && 
-                    !$(e.target).closest('.hamburger').length) {
-                    closeSidebar();
-                }
-            }
-        });
-        
-        // Закрытие мобильного меню при клике на элементы навигации
-        $(document).on('click', '.sidebar .nav-link', function() {
-            if ($(window).width() <= 768) {
-                closeSidebar();
-            }
-        });
-        
-        // === ЗАГРУЗКА ДАННЫХ ===
+
+        // Загрузка клиентов
         function loadClients() {
             $.ajax({
                 url: '/api/clients',
                 method: 'GET',
                 success: function(response) {
+                    // Backend возвращает {success: true, data: clients}
                     if (response.success) {
-                        clientsData = response.data;
-                        displayClients();
-                        updateClientsSelects();
-                        updateReportClientSelect();
+                        displayClients(response.data);
                     } else {
                         showNotification('Ошибка загрузки клиентов: ' + response.error, 'error');
                     }
                 },
-                error: function() {
-                    showNotification('Ошибка загрузки клиентов', 'error');
+                error: function(xhr, status, error) {
+                    console.error('Ошибка загрузки клиентов:', error);
+                    showNotification('Ошибка соединения с сервером', 'error');
                 }
             });
         }
-        
-        function loadCases() {
-            $.ajax({
-                url: '/api/cases',
-                method: 'GET',
-                success: function(response) {
-                    if (response.success) {
-                        casesData = response.data;
-                        displayCases();
-                        updateCasesSelects();
-                    } else {
-                        showNotification('Ошибка загрузки дел: ' + response.error, 'error');
-                    }
-                },
-                error: function() {
-                    showNotification('Ошибка загрузки дел', 'error');
-                }
-            });
-        }
-        
-        function loadServices() {
-            $.ajax({
-                url: '/api/services',
-                method: 'GET',
-                success: function(response) {
-                    if (response.success) {
-                        servicesData = response.data;
-                        displayServices();
-                    } else {
-                        showNotification('Ошибка загрузки услуг: ' + response.error, 'error');
-                    }
-                },
-                error: function() {
-                    showNotification('Ошибка загрузки услуг', 'error');
-                }
-            });
-        }
-        
-        function loadPayments() {
-            $.ajax({
-                url: '/api/payments',
-                method: 'GET',
-                success: function(response) {
-                    if (response.success) {
-                        paymentsData = response.data;
-                        displayPayments();
-                    } else {
-                        showNotification('Ошибка загрузки платежей: ' + response.error, 'error');
-                    }
-                },
-                error: function() {
-                    showNotification('Ошибка загрузки платежей', 'error');
-                }
-            });
-        }
-        
-        function loadEvents() {
-            $.ajax({
-                url: '/api/events',
-                method: 'GET',
-                success: function(response) {
-                    if (response.success) {
-                        eventsData = response.data;
-                        displayEvents();
-                    } else {
-                        showNotification('Ошибка загрузки событий: ' + response.error, 'error');
-                    }
-                },
-                error: function() {
-                    showNotification('Ошибка загрузки событий', 'error');
-                }
-            });
-        }
-        
-        function updateStatistics() {
-            $.ajax({
-                url: '/api/statistics',
-                method: 'GET',
-                success: function(response) {
-                    if (response.success) {
-                        const stats = response.data;
-                        $('#stats-clients').text(stats.active_clients);
-                        $('#stats-cases').text(stats.active_cases);
-                        $('#stats-events').text(stats.today_events);
-                        $('#stats-income').text(formatCurrency(stats.month_payments));
-                        
-                        $('#mobile-clients').text(stats.active_clients);
-                        $('#mobile-cases').text(stats.active_cases);
-                        $('#mobile-events').text(stats.today_events);
-                        $('#mobile-income').text(formatCurrency(stats.month_payments));
-                        
-                        $('#dashboard-clients').text(stats.active_clients);
-                        $('#dashboard-cases').text(stats.active_cases);
-                        $('#dashboard-events').text(stats.today_events);
-                        $('#dashboard-income').text(formatCurrency(stats.month_payments));
-                    } else {
-                        showNotification('Ошибка загрузки статистики: ' + response.error, 'error');
-                    }
-                },
-                error: function() {
-                    showNotification('Ошибка загрузки статистики', 'error');
-                }
-            });
-        }
-        
-        // === ОТОБРАЖЕНИЕ ДАННЫХ ===
-        function displayClients() {
-            const tbody = $('#clientsTable tbody');
+
+        // Отображение клиентов
+        function displayClients(clients) {
+            if (clientsDataTable) {
+                clientsDataTable.destroy();
+            }
+            
+            const tbody = $('#clients-table tbody');
             tbody.empty();
             
-            clientsData.forEach(function(client) {
+            clients.forEach(function(client) {
                 const row = `
                     <tr>
-                        <td>${client.full_name}</td>
-                        <td>${client.phone || ''}</td>
-                        <td>${client.email || ''}</td>
-                        <td><span class="badge bg-success">${client.status}</span></td>
-                        <td>${formatDate(client.created_date)}</td>
+                        <td>${client.id}</td>
+                        <td>${client.full_name || client.name || '-'}</td>
+                        <td>${client.phone || '-'}</td>
+                        <td>${client.email || '-'}</td>
+                        <td><span class="badge bg-${(client.status === 'Активный' || client.status === 'active') ? 'success' : 'secondary'}">${client.status || 'Активный'}</span></td>
+                        <td>${formatDate(client.created_date || client.created_at)}</td>
                         <td>
-                            <button class="btn btn-sm btn-info me-1" onclick="viewClient(${client.id})" title="Просмотр">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                            <button class="btn btn-sm btn-primary me-1" onclick="editClient(${client.id})" title="Редактировать">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="btn btn-sm btn-danger" onclick="deleteClient(${client.id})" title="Удалить">
-                                <i class="fas fa-trash"></i>
-                            </button>
+                            <div class="btn-group" role="group">
+                                <button class="btn btn-sm btn-primary btn-action" onclick="editClient(${client.id})" title="Редактировать">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger btn-action" onclick="deleteClient(${client.id})" title="Удалить">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
                         </td>
                     </tr>
                 `;
@@ -1394,76 +1212,116 @@
             });
             
             // Инициализация DataTable
-            if ($.fn.DataTable.isDataTable('#clientsTable')) {
-                $('#clientsTable').DataTable().destroy();
-            }
-            $('#clientsTable').DataTable({
+            clientsDataTable = $('#clients-table').DataTable({
                 language: {
-                    url: 'https://cdn.datatables.net/plug-ins/1.13.4/i18n/ru.json'
+                    url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/Russian.json'
+                },
+                pageLength: 25,
+                responsive: true
+            });
+        }
+
+        // Загрузка дел
+        function loadCases() {
+            $.ajax({
+                url: '/api/cases',
+                method: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        displayCases(response.data);
+                    } else {
+                        showNotification('Ошибка загрузки дел: ' + response.error, 'error');
+                    }
+                },
+                error: function() {
+                    console.error('Ошибка загрузки дел');
+                    showNotification('Ошибка соединения с сервером', 'error');
                 }
             });
         }
-        
-        function displayCases() {
-            const tbody = $('#casesTable tbody');
+
+        // Отображение дел
+        function displayCases(cases) {
+            if (casesDataTable) {
+                casesDataTable.destroy();
+            }
+            
+            const tbody = $('#cases-table tbody');
             tbody.empty();
             
-            casesData.forEach(function(caseItem) {
+            cases.forEach(function(case_item) {
                 const row = `
                     <tr>
-                        <td>${caseItem.case_number}</td>
-                        <td>${caseItem.client_name}</td>
-                        <td>${caseItem.court_name || ''}</td>
-                        <td>${caseItem.case_type || ''}</td>
-                        <td><span class="badge bg-info">${caseItem.status}</span></td>
-                        <td>${formatCurrency(caseItem.claim_amount)}</td>
+                        <td>${case_item.case_number || '-'}</td>
+                        <td>${case_item.client_name || '-'}</td>
+                        <td>${case_item.court_name || '-'}</td>
+                        <td>${case_item.case_type || '-'}</td>
+                        <td>${case_item.case_stage || '-'}</td>
+                        <td>${formatDate(case_item.start_date)}</td>
+                        <td><span class="badge bg-${(case_item.status === 'Активное' || case_item.status === 'active') ? 'success' : 'secondary'}">${case_item.status || 'Активное'}</span></td>
                         <td>
-                            <button class="btn btn-sm btn-info me-1" onclick="viewCase(${caseItem.id})" title="Просмотр">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                            <button class="btn btn-sm btn-primary me-1" onclick="editCase(${caseItem.id})" title="Редактировать">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="btn btn-sm btn-danger" onclick="deleteCase(${caseItem.id})" title="Удалить">
-                                <i class="fas fa-trash"></i>
-                            </button>
+                            <div class="btn-group" role="group">
+                                <button class="btn btn-sm btn-primary btn-action" onclick="editCase(${case_item.id})" title="Редактировать">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger btn-action" onclick="deleteCase(${case_item.id})" title="Удалить">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
                         </td>
                     </tr>
                 `;
                 tbody.append(row);
             });
             
-            if ($.fn.DataTable.isDataTable('#casesTable')) {
-                $('#casesTable').DataTable().destroy();
-            }
-            $('#casesTable').DataTable({
+            casesDataTable = $('#cases-table').DataTable({
                 language: {
-                    url: 'https://cdn.datatables.net/plug-ins/1.13.4/i18n/ru.json'
+                    url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/Russian.json'
+                },
+                pageLength: 25,
+                responsive: true
+            });
+        }
+
+        // Загрузка услуг
+        function loadServices() {
+            $.ajax({
+                url: '/api/services',
+                method: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        displayServices(response.data);
+                    } else {
+                        showNotification('Ошибка загрузки услуг: ' + response.error, 'error');
+                    }
+                },
+                error: function() {
+                    console.error('Ошибка загрузки услуг');
+                    showNotification('Ошибка соединения с сервером', 'error');
                 }
             });
         }
-        
-        function displayServices() {
-            const tbody = $('#servicesTable tbody');
+
+        // Отображение услуг
+        function displayServices(services) {
+            if (servicesDataTable) {
+                servicesDataTable.destroy();
+            }
+            
+            const tbody = $('#services-table tbody');
             tbody.empty();
             
-            servicesData.forEach(function(service) {
+            services.forEach(function(service) {
                 const row = `
                     <tr>
-                        <td>${service.client_name}</td>
-                        <td>${service.case_number || ''}</td>
-                        <td>${service.service_type}</td>
+                        <td>${service.service_type || '-'}</td>
+                        <td>${service.client_name || '-'}</td>
+                        <td>${service.case_number || '-'}</td>
                         <td>${formatDate(service.service_date)}</td>
                         <td>${service.hours || 0}</td>
                         <td>${formatCurrency(service.cost)}</td>
                         <td>
-                            <button class="btn btn-sm btn-info me-1" onclick="viewService(${service.id})" title="Просмотр">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                            <button class="btn btn-sm btn-primary me-1" onclick="editService(${service.id})" title="Редактировать">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="btn btn-sm btn-danger" onclick="deleteService(${service.id})" title="Удалить">
+                            <button class="btn btn-sm btn-danger btn-action" onclick="deleteService(${service.id})" title="Удалить">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </td>
@@ -1472,37 +1330,56 @@
                 tbody.append(row);
             });
             
-            if ($.fn.DataTable.isDataTable('#servicesTable')) {
-                $('#servicesTable').DataTable().destroy();
-            }
-            $('#servicesTable').DataTable({
+            servicesDataTable = $('#services-table').DataTable({
                 language: {
-                    url: 'https://cdn.datatables.net/plug-ins/1.13.4/i18n/ru.json'
+                    url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/Russian.json'
+                },
+                pageLength: 25,
+                responsive: true
+            });
+        }
+
+        // Загрузка платежей
+        function loadPayments() {
+            $.ajax({
+                url: '/api/payments',
+                method: 'GET',
+                success: function(response) {
+                    // Backend возвращает {success: true, data: payments}
+                    if (response.success) {
+                        displayPayments(response.data);
+                    } else {
+                        showNotification('Ошибка загрузки платежей: ' + response.error, 'error');
+                    }
+                },
+                error: function() {
+                    console.error('Ошибка загрузки платежей');
+                    showNotification('Ошибка соединения с сервером', 'error');
                 }
             });
         }
-        
-        function displayPayments() {
-            const tbody = $('#paymentsTable tbody');
+
+        // Отображение платежей
+        function displayPayments(payments) {
+            if (paymentsDataTable) {
+                paymentsDataTable.destroy();
+            }
+            
+            const tbody = $('#payments-table tbody');
             tbody.empty();
             
-            paymentsData.forEach(function(payment) {
+            payments.forEach(function(payment) {
                 const row = `
                     <tr>
-                        <td>${payment.client_name}</td>
-                        <td>${payment.case_number || ''}</td>
-                        <td>${payment.payment_type || ''}</td>
-                        <td>${formatCurrency(payment.amount)}</td>
+                        <td>${payment.client_name || '-'}</td>
+                        <td>${payment.case_number || '-'}</td>
+                        <td><strong>${formatCurrency(payment.amount)}</strong></td>
+                        <td>${payment.payment_type || '-'}</td>
                         <td>${formatDate(payment.payment_date)}</td>
-                        <td>${payment.payment_method || ''}</td>
+                        <td>${payment.payment_method || '-'}</td>
+                        <td><span class="badge bg-${(payment.status === 'Оплачено' || payment.status === 'paid') ? 'success' : 'warning'}">${payment.status || 'Оплачено'}</span></td>
                         <td>
-                            <button class="btn btn-sm btn-info me-1" onclick="viewPayment(${payment.id})" title="Просмотр">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                            <button class="btn btn-sm btn-primary me-1" onclick="editPayment(${payment.id})" title="Редактировать">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="btn btn-sm btn-danger" onclick="deletePayment(${payment.id})" title="Удалить">
+                            <button class="btn btn-sm btn-danger btn-action" onclick="deletePayment(${payment.id})" title="Удалить">
                                 <i class="fas fa-trash"></i>
                             </button>
                         </td>
@@ -1511,1002 +1388,743 @@
                 tbody.append(row);
             });
             
-            if ($.fn.DataTable.isDataTable('#paymentsTable')) {
-                $('#paymentsTable').DataTable().destroy();
-            }
-            $('#paymentsTable').DataTable({
+            paymentsDataTable = $('#payments-table').DataTable({
                 language: {
-                    url: 'https://cdn.datatables.net/plug-ins/1.13.4/i18n/ru.json'
+                    url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/Russian.json'
+                },
+                pageLength: 25,
+                responsive: true
+            });
+        }
+
+        // Загрузка событий
+        function loadEvents() {
+            $.ajax({
+                url: '/api/events',
+                method: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        displayEvents(response.data);
+                    } else {
+                        showNotification('Ошибка загрузки событий: ' + response.error, 'error');
+                    }
+                },
+                error: function() {
+                    console.error('Ошибка загрузки событий');
+                    showNotification('Ошибка соединения с сервером', 'error');
                 }
             });
         }
-        
-        function displayEvents() {
-            const tbody = $('#eventsTable tbody');
+
+        // Отображение событий
+        function displayEvents(events) {
+            if (eventsDataTable) {
+                eventsDataTable.destroy();
+            }
+            
+            const tbody = $('#events-table tbody');
             tbody.empty();
             
-            eventsData.forEach(function(event) {
+            events.forEach(function(event) {
                 const row = `
                     <tr>
-                        <td>${event.title}</td>
-                        <td>${event.event_type}</td>
-                        <td>${event.client_name || ''}</td>
-                        <td>${event.case_number || ''}</td>
-                        <td>${formatDate(event.event_date)} ${event.event_time || ''}</td>
-                        <td>${event.location || ''}</td>
+                        <td>${event.title || '-'}</td>
+                        <td>${event.event_type || '-'}</td>
+                        <td>${formatDate(event.event_date)}</td>
+                        <td>${event.event_time || '-'}</td>
+                        <td>${event.client_name || '-'}</td>
+                        <td>${event.case_number || '-'}</td>
+                        <td><span class="badge bg-${getEventStatusColor(event.status)}">${event.status || 'Запланировано'}</span></td>
                         <td>
-                            <button class="btn btn-sm btn-info me-1" onclick="viewEvent(${event.id})" title="Просмотр">
-                                <i class="fas fa-eye"></i>
-                            </button>
-                            <button class="btn btn-sm btn-primary me-1" onclick="editEvent(${event.id})" title="Редактировать">
-                                <i class="fas fa-edit"></i>
-                            </button>
-                            <button class="btn btn-sm btn-danger" onclick="deleteEvent(${event.id})" title="Удалить">
-                                <i class="fas fa-trash"></i>
-                            </button>
+                            <div class="btn-group" role="group">
+                                <button class="btn btn-sm btn-primary btn-action" onclick="editEvent(${event.id})" title="Редактировать">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger btn-action" onclick="deleteEvent(${event.id})" title="Удалить">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
                         </td>
                     </tr>
                 `;
                 tbody.append(row);
             });
             
-            if ($.fn.DataTable.isDataTable('#eventsTable')) {
-                $('#eventsTable').DataTable().destroy();
-            }
-            $('#eventsTable').DataTable({
+            eventsDataTable = $('#events-table').DataTable({
                 language: {
-                    url: 'https://cdn.datatables.net/plug-ins/1.13.4/i18n/ru.json'
+                    url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/Russian.json'
+                },
+                pageLength: 25,
+                responsive: true
+            });
+        }
+
+        // Обновление статистики
+        function updateStatistics() {
+            $.ajax({
+                url: '/api/statistics',
+                method: 'GET',
+                success: function(response) {
+                    // Backend возвращает {success: true, data: stats}
+                    if (response.success) {
+                        const stats = response.data;
+                    
+                    // Обновляем основную статистику
+                    $('#stats-clients').text(stats.active_clients || 0);
+                    $('#stats-cases').text(stats.active_cases || 0);
+                    $('#stats-events').text(stats.today_events || 0);
+                        $('#stats-income').text(formatCurrency(stats.month_payments || 0));
+                        
+                        // Обновляем мобильную статистику
+                        $('#mobile-clients').text(stats.active_clients || 0);
+                        $('#mobile-cases').text(stats.active_cases || 0);
+                        $('#mobile-events').text(stats.today_events || 0);
+                        $('#mobile-income').text(formatCurrency(stats.month_payments || 0));
+                        
+                        // Обновляем статистику в отчетах
+                        $('#total-clients').text(stats.active_clients || 0);
+                        $('#total-cases').text(stats.active_cases || 0);
+                        $('#total-income').text(formatCurrency(stats.month_payments || 0));
+                        $('#total-services').text(stats.month_services || 0);
+                    } else {
+                        console.error('Ошибка загрузки статистики:', response.error);
+                    }
+                },
+                error: function() {
+                    console.error('Ошибка загрузки статистики');
                 }
             });
         }
-        
-        // === МОДАЛЬНЫЕ ОКНА КЛИЕНТОВ ===
+
+        // ==================== ФУНКЦИИ КЛИЕНТОВ ====================
+
+        // Открытие модального окна клиента
         function openClientModal(clientId = null) {
-            $('#clientForm')[0].reset();
-            $('#clientId').val(clientId || '');
+            currentEditingId = clientId;
             
             if (clientId) {
-                const client = clientsData.find(c => c.id === clientId);
-                if (client) {
-                    $('#clientModalTitle').text('Редактировать клиента');
-                    $('#clientName').val(client.full_name);
-                    $('#clientPhone').val(client.phone || '');
-                    $('#clientEmail').val(client.email || '');
-                    $('#clientAddress').val(client.address || '');
-                    $('#clientPassport').val(client.passport_data || '');
-                    $('#clientInn').val(client.inn || '');
-                    $('#clientNotes').val(client.notes || '');
-                }
+                $('#clientModalTitle').html('<i class="fas fa-user-edit me-2"></i>Редактировать клиента');
+                
+                // Загружаем данные клиента
+                $.ajax({
+                    url: `/api/clients/${clientId}`,
+                    method: 'GET',
+                    success: function(response) {
+                        const client = response;
+                        $('#clientId').val(client.id);
+                        $('#clientFullName').val(client.full_name || client.name || '');
+                        $('#clientPhone').val(client.phone || '');
+                        $('#clientEmail').val(client.email || '');
+                        $('#clientAddress').val(client.address || '');
+                        $('#clientPassport').val(client.passport_data || client.passport || '');
+                        $('#clientInn').val(client.inn || '');
+                        $('#clientStatus').val(client.status || 'Активный');
+                        $('#clientNotes').val(client.notes || '');
+                    }
+                });
             } else {
-                $('#clientModalTitle').text('Добавить клиента');
+                $('#clientModalTitle').html('<i class="fas fa-user-plus me-2"></i>Добавить клиента');
+                $('#clientForm')[0].reset();
+                $('#clientId').val('');
             }
             
-            new bootstrap.Modal('#clientModal').show();
+            $('#clientModal').modal('show');
         }
-        
+
+        // Сохранение клиента
         function saveClient() {
-            const clientId = $('#clientId').val();
-            const clientData = {
-                full_name: $('#clientName').val(),
-                phone: $('#clientPhone').val(),
-                email: $('#clientEmail').val(),
-                address: $('#clientAddress').val(),
-                passport_data: $('#clientPassport').val(),
-                inn: $('#clientInn').val(),
-                notes: $('#clientNotes').val()
+            const formData = {
+                name: $('#clientFullName').val().trim(),
+                phone: $('#clientPhone').val().trim(),
+                email: $('#clientEmail').val().trim(),
+                address: $('#clientAddress').val().trim(),
+                notes: $('#clientNotes').val().trim()
             };
             
-            const url = clientId ? `/api/clients/${clientId}` : '/api/clients';
-            const method = clientId ? 'PUT' : 'POST';
+            if (!formData.name) {
+                showNotification('Пожалуйста, введите ФИО клиента', 'error');
+                return;
+            }
+            
+            const method = currentEditingId ? 'PUT' : 'POST';
+            const url = currentEditingId ? `/api/clients/${currentEditingId}` : '/api/clients';
             
             $.ajax({
                 url: url,
                 method: method,
                 contentType: 'application/json',
-                data: JSON.stringify(clientData),
+                data: JSON.stringify(formData),
                 success: function(response) {
-                    if (response.success) {
-                        bootstrap.Modal.getInstance($('#clientModal')[0]).hide();
-                        showNotification('Клиент сохранен успешно!', 'success');
-                        loadClients();
-                        updateStatistics();
-                    } else {
-                        showNotification('Ошибка сохранения: ' + response.error, 'error');
-                    }
+                    showNotification(currentEditingId ? 'Клиент обновлен!' : 'Клиент добавлен!', 'success');
+                    $('#clientModal').modal('hide');
+                    loadClients();
+                    updateStatistics();
                 },
                 error: function() {
-                    showNotification('Ошибка сохранения клиента', 'error');
+                    showNotification('Ошибка соединения с сервером', 'error');
                 }
             });
         }
-        
+
+        // Редактирование клиента
         function editClient(clientId) {
             openClientModal(clientId);
         }
-        
+
+        // Удаление клиента
         function deleteClient(clientId) {
-            if (confirm('Удалить этого клиента?')) {
+            if (confirm('Вы уверены, что хотите удалить этого клиента? Все связанные данные также будут удалены.')) {
                 $.ajax({
                     url: `/api/clients/${clientId}`,
                     method: 'DELETE',
                     success: function(response) {
-                        if (response.success) {
-                            showNotification('Клиент удален успешно!', 'success');
-                            loadClients();
-                            updateStatistics();
-                        } else {
-                            showNotification('Ошибка удаления: ' + response.error, 'error');
-                        }
-                    },
-                    error: function() {
-                        showNotification('Ошибка удаления клиента', 'error');
-                    }
-                });
-            }
-        }
-        
-        // === МОДАЛЬНЫЕ ОКНА ДЕЛ ===
-        function openCaseModal(caseId = null) {
-            $('#caseForm')[0].reset();
-            $('#caseId').val(caseId || '');
-            
-            updateCasesSelects();
-            
-            if (caseId) {
-                const caseItem = casesData.find(c => c.id === caseId);
-                if (caseItem) {
-                    $('#caseModalTitle').text('Редактировать дело');
-                    $('#caseClient').val(caseItem.client_id);
-                    $('#caseNumber').val(caseItem.case_number);
-                    $('#caseCourt').val(caseItem.court_name || '');
-                    $('#caseType').val(caseItem.case_type || '');
-                    $('#casePlaintiff').val(caseItem.plaintiff || '');
-                    $('#caseDefendant').val(caseItem.defendant || '');
-                    $('#caseAmount').val(caseItem.claim_amount || '');
-                    $('#caseStage').val(caseItem.case_stage || '');
-                    $('#caseStartDate').val(caseItem.start_date || '');
-                    $('#caseNotes').val(caseItem.notes || '');
-                }
-            } else {
-                $('#caseModalTitle').text('Добавить дело');
-            }
-            
-            new bootstrap.Modal('#caseModal').show();
-        }
-        
-        function saveCase() {
-            const caseId = $('#caseId').val();
-            const caseData = {
-                client_id: $('#caseClient').val(),
-                case_number: $('#caseNumber').val(),
-                court_name: $('#caseCourt').val(),
-                case_type: $('#caseType').val(),
-                plaintiff: $('#casePlaintiff').val(),
-                defendant: $('#caseDefendant').val(),
-                claim_amount: $('#caseAmount').val(),
-                case_stage: $('#caseStage').val(),
-                start_date: $('#caseStartDate').val(),
-                notes: $('#caseNotes').val()
-            };
-            
-            const url = caseId ? `/api/cases/${caseId}` : '/api/cases';
-            const method = caseId ? 'PUT' : 'POST';
-            
-            $.ajax({
-                url: url,
-                method: method,
-                contentType: 'application/json',
-                data: JSON.stringify(caseData),
-                success: function(response) {
-                    if (response.success) {
-                        bootstrap.Modal.getInstance($('#caseModal')[0]).hide();
-                        showNotification('Дело сохранено успешно!', 'success');
-                        loadCases();
+                        showNotification('Клиент удален!', 'success');
+                        loadClients();
                         updateStatistics();
-                    } else {
-                        showNotification('Ошибка сохранения: ' + response.error, 'error');
-                    }
-                },
-                error: function() {
-                    showNotification('Ошибка сохранения дела', 'error');
-                }
-            });
-        }
-        
-        function editCase(caseId) {
-            openCaseModal(caseId);
-        }
-        
-        function deleteCase(caseId) {
-            if (confirm('Удалить это дело?')) {
-                $.ajax({
-                    url: `/api/cases/${caseId}`,
-                    method: 'DELETE',
-                    success: function(response) {
-                        if (response.success) {
-                            showNotification('Дело удалено успешно!', 'success');
-                            loadCases();
-                            updateStatistics();
-                        } else {
-                            showNotification('Ошибка удаления: ' + response.error, 'error');
-                        }
                     },
                     error: function() {
-                        showNotification('Ошибка удаления дела', 'error');
+                        showNotification('Ошибка соединения с сервером', 'error');
                     }
                 });
             }
         }
-        
-        // === МОДАЛЬНЫЕ ОКНА УСЛУГ ===
-        function openServiceModal(serviceId = null) {
-            $('#serviceForm')[0].reset();
-            $('#serviceId').val(serviceId || '');
-            
-            updateClientsSelect();
-            
-            if (serviceId) {
-                const service = servicesData.find(s => s.id === serviceId);
-                if (service) {
-                    $('#serviceModalTitle').text('Редактировать услугу');
-                    $('#serviceClient').val(service.client_id);
-                    updateCasesSelect(service.client_id, service.case_id);
-                    $('#serviceType').val(service.service_type);
-                    $('#serviceDescription').val(service.description || '');
-                    $('#serviceDate').val(service.service_date || '');
-                    $('#serviceHours').val(service.hours || '');
-                    $('#serviceCost').val(service.cost || '');
-                    $('#serviceNotes').val(service.notes || '');
-                }
-            } else {
-                $('#serviceModalTitle').text('Добавить услугу');
-            }
-            
-            new bootstrap.Modal('#serviceModal').show();
-        }
-        
-        function saveService() {
-            const serviceId = $('#serviceId').val();
-            const serviceData = {
-                client_id: $('#serviceClient').val(),
-                case_id: $('#serviceCase').val() || null,
-                service_type: $('#serviceType').val(),
-                description: $('#serviceDescription').val(),
-                service_date: $('#serviceDate').val(),
-                hours: $('#serviceHours').val(),
-                cost: $('#serviceCost').val(),
-                notes: $('#serviceNotes').val()
-            };
-            
-            const url = serviceId ? `/api/services/${serviceId}` : '/api/services';
-            const method = serviceId ? 'PUT' : 'POST';
-            
-            $.ajax({
-                url: url,
-                method: method,
-                contentType: 'application/json',
-                data: JSON.stringify(serviceData),
-                success: function(response) {
-                    if (response.success) {
-                        bootstrap.Modal.getInstance($('#serviceModal')[0]).hide();
-                        showNotification('Услуга сохранена успешно!', 'success');
-                        loadServices();
-                        updateStatistics();
-                    } else {
-                        showNotification('Ошибка сохранения: ' + response.error, 'error');
-                    }
-                },
-                error: function() {
-                    showNotification('Ошибка сохранения услуги', 'error');
-                }
-            });
-        }
-        
-        function editService(serviceId) {
-            openServiceModal(serviceId);
-        }
-        
-        function deleteService(serviceId) {
-            if (confirm('Удалить эту услугу?')) {
-                $.ajax({
-                    url: `/api/services/${serviceId}`,
-                    method: 'DELETE',
-                    success: function(response) {
-                        if (response.success) {
-                            showNotification('Услуга удалена успешно!', 'success');
-                            loadServices();
-                        } else {
-                            showNotification('Ошибка удаления: ' + response.error, 'error');
-                        }
-                    },
-                    error: function() {
-                        showNotification('Ошибка удаления услуги', 'error');
-                    }
-                });
-            }
-        }
-        
-        // === МОДАЛЬНЫЕ ОКНА ПЛАТЕЖЕЙ ===
+
+        // ==================== ФУНКЦИИ ПЛАТЕЖЕЙ ====================
+
+        // Открытие модального окна платежа
         function openPaymentModal(paymentId = null) {
-            $('#paymentForm')[0].reset();
-            $('#paymentId').val(paymentId || '');
-            
-            updateClientsSelect();
+            currentEditingId = paymentId;
             
             if (paymentId) {
-                const payment = paymentsData.find(p => p.id === paymentId);
-                if (payment) {
-                    $('#paymentModalTitle').text('Редактировать платеж');
-                    $('#paymentClient').val(payment.client_id);
-                    updateCasesSelect(payment.client_id, payment.case_id);
-                    $('#paymentType').val(payment.payment_type || '');
-                    $('#paymentAmount').val(payment.amount);
-                    $('#paymentDate').val(payment.payment_date || '');
-                    $('#paymentMethod').val(payment.payment_method || '');
-                    $('#paymentInvoice').val(payment.invoice_number || '');
-                    $('#paymentStatus').val(payment.status || 'Оплачено');
-                    $('#paymentNotes').val(payment.notes || '');
-                }
+                $('#paymentModalTitle').html('<i class="fas fa-money-bill me-2"></i>Редактировать платеж');
             } else {
-                $('#paymentModalTitle').text('Добавить платеж');
+                $('#paymentModalTitle').html('<i class="fas fa-plus me-2"></i>Добавить платеж');
+                $('#paymentForm')[0].reset();
+                $('#paymentId').val('');
+            }
+            
+            // Загружаем список клиентов для выпадающего списка
+            loadClientsForSelect('#paymentClientId');
+            
+            // Устанавливаем текущую дату
+            if (!paymentId) {
                 $('#paymentDate').val(new Date().toISOString().split('T')[0]);
             }
             
-            new bootstrap.Modal('#paymentModal').show();
+            $('#paymentModal').modal('show');
         }
-        
+
+        // Сохранение платежа
         function savePayment() {
-            const paymentId = $('#paymentId').val();
-            const paymentData = {
-                client_id: $('#paymentClient').val(),
-                case_id: $('#paymentCase').val() || null,
+            const formData = {
+                client_id: parseInt($('#paymentClientId').val()),
+                amount: parseFloat($('#paymentAmount').val()),
                 payment_type: $('#paymentType').val(),
-                amount: $('#paymentAmount').val(),
                 payment_date: $('#paymentDate').val(),
                 payment_method: $('#paymentMethod').val(),
-                invoice_number: $('#paymentInvoice').val(),
-                status: $('#paymentStatus').val(),
-                notes: $('#paymentNotes').val()
+                notes: $('#paymentNotes').val().trim()
             };
             
-            const url = paymentId ? `/api/payments/${paymentId}` : '/api/payments';
-            const method = paymentId ? 'PUT' : 'POST';
+            if (!formData.client_id || !formData.amount) {
+                showNotification('Пожалуйста, заполните обязательные поля', 'error');
+                return;
+            }
+            
+            const method = currentEditingId ? 'PUT' : 'POST';
+            const url = currentEditingId ? `/api/payments/${currentEditingId}` : '/api/payments';
             
             $.ajax({
                 url: url,
                 method: method,
                 contentType: 'application/json',
-                data: JSON.stringify(paymentData),
+                data: JSON.stringify(formData),
                 success: function(response) {
-                    if (response.success) {
-                        bootstrap.Modal.getInstance($('#paymentModal')[0]).hide();
-                        showNotification('Платеж сохранен успешно!', 'success');
-                        loadPayments();
-                        updateStatistics();
-                    } else {
-                        showNotification('Ошибка сохранения: ' + response.error, 'error');
-                    }
+                    showNotification(currentEditingId ? 'Платеж обновлен!' : 'Платеж добавлен!', 'success');
+                    $('#paymentModal').modal('hide');
+                    loadPayments();
+                    updateStatistics();
                 },
                 error: function() {
-                    showNotification('Ошибка сохранения платежа', 'error');
+                    showNotification('Ошибка соединения с сервером', 'error');
                 }
             });
         }
-        
-        function editPayment(paymentId) {
-            openPaymentModal(paymentId);
+
+        // ==================== УТИЛИТЫ ====================
+
+        // Загрузка клиентов в выпадающий список
+        function loadClientsForSelect(selectId) {
+            $.ajax({
+                url: '/api/clients',
+                method: 'GET',
+                success: function(response) {
+                    const select = $(selectId);
+                    select.empty();
+                    select.append('<option value="">Выберите клиента</option>');
+                    
+                    if (response.success) {
+                        response.data.forEach(function(client) {
+                            select.append(`<option value="${client.id}">${client.full_name || client.name}</option>`);
+                        });
+                    }
+                }
+            });
         }
-        
+
+        // Инициализация поиска
+        function initializeSearch() {
+            $('#clients-search').on('keyup', function() {
+                if (clientsDataTable) {
+                    clientsDataTable.search($(this).val()).draw();
+                }
+            });
+        }
+
+        // Показ уведомлений
+        function showNotification(message, type = 'info') {
+            const toast = $('#notificationToast');
+            const toastMessage = $('#toastMessage');
+            
+            // Устанавливаем сообщение
+            toastMessage.text(message);
+            
+            // Устанавливаем цвет в зависимости от типа
+            const header = toast.find('.toast-header');
+            header.removeClass('bg-success bg-warning bg-danger bg-info');
+            
+            switch(type) {
+                case 'success':
+                    header.addClass('bg-success');
+                    break;
+                case 'error':
+                    header.addClass('bg-danger');
+                    break;
+                case 'warning':
+                    header.addClass('bg-warning');
+                    break;
+                default:
+                    header.addClass('bg-info');
+            }
+            
+            // Показываем toast
+            const bsToast = new bootstrap.Toast(toast[0]);
+            bsToast.show();
+        }
+
+        // Форматирование даты
+        function formatDate(dateString) {
+            if (!dateString) return '-';
+            
+            const date = new Date(dateString);
+            if (isNaN(date.getTime())) return dateString;
+            
+            return date.toLocaleDateString('ru-RU');
+        }
+
+        // Форматирование валюты
+        function formatCurrency(amount) {
+            if (amount === null || amount === undefined || isNaN(amount)) return '0 ₽';
+            
+            return new Intl.NumberFormat('ru-RU', {
+                style: 'currency',
+                currency: 'RUB',
+                minimumFractionDigits: 0,
+                maximumFractionDigits: 2
+            }).format(amount);
+        }
+
+        // Получение цвета для статуса события
+        function getEventStatusColor(status) {
+            switch(status) {
+                case 'Запланировано':
+                    return 'primary';
+                case 'Завершено':
+                    return 'success';
+                case 'Отменено':
+                    return 'danger';
+                default:
+                    return 'secondary';
+            }
+        }
+
+        // ==================== PLACEHOLDER FUNCTIONS ====================
+        // Для совместимости с кнопками, которые пока не реализованы полностью
+
+        function openCaseModal(caseId = null) {
+            showNotification('Функция в разработке', 'warning');
+        }
+
+        function saveCase() {
+            showNotification('Функция в разработке', 'warning');
+        }
+
+        function editCase(caseId) {
+            showNotification('Функция в разработке', 'warning');
+        }
+
+        function openServiceModal(serviceId = null) {
+            showNotification('Функция в разработке', 'warning');
+        }
+
+        function saveService() {
+            showNotification('Функция в разработке', 'warning');
+        }
+
+        function openEventModal(eventId = null) {
+            showNotification('Функция в разработке', 'warning');
+        }
+
+        function saveEvent() {
+            showNotification('Функция в разработке', 'warning');
+        }
+
+        function editEvent(eventId) {
+            showNotification('Функция в разработке', 'warning');
+        }
+
+        function deleteCase(caseId) {
+            showNotification('Функция в разработке', 'warning');
+        }
+
+        function deleteService(serviceId) {
+            showNotification('Функция в разработке', 'warning');
+        }
+
+        function deleteEvent(eventId) {
+            showNotification('Функция в разработке', 'warning');
+        }
+
         function deletePayment(paymentId) {
-            if (confirm('Удалить этот платеж?')) {
+            if (confirm('Вы уверены, что хотите удалить этот платеж?')) {
                 $.ajax({
                     url: `/api/payments/${paymentId}`,
                     method: 'DELETE',
                     success: function(response) {
-                        if (response.success) {
-                            showNotification('Платеж удален успешно!', 'success');
-                            loadPayments();
-                            updateStatistics();
-                        } else {
-                            showNotification('Ошибка удаления: ' + response.error, 'error');
-                        }
-                    },
-                    error: function() {
-                        showNotification('Ошибка удаления платежа', 'error');
-                    }
-                });
-            }
-        }
-        
-        // === МОДАЛЬНЫЕ ОКНА СОБЫТИЙ ===
-        function openEventModal(eventId = null) {
-            $('#eventForm')[0].reset();
-            $('#eventId').val(eventId || '');
-            
-            updateClientsSelect();
-            
-            if (eventId) {
-                const event = eventsData.find(e => e.id === eventId);
-                if (event) {
-                    $('#eventModalTitle').text('Редактировать событие');
-                    $('#eventClient').val(event.client_id || '');
-                    updateCasesSelect(event.client_id, event.case_id);
-                    $('#eventType').val(event.event_type);
-                    $('#eventTitle').val(event.title);
-                    $('#eventDescription').val(event.description || '');
-                    $('#eventDate').val(event.event_date);
-                    $('#eventTime').val(event.event_time || '');
-                    $('#eventLocation').val(event.location || '');
-                    $('#eventReminder').val(event.reminder || 0);
-                }
-            } else {
-                $('#eventModalTitle').text('Добавить событие');
-                $('#eventDate').val(new Date().toISOString().split('T')[0]);
-            }
-            
-            new bootstrap.Modal('#eventModal').show();
-        }
-        
-        function saveEvent() {
-            const eventId = $('#eventId').val();
-            const eventData = {
-                client_id: $('#eventClient').val() || null,
-                case_id: $('#eventCase').val() || null,
-                event_type: $('#eventType').val(),
-                title: $('#eventTitle').val(),
-                description: $('#eventDescription').val(),
-                event_date: $('#eventDate').val(),
-                event_time: $('#eventTime').val(),
-                location: $('#eventLocation').val(),
-                reminder: $('#eventReminder').val()
-            };
-            
-            const url = eventId ? `/api/events/${eventId}` : '/api/events';
-            const method = eventId ? 'PUT' : 'POST';
-            
-            $.ajax({
-                url: url,
-                method: method,
-                contentType: 'application/json',
-                data: JSON.stringify(eventData),
-                success: function(response) {
-                    if (response.success) {
-                        bootstrap.Modal.getInstance($('#eventModal')[0]).hide();
-                        showNotification('Событие сохранено успешно!', 'success');
-                        loadEvents();
+                        showNotification('Платеж удален!', 'success');
+                        loadPayments();
                         updateStatistics();
-                    } else {
-                        showNotification('Ошибка сохранения: ' + response.error, 'error');
-                    }
-                },
-                error: function() {
-                    showNotification('Ошибка сохранения события', 'error');
-                }
-            });
-        }
-        
-        function editEvent(eventId) {
-            openEventModal(eventId);
-        }
-        
-        function deleteEvent(eventId) {
-            if (confirm('Удалить это событие?')) {
-                $.ajax({
-                    url: `/api/events/${eventId}`,
-                    method: 'DELETE',
-                    success: function(response) {
-                        if (response.success) {
-                            showNotification('Событие удалено успешно!', 'success');
-                            loadEvents();
-                            updateStatistics();
-                        } else {
-                            showNotification('Ошибка удаления: ' + response.error, 'error');
-                        }
                     },
                     error: function() {
-                        showNotification('Ошибка удаления события', 'error');
+                        showNotification('Ошибка соединения с сервером', 'error');
                     }
                 });
             }
         }
-        
-        // === ОБНОВЛЕНИЕ СЕЛЕКТОВ ===
-        function updateClientsSelects() {
-            updateClientsSelect();
-        }
-        
-        function updateClientsSelect() {
-            const selects = ['#serviceClient', '#paymentClient', '#eventClient'];
-            selects.forEach(function(selector) {
-                const select = $(selector);
-                select.empty();
-                select.append('<option value="">Выберите клиента</option>');
-                clientsData.forEach(function(client) {
-                    select.append(`<option value="${client.id}">${client.full_name}</option>`);
-                });
-            });
-        }
-        
-        function updateCasesSelects() {
-            const select = $('#caseClient');
-            select.empty();
-            select.append('<option value="">Выберите клиента</option>');
-            
-            clientsData.forEach(function(client) {
-                select.append(`<option value="${client.id}">${client.full_name}</option>`);
-            });
-        }
-        
-        function updateCasesSelect(clientId, selectedCaseId = null) {
-            const casesForClient = casesData.filter(c => c.client_id == clientId);
-            
-            const selects = ['#serviceCase', '#paymentCase', '#eventCase'];
-            selects.forEach(function(selector) {
-                const select = $(selector);
-                select.empty();
-                select.append('<option value="">Выберите дело</option>');
-                casesForClient.forEach(function(caseItem) {
-                    select.append(`<option value="${caseItem.id}" ${selectedCaseId == caseItem.id ? 'selected' : ''}>${caseItem.case_number}</option>`);
-                });
-            });
-        }
-        
-        // === ДЕМО ДАННЫЕ ===
-        function createDemoData() {
-            if (confirm('Создать демонстрационные данные? Это очистит текущие данные.')) {
-                $.ajax({
-                    url: '/api/demo-data',
-                    method: 'POST',
-                    success: function(response) {
-                        if (response.success) {
-                            showNotification('Демонстрационные данные созданы!', 'success');
-                            loadClients();
-                            loadCases();
-                            loadServices();
-                            loadPayments();
-                            loadEvents();
-                            updateStatistics();
-                        } else {
-                            showNotification('Ошибка создания данных: ' + response.error, 'error');
-                        }
-                    },
-                    error: function() {
-                        showNotification('Ошибка создания демо-данных', 'error');
-                    }
-                });
-            }
-        }
-        
-        // === УТИЛИТЫ ===
-        function formatDate(dateString) {
-            if (!dateString) return '';
-            const date = new Date(dateString);
-            return date.toLocaleDateString('ru-RU');
-        }
-        
-        function formatCurrency(amount) {
-            if (!amount) return '0 ₽';
-            return new Intl.NumberFormat('ru-RU', {
-                style: 'currency',
-                currency: 'RUB'
-            }).format(amount);
-        }
-        
-        function showNotification(message, type = 'info') {
-            const notification = $('#notification');
-            const alertClass = type === 'success' ? 'alert-success' : 
-                              type === 'error' ? 'alert-danger' : 'alert-info';
-            
-            const alertHtml = `
-                <div class="alert ${alertClass} alert-dismissible fade show" role="alert">
-                    ${message}
-                    <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
-                </div>
-            `;
-            
-            notification.html(alertHtml);
-            
-            // Автоматически скрыть через 5 секунд
-            setTimeout(function() {
-                $('.alert', notification).alert('close');
-            }, 5000);
-        }
-        
-        // === ОБРАБОТЧИКИ СОБЫТИЙ ===
-        $(document).on('change', '#serviceClient', function() {
-            updateCasesSelect($(this).val());
-        });
-        
-        $(document).on('change', '#paymentClient', function() {
-            updateCasesSelect($(this).val());
-        });
-        
-        $(document).on('change', '#eventClient', function() {
-            updateCasesSelect($(this).val());
-        });
-        
-        // === ВЫХОД ИЗ СИСТЕМЫ ===
-        function logout() {
-            if (confirm('Вы уверены, что хотите выйти из системы?')) {
-                $.ajax({
-                    url: '/api/auth/logout',
-                    method: 'POST',
-                    success: function(response) {
-                        if (response.success) {
-                            window.location.href = '/login';
-                        } else {
-                            showNotification('Ошибка выхода: ' + response.error, 'error');
-                        }
-                    },
-                    error: function() {
-                        window.location.href = '/login';
-                    }
-                });
-            }
-        }
-        
-        // === ФУНКЦИИ ПРОСМОТРА ===
-        function viewClient(clientId) {
-            const client = clientsData.find(c => c.id === clientId);
-            if (client) {
-                alert(`ПРОСМОТР КЛИЕНТА\n\n` +
-                      `ФИО: ${client.full_name || 'Не указано'}\n` +
-                      `Телефон: ${client.phone || 'Не указано'}\n` +
-                      `Email: ${client.email || 'Не указано'}\n` +
-                      `Адрес: ${client.address || 'Не указано'}\n` +
-                      `Данные паспорта: ${client.passport_data || 'Не указано'}\n` +
-                      `ИНН: ${client.inn || 'Не указано'}\n` +
-                      `Статус: ${client.status || 'Не указано'}\n` +
-                      `Дата создания: ${formatDate(client.created_date) || 'Не указано'}\n` +
-                      `Заметки: ${client.notes || 'Не указано'}`);
-            }
-        }
-        
-        function viewCase(caseId) {
-            const caseItem = casesData.find(c => c.id === caseId);
-            if (caseItem) {
-                alert(`ПРОСМОТР ДЕЛА\n\n` +
-                      `Номер дела: ${caseItem.case_number || 'Не указано'}\n` +
-                      `Клиент: ${caseItem.client_name || 'Не указано'}\n` +
-                      `Суд: ${caseItem.court_name || 'Не указано'}\n` +
-                      `Тип дела: ${caseItem.case_type || 'Не указано'}\n` +
-                      `Истец: ${caseItem.plaintiff || 'Не указано'}\n` +
-                      `Ответчик: ${caseItem.defendant || 'Не указано'}\n` +
-                      `Сумма иска: ${formatCurrency(caseItem.claim_amount) || 'Не указано'}\n` +
-                      `Стадия: ${caseItem.case_stage || 'Не указано'}\n` +
-                      `Дата начала: ${formatDate(caseItem.start_date) || 'Не указано'}\n` +
-                      `Дата окончания: ${formatDate(caseItem.end_date) || 'Не указано'}\n` +
-                      `Результат: ${caseItem.result || 'Не указано'}\n` +
-                      `Статус: ${caseItem.status || 'Не указано'}\n` +
-                      `Заметки: ${caseItem.notes || 'Не указано'}`);
-            }
-        }
-        
-        function viewService(serviceId) {
-            const service = servicesData.find(s => s.id === serviceId);
-            if (service) {
-                alert(`ПРОСМОТР УСЛУГИ\n\n` +
-                      `Клиент: ${service.client_name || 'Не указано'}\n` +
-                      `Дело: ${service.case_number || 'Не указано'}\n` +
-                      `Тип услуги: ${service.service_type || 'Не указано'}\n` +
-                      `Описание: ${service.description || 'Не указано'}\n` +
-                      `Дата услуги: ${formatDate(service.service_date) || 'Не указано'}\n` +
-                      `Часы: ${service.hours || 'Не указано'}\n` +
-                      `Стоимость: ${formatCurrency(service.cost) || 'Не указано'}\n` +
-                      `Заметки: ${service.notes || 'Не указано'}`);
-            }
-        }
-        
-        function viewPayment(paymentId) {
-            const payment = paymentsData.find(p => p.id === paymentId);
-            if (payment) {
-                alert(`ПРОСМОТР ПЛАТЕЖА\n\n` +
-                      `Клиент: ${payment.client_name || 'Не указано'}\n` +
-                      `Дело: ${payment.case_number || 'Не указано'}\n` +
-                      `Тип оплаты: ${payment.payment_type || 'Не указано'}\n` +
-                      `Сумма: ${formatCurrency(payment.amount) || 'Не указано'}\n` +
-                      `Дата платежа: ${formatDate(payment.payment_date) || 'Не указано'}\n` +
-                      `Способ оплаты: ${payment.payment_method || 'Не указано'}\n` +
-                      `Номер счета: ${payment.invoice_number || 'Не указано'}\n` +
-                      `Статус: ${payment.status || 'Не указано'}\n` +
-                      `Заметки: ${payment.notes || 'Не указано'}`);
-            }
-        }
-        
-        function viewEvent(eventId) {
-            const event = eventsData.find(e => e.id === eventId);
-            if (event) {
-                alert(`ПРОСМОТР СОБЫТИЯ\n\n` +
-                      `Заголовок: ${event.title || 'Не указано'}\n` +
-                      `Тип события: ${event.event_type || 'Не указано'}\n` +
-                      `Клиент: ${event.client_name || 'Не указано'}\n` +
-                      `Дело: ${event.case_number || 'Не указано'}\n` +
-                      `Дата: ${formatDate(event.event_date) || 'Не указано'}\n` +
-                      `Время: ${event.event_time || 'Не указано'}\n` +
-                      `Место проведения: ${event.location || 'Не указано'}\n` +
-                      `Описание: ${event.description || 'Не указано'}\n` +
-                      `Напоминание: ${event.reminder || 'Не указано'}`);
-            }
-        }
-        
-        // === ФУНКЦИИ ОТЧЕТОВ ===
-        function generateReport() {
-            const reportType = $('#reportType').val();
-            const startDate = $('#reportStartDate').val();
-            const endDate = $('#reportEndDate').val();
-            const status = $('#reportStatus').val();
-            const clientId = $('#reportClient').val();
-            
-            const filters = {
-                type: reportType,
-                start_date: startDate,
-                end_date: endDate,
-                status: status,
-                client_id: clientId
-            };
-            
-            $('#reportResults').html('<div class="text-center py-5"><i class="fas fa-spinner fa-spin fa-2x"></i><br><br>Формирование отчета...</div>');
-            
+
+        // ==================== СИНХРОНИЗАЦИЯ С ЯНДЕКС.ДИСКОМ ====================
+
+        // Загрузка статуса синхронизации при инициализации
+        function loadSyncStatus() {
             $.ajax({
-                url: '/api/reports/generate',
-                method: 'POST',
-                contentType: 'application/json',
-                data: JSON.stringify(filters),
+                url: '/api/sync/status',
+                method: 'GET',
                 success: function(response) {
-                    if (response.success) {
-                        displayReportResults(response.data);
+                    if (response.configured) {
+                        $('#sync-status-indicator').html('<i class="fas fa-cloud text-white"></i>');
+                        $('#sync-status-text').text('Настроено');
+                        $('#sync-status-indicator').parent().removeClass('bg-primary bg-warning bg-danger').addClass('bg-success');
+                        
+                        if (response.needs_sync) {
+                            $('#sync-status-indicator').html('<i class="fas fa-exclamation-triangle text-white"></i>');
+                            $('#sync-status-text').text('Требуется синхронизация');
+                            $('#sync-status-indicator').parent().removeClass('bg-success bg-primary').addClass('bg-warning');
+                        }
                     } else {
-                        $('#reportResults').html('<div class="alert alert-danger">Ошибка формирования отчета: ' + response.error + '</div>');
+                        $('#sync-status-indicator').html('<i class="fas fa-exclamation-circle text-white"></i>');
+                        $('#sync-status-text').text('Не настроено');
+                        $('#sync-status-indicator').parent().removeClass('bg-success bg-primary').addClass('bg-danger');
                     }
+
+                    if (response.last_sync) {
+                        const syncDate = new Date(response.last_sync).toLocaleString('ru-RU');
+                        $('#last-sync-time').text(syncDate);
+                    }
+
+                    $('#backup-count').text(response.backup_files_count || 0);
+                    $('#auto-sync-toggle').prop('checked', response.auto_sync_enabled || false);
                 },
                 error: function() {
-                    $('#reportResults').html('<div class="alert alert-danger">Ошибка связи с сервером</div>');
+                    $('#sync-status-indicator').html('<i class="fas fa-times text-white"></i>');
+                    $('#sync-status-text').text('Ошибка связи');
+                    $('#sync-status-indicator').parent().removeClass('bg-primary bg-success bg-warning').addClass('bg-danger');
                 }
             });
         }
-        
-        function displayReportResults(data) {
-            const reportType = $('#reportType').val();
-            let html = '';
-            
-            if (data.length === 0) {
-                html = '<div class="text-center text-muted py-5"><i class="fas fa-search fa-3x mb-3"></i><p>Нет данных по выбранным параметрам</p></div>';
-            } else {
-                html = generateReportTable(data, reportType);
-            }
-            
-            $('#reportResults').html(html);
-        }
-        
-        function generateReportTable(data, type) {
-            let headers = '';
-            let rows = '';
-            
-            switch(type) {
-                case 'clients':
-                    headers = '<th>ФИО</th><th>Телефон</th><th>Email</th><th>Статус</th><th>Дата регистрации</th>';
-                    data.forEach(client => {
-                        rows += `<tr>
-                            <td>${client.full_name || ''}</td>
-                            <td>${client.phone || ''}</td>
-                            <td>${client.email || ''}</td>
-                            <td><span class="badge bg-success">${client.status || ''}</span></td>
-                            <td>${formatDate(client.created_date) || ''}</td>
-                        </tr>`;
-                    });
-                    break;
-                    
-                case 'cases':
-                    headers = '<th>Номер дела</th><th>Клиент</th><th>Суд</th><th>Тип дела</th><th>Статус</th><th>Сумма иска</th>';
-                    data.forEach(caseItem => {
-                        const client = clientsData.find(c => c.id === caseItem.client_id);
-                        rows += `<tr>
-                            <td>${caseItem.case_number || ''}</td>
-                            <td>${client ? client.full_name : 'Не указан'}</td>
-                            <td>${caseItem.court_name || ''}</td>
-                            <td>${caseItem.case_type || ''}</td>
-                            <td><span class="badge bg-warning">${caseItem.case_stage || ''}</span></td>
-                            <td>${formatCurrency(caseItem.claim_amount) || '0 ₽'}</td>
-                        </tr>`;
-                    });
-                    break;
-                    
-                case 'payments':
-                    headers = '<th>Клиент</th><th>Дело</th><th>Сумма</th><th>Дата платежа</th><th>Способ оплаты</th><th>Статус</th>';
-                    data.forEach(payment => {
-                        const client = clientsData.find(c => c.id === payment.client_id);
-                        const caseItem = casesData.find(c => c.id === payment.case_id);
-                        rows += `<tr>
-                            <td>${client ? client.full_name : 'Не указан'}</td>
-                            <td>${caseItem ? caseItem.case_number : 'Не указано'}</td>
-                            <td class="text-success fw-bold">${formatCurrency(payment.amount) || '0 ₽'}</td>
-                            <td>${formatDate(payment.payment_date) || ''}</td>
-                            <td>${payment.payment_method || ''}</td>
-                            <td><span class="badge bg-success">Оплачен</span></td>
-                        </tr>`;
-                    });
-                    break;
-                    
-                case 'services':
-                    headers = '<th>Клиент</th><th>Дело</th><th>Тип услуги</th><th>Дата</th><th>Часы</th><th>Стоимость</th>';
-                    data.forEach(service => {
-                        const client = clientsData.find(c => c.id === service.client_id);
-                        const caseItem = casesData.find(c => c.id === service.case_id);
-                        rows += `<tr>
-                            <td>${client ? client.full_name : 'Не указан'}</td>
-                            <td>${caseItem ? caseItem.case_number : 'Не указано'}</td>
-                            <td>${service.service_type || ''}</td>
-                            <td>${formatDate(service.service_date) || ''}</td>
-                            <td>${service.hours || '0'} ч.</td>
-                            <td>${formatCurrency(service.cost) || '0 ₽'}</td>
-                        </tr>`;
-                    });
-                    break;
-                    
-                case 'events':
-                    headers = '<th>Клиент</th><th>Дело</th><th>Событие</th><th>Дата</th><th>Время</th><th>Место</th>';
-                    data.forEach(event => {
-                        const client = clientsData.find(c => c.id === event.client_id);
-                        const caseItem = casesData.find(c => c.id === event.case_id);
-                        rows += `<tr>
-                            <td>${client ? client.full_name : 'Не указан'}</td>
-                            <td>${caseItem ? caseItem.case_number : 'Не указано'}</td>
-                            <td>${event.title || ''}</td>
-                            <td>${formatDate(event.event_date) || ''}</td>
-                            <td>${event.event_time || ''}</td>
-                            <td>${event.location || ''}</td>
-                        </tr>`;
-                    });
-                    break;
-                    
-                case 'comprehensive':
-                    headers = '<th>Раздел</th><th>Количество записей</th><th>Сумма дохода</th><th>Активные</th>';
-                    const totalPayments = paymentsData.reduce((sum, p) => sum + parseFloat(p.amount || 0), 0);
-                    const totalServices = servicesData.reduce((sum, s) => sum + parseFloat(s.cost || 0), 0);
-                    const activeClients = clientsData.filter(c => c.status === 'Активный').length;
-                    const activeCases = casesData.filter(c => c.case_stage !== 'Завершено').length;
-                    
-                    rows = `
-                        <tr>
-                            <td>Клиенты</td>
-                            <td>${clientsData.length}</td>
-                            <td>-</td>
-                            <td>${activeClients}</td>
-                        </tr>
-                        <tr>
-                            <td>Дела</td>
-                            <td>${casesData.length}</td>
-                            <td>-</td>
-                            <td>${activeCases}</td>
-                        </tr>
-                        <tr>
-                            <td>Платежи</td>
-                            <td>${paymentsData.length}</td>
-                            <td class="text-success fw-bold">${formatCurrency(totalPayments)}</td>
-                            <td>-</td>
-                        </tr>
-                        <tr>
-                            <td>Услуги</td>
-                            <td>${servicesData.length}</td>
-                            <td class="text-success fw-bold">${formatCurrency(totalServices)}</td>
-                            <td>-</td>
-                        </tr>
-                        <tr>
-                            <td>События</td>
-                            <td>${eventsData.length}</td>
-                            <td>-</td>
-                            <td>-</td>
-                        </tr>
-                    `;
-                    break;
-            }
-            
-            return `
-                <div class="d-flex justify-content-between align-items-center mb-3">
-                    <h6 class="mb-0">Найдено записей: ${data.length}</h6>
-                    <button class="btn btn-sm btn-outline-primary" onclick="printReport()">
-                        <i class="fas fa-print me-1"></i>Печать
-                    </button>
-                </div>
-                <table class="table table-striped table-hover">
-                    <thead class="table-dark">
-                        <tr>${headers}</tr>
-                    </thead>
-                    <tbody>${rows}</tbody>
-                </table>
-            `;
-        }
-        
-        function exportToExcel() {
-            const reportType = $('#reportType').val();
-            const startDate = $('#reportStartDate').val();
-            const endDate = $('#reportEndDate').val();
-            
-            if (!startDate || !endDate) {
-                showNotification('Пожалуйста, укажите даты для экспорта', 'error');
+
+        // Тестирование подключения к Яндекс.Диску
+        function testYandexConnection() {
+            const username = $('#yandex-username').val().trim();
+            const password = $('#yandex-password').val().trim();
+
+            if (!username || !password) {
+                showNotification('Введите логин и пароль', 'warning');
                 return;
             }
-            
-            const exportUrl = `/api/reports/export?type=${reportType}&start_date=${startDate}&end_date=${endDate}`;
-            window.open(exportUrl, '_blank');
-        }
-        
-        function printReport() {
-            const reportContent = $('#reportResults').html();
-            const printWindow = window.open('', '_blank');
-            printWindow.document.write(`
-                <!DOCTYPE html>
-                <html>
-                <head>
-                    <title>Отчет Legal CRM</title>
-                    <style>
-                        body { font-family: Arial, sans-serif; margin: 20px; }
-                        .table { width: 100%; border-collapse: collapse; }
-                        .table th, .table td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-                        .table th { background-color: #f2f2f2; }
-                        .text-center { text-align: center; }
-                    </style>
-                </head>
-                <body>
-                    <h1 class="text-center">Отчет Legal CRM</h1>
-                    <h3 class="text-center">${$('#reportType option:selected').text()}</h3>
-                    <p class="text-center">Период: ${$('#reportStartDate').val()} - ${$('#reportEndDate').val()}</p>
-                    ${reportContent}
-                </body>
-                </html>
-            `);
-            printWindow.document.close();
-            printWindow.print();
-        }
-        
-        // === КНОПКА ОБНОВЛЕНИЯ ===
-        function addRefreshButtons() {
-            $('.section-content').each(function() {
-                const section = $(this);
-                const sectionId = section.attr('id');
-                
-                // Не добавляем кнопку на dashboard
-                if (sectionId === 'dashboard' || sectionId === 'reports') return;
-                
-                // Добавляем кнопку только если её нет
-                if (!section.find('.refresh-btn').length) {
-                    const headerDiv = section.find('.d-flex').first();
-                    if (headerDiv.length) {
-                        const refreshBtn = $(`<button class="btn btn-sm btn-outline-secondary refresh-btn me-2" onclick="refreshCurrentSection()">
-                            <i class="fas fa-sync-alt me-1"></i>Обновить
-                        </button>`);
-                        headerDiv.append(refreshBtn);
+
+            // Показываем индикатор загрузки
+            const btn = event.target;
+            const originalText = btn.innerHTML;
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i>Проверка...';
+            btn.disabled = true;
+
+            $.ajax({
+                url: '/api/sync/test',
+                method: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        showNotification(response.message, 'success');
+                    } else {
+                        showNotification(response.error, 'error');
                     }
+                },
+                error: function() {
+                    showNotification('Ошибка соединения с сервером', 'error');
+                },
+                complete: function() {
+                    btn.innerHTML = originalText;
+                    btn.disabled = false;
                 }
             });
         }
-        
-        function refreshCurrentSection() {
-            loadClients();
-            loadCases();
-            loadServices();
-            loadPayments();
-            loadEvents();
-            updateStatistics();
-            showNotification('Данные обновлены!', 'success');
+
+        // Настройка синхронизации с Яндекс.Диском
+        function setupYandexSync() {
+            const username = $('#yandex-username').val().trim();
+            const password = $('#yandex-password').val().trim();
+
+            if (!username || !password) {
+                showNotification('Введите логин и пароль', 'warning');
+                return;
+            }
+
+            showNotification('Настройка подключения...', 'info');
+
+            $.ajax({
+                url: '/api/sync/setup',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    username: username,
+                    password: password
+                }),
+                success: function(response) {
+                    if (response.success) {
+                        showNotification(response.message, 'success');
+                        loadSyncStatus();
+                    } else {
+                        showNotification(response.error, 'error');
+                    }
+                },
+                error: function() {
+                    showNotification('Ошибка соединения с сервером', 'error');
+                }
+            });
         }
-        
-        // Обновляем клиентский select в отчетах при загрузке клиентов
-        function updateReportClientSelect() {
-            const select = $('#reportClient');
-            if (select.length) {
-                select.empty();
-                select.append('<option value="">Все клиенты</option>');
-                
-                clientsData.forEach(function(client) {
-                    select.append(`<option value="${client.id}">${client.full_name}</option>`);
+
+        // Синхронизация с облаком
+        function uploadToCloud() {
+            showNotification('Загрузка данных в облако...', 'info');
+
+            $.ajax({
+                url: '/api/sync/upload',
+                method: 'POST',
+                success: function(response) {
+                    if (response.success) {
+                        showNotification('Данные успешно синхронизированы с облаком!', 'success');
+                        loadSyncStatus();
+                        loadBackupHistory();
+                    } else {
+                        showNotification('Ошибка: ' + (response.error || 'Неизвестная ошибка'), 'error');
+                    }
+                },
+                error: function() {
+                    showNotification('Ошибка соединения с сервером', 'error');
+                }
+            });
+        }
+
+        // Синхронизация из облака
+        function downloadFromCloud() {
+            if (!confirm('Это действие заменит текущие данные на данные из облака. Продолжить?')) {
+                return;
+            }
+
+            showNotification('Загрузка данных из облака...', 'info');
+
+            $.ajax({
+                url: '/api/sync/download',
+                method: 'POST',
+                success: function(response) {
+                    if (response.success) {
+                        showNotification('Данные успешно загружены из облака!', 'success');
+                        loadSyncStatus();
+                        loadAllData(); // Перезагружаем все данные
+                    } else {
+                        showNotification('Ошибка: ' + (response.error || 'Неизвестная ошибка'), 'error');
+                    }
+                },
+                error: function() {
+                    showNotification('Ошибка соединения с сервером', 'error');
+                }
+            });
+        }
+
+        // Переключение автоматической синхронизации
+        function toggleAutoSync(toggle) {
+            if (toggle.checked) {
+                // Включаем автосинхронизацию
+                const interval = prompt('Введите интервал синхронизации в минутах (по умолчанию 30):', '30');
+                const intervalMinutes = interval ? parseInt(interval) : 30;
+
+                $.ajax({
+                    url: '/api/sync/auto/enable',
+                    method: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        interval_minutes: intervalMinutes
+                    }),
+                    success: function(response) {
+                        if (response.success) {
+                            showNotification('Автоматическая синхронизация включена', 'success');
+                        } else {
+                            toggle.checked = false;
+                            showNotification(response.error, 'error');
+                        }
+                    },
+                    error: function() {
+                        toggle.checked = false;
+                        showNotification('Ошибка соединения с сервером', 'error');
+                    }
+                });
+            } else {
+                // Отключаем автосинхронизацию
+                $.ajax({
+                    url: '/api/sync/auto/disable',
+                    method: 'POST',
+                    success: function(response) {
+                        if (response.success) {
+                            showNotification('Автоматическая синхронизация отключена', 'info');
+                        }
+                    },
+                    error: function() {
+                        showNotification('Ошибка соединения с сервером', 'error');
+                    }
                 });
             }
         }
-        
-        // Добавляем обновление select в отчетах при инициализации
-        $(document).ready(function() {
-            updateReportClientSelect();
+
+        // Загрузка истории резервных копий
+        function loadBackupHistory() {
+            $.ajax({
+                url: '/api/sync/backups',
+                method: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        const tbody = $('#backup-history-body');
+                        tbody.empty();
+
+                        if (response.backups.length === 0) {
+                            tbody.append(`
+                                <tr>
+                                    <td colspan="3" class="text-center text-muted">
+                                        Резервные копии не найдены
+                                    </td>
+                                </tr>
+                            `);
+                        } else {
+                            response.backups.forEach(function(backup) {
+                                const modifiedDate = backup.modified ? 
+                                    new Date(backup.modified).toLocaleString('ru-RU') : 
+                                    'Неизвестно';
+                                
+                                const sizeMB = backup.size ? (backup.size / 1024 / 1024).toFixed(2) + ' МБ' : 'Неизвестно';
+                                
+                                tbody.append(`
+                                    <tr>
+                                        <td>${modifiedDate}</td>
+                                        <td>${sizeMB}</td>
+                                        <td>
+                                            <button type="button" class="btn btn-sm btn-outline-primary" 
+                                                    onclick="restoreFromBackup('${backup.name}')">
+                                                <i class="fas fa-undo me-1"></i>Восстановить
+                                            </button>
+                                        </td>
+                                    </tr>
+                                `);
+                            });
+                        }
+                    }
+                },
+                error: function() {
+                    $('#backup-history-body').html(`
+                        <tr>
+                            <td colspan="3" class="text-center text-danger">
+                                Ошибка загрузки истории
+                            </td>
+                        </tr>
+                    `);
+                }
+            });
+        }
+
+        // Восстановление из резервной копии
+        function restoreFromBackup(backupFilename) {
+            if (!confirm('Это действие заменит текущие данные на данные из выбранной резервной копии. Продолжить?')) {
+                return;
+            }
+
+            showNotification('Восстановление данных...', 'info');
+
+            $.ajax({
+                url: '/api/sync/restore',
+                method: 'POST',
+                contentType: 'application/json',
+                data: JSON.stringify({
+                    backup_filename: backupFilename
+                }),
+                success: function(response) {
+                    if (response.success) {
+                        showNotification(response.message, 'success');
+                        loadSyncStatus();
+                        loadAllData(); // Перезагружаем все данные
+                    } else {
+                        showNotification('Ошибка: ' + (response.error || 'Неизвестная ошибка'), 'error');
+                    }
+                },
+                error: function() {
+                    showNotification('Ошибка соединения с сервером', 'error');
+                }
+            });
+        }
+
+        // Очистка старых резервных копий
+        function cleanupOldBackups() {
+            if (!confirm('Удалить старые резервные копии (старше 30 дней)?')) {
+                return;
+            }
+
+            $.ajax({
+                url: '/api/sync/cleanup',
+                method: 'POST',
+                success: function(response) {
+                    if (response.success) {
+                        showNotification(response.message, 'success');
+                        loadSyncStatus();
+                        loadBackupHistory();
+                    } else {
+                        showNotification('Ошибка: ' + (response.error || 'Неизвестная ошибка'), 'error');
+                    }
+                },
+                error: function() {
+                    showNotification('Ошибка соединения с сервером', 'error');
+                }
+            });
+        }
+
+        // Инициализация синхронизации при переключении на вкладку
+        $('#sync-tab').on('shown.bs.tab', function (event) {
+            loadSyncStatus();
+            loadBackupHistory();
         });
     </script>
 </body>
