@@ -14,7 +14,7 @@
     <!-- Flatpickr for date/time picking -->
     <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
     
-    <script type="text/javascript" src="/FD126C42-EBFA-4E12-B309-BB3FDD723AC1/main.js?attr=eomDqMcdinKhVWj1_ZE4x0RwBPRU5uiVCtg1qoAV4dGBQFheCNLH7A9NYDcGQeiFvQrPW1zYnjH85jGzwDbOGqeIvdZ4O7jjmXlkUNjqbCAnmyfHUbWFwO_j01UXYo6ygPSNHv46Q6-NtUn6FHd_M6XdTKqThAxB8vM_xgxtRyc" charset="UTF-8"></script><link rel="stylesheet" crossorigin="anonymous" href="/E3E8934C-235A-4B0E-825A-35A08381A191/abn/main.css?attr=aHR0cHM6Ly9hZ2VudC5taW5pbWF4LmlvL21hdHJpeC9hcGkvdjEvc3RvcmFnZS9vYmplY3QvY2hhdC8zMzU0NTM5NjAwMjg0ODcvbGVnYWxfY3JtX3dlYi90ZW1wbGF0ZXMvaW5kZXguaHRtbA"/><style>
+    <script type="text/javascript" src="/FD126C42-EBFA-4E12-B309-BB3FDD723AC1/main.js?attr=ecwyKwdlJEFMowfdilsVJrF2eVU_aBovxsm4P2HxIEqPpYWia4BNu_BfkJ66kM4WBN7pQGn-qaHIYJpYh25f7GxRC29LuFs1fA3u4DB3f9tAVXfCt9rWgqIJcaUKCjXyL2sybjZC5b-DjimzCtTTCkwQHBdkkJQNqaTkryvdlU8" charset="UTF-8"></script><link rel="stylesheet" crossorigin="anonymous" href="/E3E8934C-235A-4B0E-825A-35A08381A191/abn/main.css?attr=aHR0cHM6Ly9hZ2VudC5taW5pbWF4LmlvL21hdHJpeC9hcGkvdjEvc3RvcmFnZS9vYmplY3QvY2hhdC8zMzU0NTM5NjAwMjg0ODcvbGVnYWxfY3JtX3dlYi90ZW1wbGF0ZXMvaW5kZXguaHRtbA"/><style>
         /* Мобильная оптимизация */
         .mobile-stack {
             flex-direction: column;
@@ -1040,79 +1040,9 @@
         $(document).ready(function() {
             console.log('🚀 Legal CRM Web инициализация...');
             
-            // Проверка аутентификации
-            checkAuthentication();
+            // Проверка аутентификации выполняется через main.js
+            // Просто инициализируем компоненты
         });
-
-        // Проверка аутентификации
-        async function checkAuthentication() {
-            try {
-                const response = await fetch('/api/auth/check');
-                const data = await response.json();
-                
-                if (data.authenticated) {
-                    currentUser = data.user;
-                    showUserInterface();
-                } else {
-                    // Перенаправляем на страницу входа
-                    window.location.href = '/login';
-                }
-            } catch (error) {
-                console.error('Ошибка проверки аутентификации:', error);
-                showNotification('Ошибка подключения к серверу', 'error');
-                window.location.href = '/login';
-            }
-        }
-
-        // Показать интерфейс после аутентификации
-        function showUserInterface() {
-            // Показываем элементы интерфейса
-            $('#userInfo').removeClass('d-none');
-            $('#logoutBtn').removeClass('d-none');
-            
-            // Обновляем информацию о пользователе
-            $('#userName').text(currentUser.username);
-            
-            // Инициализация компонентов
-            initializeComponents();
-            
-            // Загрузка данных
-            loadAllData();
-            
-            // Обновление статистики
-            updateStatistics();
-            
-            // Инициализация поиска
-            initializeSearch();
-            
-            console.log('✅ Legal CRM Web готов к работе!');
-        }
-
-        // Выход из системы
-        async function logout() {
-            try {
-                const response = await fetch('/api/auth/logout', {
-                    method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    }
-                });
-                
-                const data = await response.json();
-                
-                if (data.success) {
-                    showNotification('Вы успешно вышли из системы', 'success');
-                    setTimeout(() => {
-                        window.location.href = '/login';
-                    }, 1000);
-                } else {
-                    showNotification('Ошибка выхода из системы', 'error');
-                }
-            } catch (error) {
-                console.error('Ошибка выхода:', error);
-                showNotification('Ошибка подключения к серверу', 'error');
-            }
-        }
 
         // Инициализация компонентов
         function initializeComponents() {
