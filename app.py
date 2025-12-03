@@ -12,6 +12,15 @@ from datetime import datetime
 import json
 import uuid
 
+# OAuth imports
+import json
+import os
+import uuid
+from datetime import datetime
+from yandex_oauth_client import YandexOAuthClient
+from oauth_api_endpoints import oauth_bp
+
+
 app = Flask(__name__, static_folder='static', template_folder='templates')
 CORS(app)  # Разрешаем CORS для фронтенда
 
