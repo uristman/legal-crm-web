@@ -1,0 +1,874 @@
+"""
+OAuth API endpoints для Яндекс.Диска с поддержкой 2FA
+Заменяет старые endpoints на новые с OAuth авторизацией
+"""
+
+import json
+import os
+import uuid
+from datetime import datetime
+from flask import Blueprint, request, jsonify, session, redirect, url_for, render_template_string
+from werkzeug.security import check_password_hash
+from sqlalchemy import text
+from yandex_oauth_client import YandexOAuthClient
+from sync.sync_manager import SyncManager
+
+
+# Создаем новый Blueprint для OAuth endpoints
+oauth_bp = Blueprint('oauth', __name__)
+
+# Конфигурация OAuth
+OAUTH_CONFIG = {
+    'client_id': os.getenv('YANDEX_CLIENT_ID', ''),  # Нужно будет настроить
+    'redirect_uri': os.getenv('YANDEX_REDIRECT_URI', 'http://localhost:5000/auth/callback'),
+    'scopes': ['disk:read', 'disk:write']
+}
+
+
+@oauth_bp.route('/api/oauth/authorize', methods=['POST'])
+@login_required
+def oauth_authorize():
+    """
+    Генерирует URL для OAuth авторизации с 2FA
+    """
+    try:
+        data = request.get_json()
+        username = data.get('username', '')
+        
+        if not username:
+            return jsonify({'error': 'Username is required'}), 400
+        
+        if not OAUTH_CONFIG['client_id']:
+            return jsonify({'error': 'OAuth not configured. Please set YANDEX_CLIENT_ID environment variable.'}), 500
+        
+        # Создаем OAuth клиент
+        oauth_client = YandexOAuthClient(
+            client_id=OAUTH_CONFIG['client_id']
+        )
+        
+        # Генерируем уникальное состояние для защиты от CSRF
+        state = str(uuid.uuid4())
+        
+        # Сохраняем OAuth данные в сессии
+        session['oauth_state'] = state
+        session['oauth_username'] = username
+        
+        # Получаем URL авторизации
+        auth_url = oauth_client.get_authorization_url(
+            redirect_uri=OAUTH_CONFIG['redirect_uri'],
+            login_hint=username,
+            state=state
+        )
+        
+        return jsonify({
+            'success': True,
+            'auth_url': auth_url,
+            'message': 'Откройте ссылку в новой вкладке и пройдите авторизацию'
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'Failed to generate authorization URL: {str(e)}'}), 500
+
+
+@oauth_bp.route('/api/oauth/exchange', methods=['POST'])
+@login_required
+def oauth_exchange_token():
+    """
+    Обменивает код подтверждения на OAuth токен
+    """
+    try:
+        data = request.get_json()
+        confirmation_code = data.get('code', '')
+        
+        if not confirmation_code:
+            return jsonify({'error': 'Confirmation code is required'}), 400
+        
+        # Проверяем состояние
+        if session.get('oauth_state') != session.get('oauth_current_state'):
+            return jsonify({'error': 'Invalid state parameter'}), 400
+        
+        if not OAUTH_CONFIG['client_id']:
+            return jsonify({'error': 'OAuth not configured'}), 500
+        
+        # Создаем OAuth клиент
+        oauth_client = YandexOAuthClient(
+            client_id=OAUTH_CONFIG['client_id']
+        )
+        
+        # Обмениваем код на токен
+        token_response = oauth_client.exchange_code_for_token(
+            confirmation_code=confirmation_code,
+            redirect_uri=OAUTH_CONFIG['redirect_uri']
+        )
+        
+        # Получаем данные пользователя
+        username = session.get('oauth_username')
+        
+        if not username:
+            return jsonify({'error': 'Username not found in session'}), 400
+        
+        # Сохраняем токены в базу данных
+        db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'legal_crm_web', 'database', 'legal_crm.db')
+        
+        with open(db_path, 'r') as f:
+            pass  # Это просто для проверки существования файла
+        
+        from database import get_db_connection
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        # Сохраняем или обновляем конфигурацию синхронизации
+        cursor.execute("""
+            INSERT OR REPLACE INTO sync_config 
+            (username, sync_type, config_data, last_sync, is_enabled) 
+            VALUES (?, 'yandex_oauth', ?, ?, 1)
+        """, (
+            username,
+            json.dumps({
+                'access_token': token_response['access_token'],
+                'refresh_token': token_response.get('refresh_token', ''),
+                'token_type': token_response.get('token_type', 'bearer'),
+                'expires_in': token_response.get('expires_in', 0),
+                'scope': token_response.get('scope', ''),
+                'obtained_at': datetime.now().isoformat(),
+                'configured_path': '/legal_crm'  # Папка, созданная пользователем
+            }),
+            datetime.now().isoformat()
+        ))
+        
+        conn.commit()
+        conn.close()
+        
+        # Очищаем сессию OAuth
+        session.pop('oauth_state', None)
+        session.pop('oauth_username', None)
+        
+        return jsonify({
+            'success': True,
+            'message': 'Авторизация успешно завершена!',
+            'token_info': {
+                'type': token_response.get('token_type'),
+                'expires_in': token_response.get('expires_in'),
+                'scope': token_response.get('scope')
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'Token exchange failed: {str(e)}'}), 500
+
+
+@oauth_bp.route('/api/oauth/status', methods=['GET'])
+@login_required
+def oauth_status():
+    """
+    Проверяет статус OAuth авторизации
+    """
+    try:
+        username = session.get('username')
+        
+        if not username:
+            return jsonify({'error': 'User not found'}), 400
+        
+        # Проверяем конфигурацию синхронизации в базе данных
+        from database import get_db_connection
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT config_data, last_sync, is_enabled 
+            FROM sync_config 
+            WHERE username = ? AND sync_type = 'yandex_oauth'
+        """, (username,))
+        
+        result = cursor.fetchone()
+        conn.close()
+        
+        if result:
+            config_data = json.loads(result[0])
+            last_sync = result[1]
+            is_enabled = result[2]
+            
+            # Проверяем, не истек ли токен
+            access_token = config_data.get('access_token')
+            expires_in = config_data.get('expires_in', 0)
+            obtained_at = config_data.get('obtained_at', '')
+            
+            token_valid = False
+            if access_token and expires_in and obtained_at:
+                import time
+                from datetime import datetime
+                
+                try:
+                    obtained_time = datetime.fromisoformat(obtained_at.replace('Z', '+00:00'))
+                    current_time = datetime.now()
+                    elapsed_seconds = (current_time - obtained_time.replace(tzinfo=None)).total_seconds()
+                    
+                    # Токен валиден если не прошло больше 80% времени жизни
+                    token_valid = elapsed_seconds < (expires_in * 0.8)
+                except:
+                    token_valid = False
+            
+            return jsonify({
+                'success': True,
+                'oauth_configured': True,
+                'oauth_authorized': bool(access_token and token_valid),
+                'token_info': {
+                    'has_access_token': bool(access_token),
+                    'token_valid': token_valid,
+                    'expires_in': expires_in
+                },
+                'sync_configured': bool(is_enabled),
+                'last_sync': last_sync
+            })
+        else:
+            return jsonify({
+                'success': True,
+                'oauth_configured': False,
+                'oauth_authorized': False,
+                'sync_configured': False,
+                'message': 'OAuth авторизация не настроена'
+            })
+            
+    except Exception as e:
+        return jsonify({'error': f'Failed to check OAuth status: {str(e)}'}), 500
+
+
+@oauth_bp.route('/api/oauth/test', methods=['POST'])
+@login_required
+def oauth_test_connection():
+    """
+    Тестирует подключение к Яндекс.Диску через OAuth
+    """
+    try:
+        username = session.get('username')
+        
+        if not username:
+            return jsonify({'error': 'User not found'}), 400
+        
+        # Получаем OAuth токен из базы данных
+        from database import get_db_connection
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT config_data 
+            FROM sync_config 
+            WHERE username = ? AND sync_type = 'yandex_oauth'
+        """, (username,))
+        
+        result = cursor.fetchone()
+        conn.close()
+        
+        if not result:
+            return jsonify({'error': 'OAuth configuration not found'}), 400
+        
+        config_data = json.loads(result[0])
+        access_token = config_data.get('access_token')
+        
+        if not access_token:
+            return jsonify({'error': 'Access token not found'}), 400
+        
+        # Создаем WebDAV клиент с OAuth
+        from yandex_oauth_client import YandexDiskOAuthWebDAV
+        
+        webdav_client = YandexDiskOAuthWebDAV(access_token)
+        
+        # Тестируем подключение
+        connection_ok = webdav_client.test_connection()
+        
+        if connection_ok:
+            return jsonify({
+                'success': True,
+                'message': 'Успешное подключение к Яндекс.Диску через OAuth!'
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Не удалось подключиться к Яндекс.Диску. Возможно, токен истек.',
+                'action_required': 'Повторная авторизация'
+            })
+            
+    except Exception as e:
+        return jsonify({'error': f'Connection test failed: {str(e)}'}), 500
+
+
+@oauth_bp.route('/api/oauth/refresh', methods=['POST'])
+@login_required
+def oauth_refresh_token():
+    """
+    Обновляет access token используя refresh token
+    """
+    try:
+        username = session.get('username')
+        
+        if not username:
+            return jsonify({'error': 'User not found'}), 400
+        
+        # Получаем refresh token из базы данных
+        from database import get_db_connection
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT config_data 
+            FROM sync_config 
+            WHERE username = ? AND sync_type = 'yandex_oauth'
+        """, (username,))
+        
+        result = cursor.fetchone()
+        conn.close()
+        
+        if not result:
+            return jsonify({'error': 'OAuth configuration not found'}), 400
+        
+        config_data = json.loads(result[0])
+        refresh_token = config_data.get('refresh_token')
+        
+        if not refresh_token:
+            return jsonify({'error': 'Refresh token not found'}), 400
+        
+        if not OAUTH_CONFIG['client_id']:
+            return jsonify({'error': 'OAuth not configured'}), 500
+        
+        # Создаем OAuth клиент
+        oauth_client = YandexOAuthClient(
+            client_id=OAUTH_CONFIG['client_id']
+        )
+        
+        # Обновляем токен
+        token_response = oauth_client.refresh_access_token(refresh_token)
+        
+        # Обновляем данные в базе
+        updated_config = {
+            'access_token': token_response['access_token'],
+            'refresh_token': token_response.get('refresh_token', refresh_token),
+            'token_type': token_response.get('token_type', 'bearer'),
+            'expires_in': token_response.get('expires_in', 0),
+            'scope': token_response.get('scope', ''),
+            'obtained_at': datetime.now().isoformat(),
+            'configured_path': config_data.get('configured_path', '/legal_crm')
+        }
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            UPDATE sync_config 
+            SET config_data = ?
+            WHERE username = ? AND sync_type = 'yandex_oauth'
+        """, (
+            json.dumps(updated_config),
+            username
+        ))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Токен успешно обновлен!',
+            'token_info': {
+                'expires_in': token_response.get('expires_in'),
+                'scope': token_response.get('scope')
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'Token refresh failed: {str(e)}'}), 500
+
+
+@oauth_bp.route('/auth/callback', methods=['GET'])
+def oauth_callback():
+    """
+    Обрабатывает callback от OAuth авторизации (для отладки)
+    """
+    try:
+        code = request.args.get('code')
+        state = request.args.get('state')
+        error = request.args.get('error')
+        
+        if error:
+            return render_template_string("""
+                <html>
+                <head><title>OAuth Error</title></head>
+                <body>
+                    <h1>OAuth Error</h1>
+                    <p>Error: {{ error }}</p>
+                    <p><a href="/">Вернуться в приложение</a></p>
+                </body>
+                </html>
+            """, error=error)
+        
+        if not code:
+            return render_template_string("""
+                <html>
+                <head><title>OAuth Error</title></head>
+                <body>
+                    <h1>OAuth Error</h1>
+                    <p>Код подтверждения не получен</p>
+                    <p><a href="/">Вернуться в приложение</a></p>
+                </body>
+                </html>
+            """)
+        
+        # Сохраняем код в сессии для использования в frontend
+        session['oauth_code'] = code
+        session['oauth_state_from_callback'] = state
+        
+        return render_template_string("""
+            <html>
+            <head><title>OAuth Success</title></head>
+            <body>
+                <h1>Авторизация успешна!</h1>
+                <p>Код подтверждения получен. Вы можете закрыть это окно и вернуться в приложение.</p>
+                <p><a href="/">Перейти в Legal CRM</a></p>
+                
+                <script>
+                    // Автоматически отправляем код в основное приложение
+                    if (window.opener) {
+                        window.opener.postMessage({
+                            type: 'oauth_success',
+                            code: '{{ code }}',
+                            state: '{{ state }}'
+                        }, window.location.origin);
+                        setTimeout(() => window.close(), 2000);
+                    }
+                </script>
+            </body>
+            </html>
+        """, code=code, state=state)
+        
+    except Exception as e:
+        return render_template_string("""
+            <html>
+            <head><title>OAuth Error</title></head>
+            <body>
+                <h1>OAuth Error</h1>
+                <p>Произошла ошибка: {{ error }}</p>
+                <p><a href="/">Вернуться в приложение</a></p>
+            </body>
+            </html>
+        """, error=str(e))
+
+
+# Обновленные sync endpoints с поддержкой OAuth
+@oauth_bp.route('/api/sync/status', methods=['GET'])
+@login_required
+def oauth_sync_status():
+    """
+    Возвращает статус синхронизации с поддержкой OAuth
+    """
+    try:
+        username = session.get('username')
+        
+        if not username:
+            return jsonify({'error': 'User not found'}), 400
+        
+        from database import get_db_connection
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT sync_type, config_data, last_sync, is_enabled 
+            FROM sync_config 
+            WHERE username = ?
+        """, (username,))
+        
+        results = cursor.fetchall()
+        conn.close()
+        
+        sync_status = {
+            'configured': len(results) > 0,
+            'oauth_authorized': False,
+            'sync_enabled': False,
+            'last_sync': None,
+            'sync_types': []
+        }
+        
+        for sync_type, config_data, last_sync, is_enabled in results:
+            sync_info = {
+                'type': sync_type,
+                'enabled': bool(is_enabled),
+                'last_sync': last_sync,
+                'config_data': json.loads(config_data) if config_data else {}
+            }
+            
+            sync_status['sync_types'].append(sync_info)
+            
+            # Проверяем статус OAuth
+            if sync_type == 'yandex_oauth' and is_enabled:
+                sync_status['sync_enabled'] = True
+                sync_status['oauth_authorized'] = True
+                sync_status['last_sync'] = last_sync
+        
+        return jsonify({
+            'success': True,
+            'sync_status': sync_status
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'Failed to get sync status: {str(e)}'}), 500
+
+
+@oauth_bp.route('/api/sync/test', methods=['POST'])
+@login_required
+def oauth_sync_test():
+    """
+    Тестирует синхронизацию с поддержкой OAuth
+    """
+    return oauth_test_connection()
+
+
+@oauth_bp.route('/api/sync/upload', methods=['POST'])
+@login_required
+def oauth_sync_upload():
+    """
+    Загружает базу данных на Яндекс.Диск через OAuth
+    """
+    try:
+        username = session.get('username')
+        
+        if not username:
+            return jsonify({'error': 'User not found'}), 400
+        
+        # Получаем путь к базе данных
+        db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'legal_crm_web', 'database', 'legal_crm.db')
+        
+        if not os.path.exists(db_path):
+            return jsonify({'error': 'Database file not found'}), 404
+        
+        # Получаем OAuth токен
+        from database import get_db_connection
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT config_data 
+            FROM sync_config 
+            WHERE username = ? AND sync_type = 'yandex_oauth'
+        """, (username,))
+        
+        result = cursor.fetchone()
+        conn.close()
+        
+        if not result:
+            return jsonify({'error': 'OAuth configuration not found'}), 400
+        
+        config_data = json.loads(result[0])
+        access_token = config_data.get('access_token')
+        configured_path = config_data.get('configured_path', '/legal_crm')
+        
+        if not access_token:
+            return jsonify({'error': 'Access token not found'}), 400
+        
+        # Создаем WebDAV клиент с OAuth
+        from yandex_oauth_client import YandexDiskOAuthWebDAV
+        
+        webdav_client = YandexDiskOAuthWebDAV(access_token)
+        
+        # Тестируем подключение
+        if not webdav_client.test_connection():
+            return jsonify({
+                'error': 'Подключение к Яндекс.Диску не удалось. Проверьте авторизацию.',
+                'action_required': 'Re-authorize'
+            }), 400
+        
+        # Создаем удаленный путь с timestamp
+        from datetime import datetime
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        remote_path = f"{configured_path}/legal_crm_backup_{timestamp}.db"
+        
+        # Загружаем файл
+        upload_success = webdav_client.upload_file(db_path, remote_path)
+        
+        if upload_success:
+            # Обновляем время последней синхронизации
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            
+            cursor.execute("""
+                UPDATE sync_config 
+                SET last_sync = ?
+                WHERE username = ? AND sync_type = 'yandex_oauth'
+            """, (
+                datetime.now().isoformat(),
+                username
+            ))
+            
+            conn.commit()
+            conn.close()
+            
+            return jsonify({
+                'success': True,
+                'message': 'База данных успешно загружена на Яндекс.Диск!',
+                'remote_path': remote_path
+            })
+        else:
+            return jsonify({
+                'error': 'Не удалось загрузить файл на Яндекс.Диск'
+            }), 500
+            
+    except Exception as e:
+        return jsonify({'error': f'Upload failed: {str(e)}'}), 500
+
+
+@oauth_bp.route('/api/sync/download', methods=['POST'])
+@login_required
+def oauth_sync_download():
+    """
+    Скачивает базу данных с Яндекс.Диска через OAuth
+    """
+    try:
+        data = request.get_json() or {}
+        remote_path = data.get('remote_path')
+        
+        if not remote_path:
+            return jsonify({'error': 'Remote path is required'}), 400
+        
+        username = session.get('username')
+        
+        if not username:
+            return jsonify({'error': 'User not found'}), 400
+        
+        # Получаем OAuth токен
+        from database import get_db_connection
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT config_data 
+            FROM sync_config 
+            WHERE username = ? AND sync_type = 'yandex_oauth'
+        """, (username,))
+        
+        result = cursor.fetchone()
+        conn.close()
+        
+        if not result:
+            return jsonify({'error': 'OAuth configuration not found'}), 400
+        
+        config_data = json.loads(result[0])
+        access_token = config_data.get('access_token')
+        
+        if not access_token:
+            return jsonify({'error': 'Access token not found'}), 400
+        
+        # Создаем WebDAV клиент с OAuth
+        from yandex_oauth_client import YandexDiskOAuthWebDAV
+        
+        webdav_client = YandexDiskOAuthWebDAV(access_token)
+        
+        # Создаем временный путь для скачивания
+        import tempfile
+        with tempfile.NamedTemporaryFile(delete=False, suffix='.db') as temp_file:
+            temp_path = temp_file.name
+        
+        # Скачиваем файл
+        download_success = webdav_client.download_file(remote_path, temp_path)
+        
+        if download_success:
+            # Заменяем основную базу данных
+            db_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'legal_crm_web', 'database', 'legal_crm.db')
+            
+            import shutil
+            shutil.move(temp_path, db_path)
+            
+            return jsonify({
+                'success': True,
+                'message': 'База данных успешно скачана с Яндекс.Диска!'
+            })
+        else:
+            # Удаляем временный файл в случае ошибки
+            try:
+                os.unlink(temp_path)
+            except:
+                pass
+            
+            return jsonify({
+                'error': 'Не удалось скачать файл с Яндекс.Диска'
+            }), 500
+            
+    except Exception as e:
+        return jsonify({'error': f'Download failed: {str(e)}'}), 500
+
+
+# Обновленные endpoints для автоматической синхронизации
+@oauth_bp.route('/api/sync/auto/enable', methods=['POST'])
+@login_required
+def oauth_sync_auto_enable():
+    """
+    Включает автоматическую синхронизацию
+    """
+    try:
+        username = session.get('username')
+        
+        if not username:
+            return jsonify({'error': 'User not found'}), 400
+        
+        from database import get_db_connection
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            UPDATE sync_config 
+            SET is_enabled = 1
+            WHERE username = ? AND sync_type = 'yandex_oauth'
+        """, (username,))
+        
+        if cursor.rowcount == 0:
+            # Создаем запись если её нет
+            cursor.execute("""
+                INSERT INTO sync_config (username, sync_type, is_enabled) 
+                VALUES (?, 'yandex_oauth', 1)
+            """, (username,))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Автоматическая синхронизация включена!'
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'Failed to enable auto sync: {str(e)}'}), 500
+
+
+@oauth_bp.route('/api/sync/auto/disable', methods=['POST'])
+@login_required
+def oauth_sync_auto_disable():
+    """
+    Выключает автоматическую синхронизацию
+    """
+    try:
+        username = session.get('username')
+        
+        if not username:
+            return jsonify({'error': 'User not found'}), 400
+        
+        from database import get_db_connection
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            UPDATE sync_config 
+            SET is_enabled = 0
+            WHERE username = ? AND sync_type = 'yandex_oauth'
+        """, (username,))
+        
+        conn.commit()
+        conn.close()
+        
+        return jsonify({
+            'success': True,
+            'message': 'Автоматическая синхронизация выключена!'
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'Failed to disable auto sync: {str(e)}'}), 500
+
+
+@oauth_bp.route('/api/sync/backups', methods=['GET'])
+@login_required
+def oauth_sync_backups():
+    """
+    Получает список резервных копий на Яндекс.Диске
+    """
+    try:
+        username = session.get('username')
+        
+        if not username:
+            return jsonify({'error': 'User not found'}), 400
+        
+        # Получаем OAuth токен
+        from database import get_db_connection
+        
+        conn = get_db_connection()
+        cursor = conn.cursor()
+        
+        cursor.execute("""
+            SELECT config_data 
+            FROM sync_config 
+            WHERE username = ? AND sync_type = 'yandex_oauth'
+        """, (username,))
+        
+        result = cursor.fetchone()
+        conn.close()
+        
+        if not result:
+            return jsonify({'error': 'OAuth configuration not found'}), 400
+        
+        config_data = json.loads(result[0])
+        access_token = config_data.get('access_token')
+        configured_path = config_data.get('configured_path', '/legal_crm')
+        
+        if not access_token:
+            return jsonify({'error': 'Access token not found'}), 400
+        
+        # Создаем WebDAV клиент с OAuth
+        from yandex_oauth_client import YandexDiskOAuthWebDAV
+        
+        webdav_client = YandexDiskOAuthWebDAV(access_token)
+        
+        # Получаем список файлов в папке
+        files = webdav_client.list_directory(configured_path)
+        
+        # Фильтруем только файлы резервных копий
+        backup_files = []
+        for file_path in files:
+            if 'legal_crm_backup_' in file_path and file_path.endswith('.db'):
+                backup_files.append({
+                    'name': file_path.split('/')[-1],
+                    'path': file_path,
+                    'size': 'Неизвестно',  # Можно добавить получение размера файла
+                    'type': 'database_backup'
+                })
+        
+        return jsonify({
+            'success': True,
+            'backups': backup_files
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'Failed to get backups: {str(e)}'}), 500
+
+
+@oauth_bp.route('/api/sync/restore', methods=['POST'])
+@login_required
+def oauth_sync_restore():
+    """
+    Восстанавливает базу данных из резервной копии
+    """
+    data = request.get_json()
+    remote_path = data.get('remote_path')
+    
+    if not remote_path:
+        return jsonify({'error': 'Remote path is required'}), 400
+    
+    return oauth_sync_download()
+
+
+@oauth_bp.route('/api/sync/cleanup', methods=['POST'])
+@login_required
+def oauth_sync_cleanup():
+    """
+    Очищает старые резервные копии
+    """
+    try:
+        # Здесь можно реализовать логику очистки старых файлов
+        return jsonify({
+            'success': True,
+            'message': 'Функция очистки будет реализована в следующей версии'
+        })
+        
+    except Exception as e:
+        return jsonify({'error': f'Cleanup failed: {str(e)}'}), 500
