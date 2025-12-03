@@ -17,7 +17,7 @@ import json
 import os
 import uuid
 from datetime import datetime
-from yandex_oauth_client import YandexOAuthClient
+from sync.yandex_oauth_client import YandexOAuthClient
 from oauth_api_endpoints import oauth_bp
 
 
