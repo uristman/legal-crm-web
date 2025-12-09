@@ -789,6 +789,10 @@ def setup_yandex_sync():
             
             if not saved_data or not saved_data[0]:
                 return jsonify({'success': False, 'error': 'Не удалось сохранить данные в базу данных'})
+            
+            # Сохраняем изменения в базу данных
+            conn.commit()
+            print(f"[DEBUG] Данные синхронизации сохранены в БД")
         
         return jsonify({
             'success': True, 
@@ -843,6 +847,10 @@ def upload_to_yandex():
                     SET last_sync = CURRENT_TIMESTAMP 
                     WHERE user_id = ?
                 """, (current_user.id,))
+                
+                # Сохраняем изменения в базу данных
+                conn.commit()
+                print(f"[DEBUG] Время последней синхронизации обновлено")
                 
                 return jsonify({
                     'success': True, 
@@ -900,6 +908,10 @@ def download_from_yandex():
                     SET last_sync = CURRENT_TIMESTAMP 
                     WHERE user_id = ?
                 """, (current_user.id,))
+                
+                # Сохраняем изменения в базу данных
+                conn.commit()
+                print(f"[DEBUG] Время последней синхронизации обновлено")
                 
                 return jsonify({
                     'success': True, 
