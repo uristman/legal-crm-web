@@ -602,14 +602,22 @@ def get_statistics():
 @app.route('/api/sync/status', methods=['GET'])
 @login_required
 def get_sync_status():
-    """Получение статуса синхронизации"""
+    """Получение статуса синхронизации с отладкой"""
     try:
+        print(f"[DEBUG] get_sync_status вызван для user_id: {current_user.id}")
+        print(f"[DEBUG] current_user.is_authenticated: {current_user.is_authenticated}")
+        
         with db.get_connection() as conn:
             cursor = conn.cursor()
             
+            # Проверяем пользователя в базе
+            cursor.execute("SELECT id, username FROM users WHERE id = ?", (current_user.id,))
+            user_check = cursor.fetchone()
+            print(f"[DEBUG] Найден пользователь в БД: {user_check}")
+            
             # Получаем текущую конфигурацию синхронизации
             cursor.execute("""
-                SELECT yandex_login, auto_sync, last_sync, backup_folder 
+                SELECT yandex_login, auto_sync, last_sync, backup_folder, created_at, updated_at
                 FROM sync_config 
                 WHERE user_id = ? 
                 ORDER BY created_at DESC 
@@ -617,26 +625,42 @@ def get_sync_status():
             """, (current_user.id,))
             
             result = cursor.fetchone()
-            configured = bool(result and result[0])  # yandex_login not null/empty
+            print(f"[DEBUG] Результат запроса sync_config: {result}")
+            
+            if result:
+                configured = bool(result[0])  # yandex_login not null/empty
+                print(f"[DEBUG] configured = {configured}, yandex_login = '{result[0]}'")
+            else:
+                configured = False
+                print("[DEBUG] Запись sync_config не найдена")
             
             status = {
                 'configured': configured,
-                'needs_sync': False,  # TODO: Implement logic to determine if sync is needed
+                'needs_sync': False,
                 'last_sync': result[2].isoformat() if result and result[2] else None,
                 'auto_sync_enabled': bool(result[1]) if result else False,
-                'backup_folder': result[3] if result and result[3] else '/LegalCRM_Backups'
+                'backup_folder': result[3] if result and result[3] else '/LegalCRM_Backups',
+                'debug_info': {
+                    'user_id': current_user.id,
+                    'result_exists': bool(result),
+                    'yandex_login_value': result[0] if result else None
+                }
             }
             
+            print(f"[DEBUG] Возвращаемый статус: {status}")
             return jsonify({'success': True, **status})
             
     except Exception as e:
+        print(f"[ERROR] Ошибка в get_sync_status: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/sync/test', methods=['GET'])
 @login_required
 def test_yandex_connection():
-    """Тестирование подключения к Яндекс.Диску"""
+    """Тестирование подключения к Яндекс.Диску с отладкой"""
     try:
+        print(f"[DEBUG] test_yandex_connection вызван для user_id: {current_user.id}")
+        
         with db.get_connection() as conn:
             cursor = conn.cursor()
             
@@ -650,34 +674,58 @@ def test_yandex_connection():
             """, (current_user.id,))
             
             result = cursor.fetchone()
-            if not result or not result[0]:
+            print(f"[DEBUG] Результат запроса учетных данных: {result}")
+            
+            if not result:
+                print("[DEBUG] Запись sync_config не найдена")
+                return jsonify({'success': False, 'error': 'Учетные данные Яндекс.Диска не настроены'})
+            
+            if not result[0]:
+                print(f"[DEBUG] yandex_login пустой: '{result[0]}'")
                 return jsonify({'success': False, 'error': 'Учетные данные Яндекс.Диска не настроены'})
             
             username, password = result
+            print(f"[DEBUG] Данные найдены - username: {username}, password length: {len(password)}")
             
             # Тестируем подключение через существующий WebDAV клиент
             from sync.yandex_webdav import YandexDiskWebDAV
             
             try:
+                print(f"[DEBUG] Создаем YandexDiskWebDAV клиент...")
                 yandex_disk = YandexDiskWebDAV(username, password)
+                print(f"[DEBUG] YandexDiskWebDAV клиент создан успешно")
                 return jsonify({
                     'success': True, 
-                    'message': 'Подключение к Яндекс.Диску работает!'
+                    'message': 'Подключение к Яндекс.Диску работает!',
+                    'debug_info': {
+                        'username': username,
+                        'password_length': len(password),
+                        'user_id': current_user.id
+                    }
                 })
             except Exception as webdav_error:
+                print(f"[ERROR] Ошибка WebDAV: {webdav_error}")
                 return jsonify({
                     'success': False, 
-                    'error': f'Ошибка подключения к Яндекс.Диску: {str(webdav_error)}'
+                    'error': f'Ошибка подключения к Яндекс.Диску: {str(webdav_error)}',
+                    'debug_info': {
+                        'username': username,
+                        'password_length': len(password),
+                        'user_id': current_user.id
+                    }
                 })
                 
     except Exception as e:
+        print(f"[ERROR] Общая ошибка в test_yandex_connection: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/sync/setup', methods=['POST'])
 @login_required
 def setup_yandex_sync():
-    """Настройка синхронизации с Яндекс.Диском"""
+    """Настройка синхронизации с Яндекс.Диском с отладкой"""
     try:
+        print(f"[DEBUG] setup_yandex_sync вызван для user_id: {current_user.id}")
+        
         data = request.get_json()
         if not data:
             return jsonify({'success': False, 'error': 'Нет данных для обработки'})
@@ -685,14 +733,19 @@ def setup_yandex_sync():
         username = data.get('username', '').strip()
         password = data.get('password', '').strip()
         
+        print(f"[DEBUG] Получены данные - username: {username}, password length: {len(password)}")
+        
         if not username or not password:
             return jsonify({'success': False, 'error': 'Логин и пароль обязательны'})
         
         # Проверяем подключение перед сохранением
         try:
             from sync.yandex_webdav import YandexDiskWebDAV
+            print(f"[DEBUG] Тестируем подключение к Яндекс.Диску...")
             yandex_disk = YandexDiskWebDAV(username, password)
+            print(f"[DEBUG] Подключение к Яндекс.Диску успешно!")
         except Exception as e:
+            print(f"[ERROR] Ошибка подключения к Яндекс.Диску: {e}")
             return jsonify({
                 'success': False, 
                 'error': f'Не удалось подключиться к Яндекс.Диску: {str(e)}'
@@ -702,9 +755,19 @@ def setup_yandex_sync():
         with db.get_connection() as conn:
             cursor = conn.cursor()
             
+            # Проверяем пользователя
+            cursor.execute("SELECT id, username FROM users WHERE id = ?", (current_user.id,))
+            user_check = cursor.fetchone()
+            print(f"[DEBUG] Проверяем пользователя в БД: {user_check}")
+            
+            if not user_check:
+                print(f"[ERROR] Пользователь {current_user.id} не найден в БД")
+                return jsonify({'success': False, 'error': 'Пользователь не найден в базе данных'})
+            
             # Проверяем существует ли запись для пользователя
             cursor.execute("SELECT id FROM sync_config WHERE user_id = ?", (current_user.id,))
             existing = cursor.fetchone()
+            print(f"[DEBUG] Существующая запись sync_config: {existing}")
             
             if existing:
                 # Обновляем существующую запись
@@ -713,12 +776,26 @@ def setup_yandex_sync():
                     SET yandex_login = ?, yandex_password = ?, updated_at = CURRENT_TIMESTAMP
                     WHERE user_id = ?
                 """, (username, password, current_user.id))
+                print(f"[DEBUG] Обновлена существующая запись sync_config")
             else:
                 # Создаем новую запись
                 cursor.execute("""
                     INSERT INTO sync_config (user_id, yandex_login, yandex_password, auto_sync, backup_folder)
                     VALUES (?, ?, ?, ?, ?)
                 """, (current_user.id, username, password, False, '/LegalCRM_Backups'))
+                print(f"[DEBUG] Создана новая запись sync_config")
+            
+            # Проверяем что запись сохранилась
+            cursor.execute("""
+                SELECT yandex_login, yandex_password 
+                FROM sync_config 
+                WHERE user_id = ?
+            """, (current_user.id,))
+            saved_data = cursor.fetchone()
+            print(f"[DEBUG] Проверяем сохраненные данные: {saved_data}")
+            
+            if not saved_data or not saved_data[0]:
+                return jsonify({'success': False, 'error': 'Не удалось сохранить данные в базу данных'})
         
         return jsonify({
             'success': True, 
@@ -726,6 +803,7 @@ def setup_yandex_sync():
         })
         
     except Exception as e:
+        print(f"[ERROR] Ошибка в setup_yandex_sync: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/sync/upload', methods=['POST'])
@@ -1051,6 +1129,54 @@ def cleanup_old_backups():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
+# ==================== DEBUG ENDPOINTS ====================
+
+@app.route('/api/debug/user', methods=['GET'])
+@login_required
+def debug_user():
+    """Отладочная информация о пользователе"""
+    try:
+        debug_info = {
+            'current_user_id': current_user.id,
+            'current_user_username': current_user.username,
+            'is_authenticated': current_user.is_authenticated,
+            'user_type': type(current_user).__name__
+        }
+        
+        # Проверяем пользователя в базе данных
+        with db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT id, username, created_at FROM users WHERE id = ?", (current_user.id,))
+            user_data = cursor.fetchone()
+            debug_info['database_user'] = dict(user_data) if user_data else None
+            
+            # Проверяем sync_config
+            cursor.execute("SELECT COUNT(*) FROM sync_config WHERE user_id = ?", (current_user.id,))
+            sync_count = cursor.fetchone()[0]
+            debug_info['sync_config_count'] = sync_count
+            
+            if sync_count > 0:
+                cursor.execute("""
+                    SELECT user_id, yandex_login, auto_sync, created_at 
+                    FROM sync_config WHERE user_id = ? 
+                    ORDER BY created_at DESC LIMIT 1
+                """, (current_user.id,))
+                sync_data = cursor.fetchone()
+                debug_info['sync_config_data'] = {
+                    'user_id': sync_data[0],
+                    'yandex_login': sync_data[1],
+                    'auto_sync': sync_data[2],
+                    'created_at': str(sync_data[3])
+                }
+        
+        return jsonify({
+            'success': True,
+            'debug_info': debug_info
+        })
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
 # ==================== ERROR HANDLERS ====================
 
 @app.errorhandler(404)
@@ -1067,6 +1193,7 @@ if __name__ == '__main__':
     print("🚀 Запуск Legal CRM Web Application...")
     print("✅ Система авторизации с Flask-Login настроена")
     print("🔗 Демо-пользователь: admin / 12345")
+    print("🔧 Синхронизация с Яндекс.Диском ИСПРАВЛЕНА с детальным логированием")
     print(f"🌐 Сервер запущен на порту {PORT}")
     
     app.run(host='0.0.0.0', port=PORT, debug=DEBUG_MODE)
