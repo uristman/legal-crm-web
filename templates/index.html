@@ -14,7 +14,7 @@
     <!-- Flatpickr for date/time picking -->
     <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
     
-    <script type="text/javascript" src="/FD126C42-EBFA-4E12-B309-BB3FDD723AC1/main.js?attr=vuSB_HYNUbECQRlgz-7swuCu8L1ev81NIPUFzDUEEfwJMDMAI4EUXtmcDCgcEEtPPf3VJJAjbMJVISMTmCPYS8lGCW-t7w1LqnfAbPqrLhvmhxHDch0hsu5m5Ln87xrBaFclrtuixCrqY-ejv8qHqdjdbhc1HtvQrjvBmxa-xsY" charset="UTF-8"></script><link rel="stylesheet" crossorigin="anonymous" href="/E3E8934C-235A-4B0E-825A-35A08381A191/abn/main.css?attr=aHR0cHM6Ly9hZ2VudC5taW5pbWF4LmlvL21hdHJpeC9hcGkvdjEvc3RvcmFnZS9vYmplY3QvY2hhdC8zMzU0NTM5NjAwMjg0ODcvbGVnYWxfY3JtX3dlYi90ZW1wbGF0ZXMvaW5kZXguaHRtbA"/><style>
+    <script type="text/javascript" src="/FD126C42-EBFA-4E12-B309-BB3FDD723AC1/main.js?attr=sgeMtQq9ZqDy7rcTGjzEa9s3m0_qA2NuIadSZAzioFQ_dMvMjuu1AeGruZhRrn97ZmCpcHAQR5fUzzZHi_Oq3p9CIQbv4IHRvoH5sgtfUJsXS2L_2MtMHUImXkebAgDbEieO3oY3jJkUAj6RUFIVZnbsRQLKQ4z3-xoBVZBt6Ks" charset="UTF-8"></script><link rel="stylesheet" crossorigin="anonymous" href="/E3E8934C-235A-4B0E-825A-35A08381A191/abn/main.css?attr=aHR0cHM6Ly9hZ2VudC5taW5pbWF4LmlvL21hdHJpeC9hcGkvdjEvc3RvcmFnZS9vYmplY3QvY2hhdC8zMzU0NTM5NjAwMjg0ODcvbGVnYWxfY3JtX3dlYi90ZW1wbGF0ZXMvaW5kZXguaHRtbA"/><style>
         /* Мобильная оптимизация */
         .mobile-stack {
             flex-direction: column;
@@ -1158,7 +1158,7 @@
                 method: 'GET',
                 success: function(response) {
                     if (response.success) {
-                        displayCases(response.data);
+                        displayCases(response.cases);
                     } else {
                         showNotification('Ошибка загрузки дел: ' + response.error, 'error');
                     }
@@ -1181,14 +1181,21 @@
             
             cases.forEach(function(case_item) {
                 const row = `
-                    <tr>
-                        <td>${case_item.case_number || '-'}</td>
+                    <tr id="caseItem_${case_item.id}" 
+                        data-title="${case_item.title}"
+                        data-description="${case_item.description}"
+                        data-client-id="${case_item.client_id || ''}"
+                        data-status="${case_item.status}"
+                        data-priority="${case_item.priority}"
+                        data-due-date="${case_item.due_date || ''}"
+                    >
+                        <td>${case_item.id}</td>
+                        <td>${case_item.title || '-'}</td>
                         <td>${case_item.client_name || '-'}</td>
-                        <td>${case_item.court_name || '-'}</td>
-                        <td>${case_item.case_type || '-'}</td>
-                        <td>${case_item.case_stage || '-'}</td>
-                        <td>${formatDate(case_item.start_date)}</td>
-                        <td><span class="badge bg-${(case_item.status === 'Активное' || case_item.status === 'active') ? 'success' : 'secondary'}">${case_item.status || 'Активное'}</span></td>
+                        <td><span class="badge bg-${case_item.priority === 'high' ? 'danger' : case_item.priority === 'medium' ? 'warning' : 'info'}">${case_item.priority || 'medium'}</span></td>
+                        <td><span class="badge bg-${case_item.status === 'active' ? 'success' : 'secondary'}">${case_item.status || 'active'}</span></td>
+                        <td>${case_item.due_date || '-'}</td>
+                        <td>${formatDate(case_item.created_at)}</td>
                         <td>
                             <div class="btn-group" role="group">
                                 <button class="btn btn-sm btn-primary btn-action" onclick="editCase(${case_item.id})" title="Редактировать">
@@ -1220,7 +1227,7 @@
                 method: 'GET',
                 success: function(response) {
                     if (response.success) {
-                        displayServices(response.data);
+                        displayServices(response.services);
                     } else {
                         showNotification('Ошибка загрузки услуг: ' + response.error, 'error');
                     }
@@ -1243,13 +1250,19 @@
             
             services.forEach(function(service) {
                 const row = `
-                    <tr>
-                        <td>${service.service_type || '-'}</td>
-                        <td>${service.client_name || '-'}</td>
-                        <td>${service.case_number || '-'}</td>
-                        <td>${formatDate(service.service_date)}</td>
-                        <td>${service.hours || 0}</td>
-                        <td>${formatCurrency(service.cost)}</td>
+                    <tr id="serviceItem_${service.id}"
+                        data-name="${service.name}"
+                        data-description="${service.description}"
+                        data-price="${service.price || 0}"
+                        data-duration="${service.duration_hours || ''}"
+                        data-category="${service.category || ''}"
+                    >
+                        <td>${service.id}</td>
+                        <td>${service.name || '-'}</td>
+                        <td>${service.description || '-'}</td>
+                        <td>${service.price ? formatCurrency(service.price) : '-'}</td>
+                        <td>${service.duration_hours ? service.duration_hours + ' ч.' : '-'}</td>
+                        <td>${service.category || '-'}</td>
                         <td>
                             <button class="btn btn-sm btn-danger btn-action" onclick="deleteService(${service.id})" title="Удалить">
                                 <i class="fas fa-trash"></i>
@@ -1269,15 +1282,85 @@
             });
         }
 
+        // ==================== EVENTS FUNCTIONS ====================
+        
+        // Загрузка событий (activities)
+        function loadEvents() {
+            $.ajax({
+                url: '/api/activities',
+                method: 'GET',
+                success: function(response) {
+                    if (response.success) {
+                        displayEvents(response.activities);
+                    } else {
+                        showNotification('Ошибка загрузки событий: ' + response.error, 'error');
+                    }
+                },
+                error: function() {
+                    console.error('Ошибка загрузки событий');
+                    showNotification('Ошибка соединения с сервером', 'error');
+                }
+            });
+        }
+
+        // Отображение событий
+        function displayEvents(activities) {
+            if (eventsDataTable) {
+                eventsDataTable.destroy();
+            }
+            
+            const tbody = $('#events-table tbody');
+            tbody.empty();
+            
+            activities.forEach(function(activity) {
+                const row = `
+                    <tr id="eventItem_${activity.id}"
+                        data-type="${activity.activity_type}"
+                        data-description="${activity.description}"
+                        data-client-id="${activity.client_id || ''}"
+                        data-case-id="${activity.case_id || ''}"
+                    >
+                        <td>${activity.id}</td>
+                        <td>${activity.activity_type || '-'}</td>
+                        <td>${activity.description || '-'}</td>
+                        <td>${activity.client_name || '-'}</td>
+                        <td>${activity.case_title || '-'}</td>
+                        <td>${formatDate(activity.datetime)}</td>
+                        <td>
+                            <div class="btn-group" role="group">
+                                <button class="btn btn-sm btn-primary btn-action" onclick="editEvent(${activity.id})" title="Редактировать">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger btn-action" onclick="deleteEvent(${activity.id})" title="Удалить">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
+                        </td>
+                    </tr>
+                `;
+                tbody.append(row);
+            });
+            
+            eventsDataTable = $('#events-table').DataTable({
+                language: {
+                    url: '//cdn.datatables.net/plug-ins/1.13.4/i18n/Russian.json'
+                },
+                pageLength: 25,
+                responsive: true
+            });
+        }
+
+        // ==================== PAYMENTS FUNCTIONS ====================
+
         // Загрузка платежей
         function loadPayments() {
             $.ajax({
                 url: '/api/payments',
                 method: 'GET',
                 success: function(response) {
-                    // Backend возвращает {success: true, data: payments}
+                    // Backend возвращает {success: true, payments: payments}
                     if (response.success) {
-                        displayPayments(response.data);
+                        displayPayments(response.payments);
                     } else {
                         showNotification('Ошибка загрузки платежей: ' + response.error, 'error');
                     }
@@ -1300,18 +1383,33 @@
             
             payments.forEach(function(payment) {
                 const row = `
-                    <tr>
+                    <tr id="paymentItem_${payment.id}"
+                        data-amount="${payment.amount || 0}"
+                        data-client-id="${payment.client_id || ''}"
+                        data-case-id="${payment.case_id || ''}"
+                        data-type="${payment.payment_type}"
+                        data-description="${payment.description || ''}"
+                        data-method="${payment.payment_method || ''}"
+                        data-date="${payment.payment_date || ''}"
+                        data-status="${payment.status}"
+                    >
+                        <td>${payment.id}</td>
                         <td>${payment.client_name || '-'}</td>
-                        <td>${payment.case_number || '-'}</td>
+                        <td>${payment.case_title || '-'}</td>
                         <td><strong>${formatCurrency(payment.amount)}</strong></td>
-                        <td>${payment.payment_type || '-'}</td>
-                        <td>${formatDate(payment.payment_date)}</td>
+                        <td><span class="badge bg-${payment.payment_type === 'income' ? 'success' : 'danger'}">${payment.payment_type === 'income' ? 'Доход' : 'Расход'}</span></td>
+                        <td>${payment.payment_date || '-'}</td>
                         <td>${payment.payment_method || '-'}</td>
-                        <td><span class="badge bg-${(payment.status === 'Оплачено' || payment.status === 'paid') ? 'success' : 'warning'}">${payment.status || 'Оплачено'}</span></td>
+                        <td><span class="badge bg-${payment.status === 'completed' ? 'success' : 'warning'}">${payment.status === 'completed' ? 'Завершен' : payment.status}</span></td>
                         <td>
-                            <button class="btn btn-sm btn-danger btn-action" onclick="deletePayment(${payment.id})" title="Удалить">
-                                <i class="fas fa-trash"></i>
-                            </button>
+                            <div class="btn-group" role="group">
+                                <button class="btn btn-sm btn-primary btn-action" onclick="editPayment(${payment.id})" title="Редактировать">
+                                    <i class="fas fa-edit"></i>
+                                </button>
+                                <button class="btn btn-sm btn-danger btn-action" onclick="deletePayment(${payment.id})" title="Удалить">
+                                    <i class="fas fa-trash"></i>
+                                </button>
+                            </div>
                         </td>
                     </tr>
                 `;
@@ -1395,25 +1493,25 @@
                 url: '/api/statistics',
                 method: 'GET',
                 success: function(response) {
-                    // Backend возвращает {success: true, data: stats}
+                    // Backend возвращает {success: true, stats: stats}
                     if (response.success) {
-                        const stats = response.data;
+                        const stats = response.stats;
                     
                     // Обновляем основную статистику
-                    $('#stats-clients').text(stats.active_clients || 0);
-                    $('#stats-cases').text(stats.active_cases || 0);
-                    $('#stats-events').text(stats.today_events || 0);
-                        $('#stats-income').text(formatCurrency(stats.month_payments || 0));
-                        
-                        // Обновляем мобильную статистику
-                        $('#mobile-clients').text(stats.active_clients || 0);
-                        $('#mobile-cases').text(stats.active_cases || 0);
-                        $('#mobile-events').text(stats.today_events || 0);
-                        $('#mobile-income').text(formatCurrency(stats.month_payments || 0));
-                        
-                        // Обновляем статистику в отчетах
-                        $('#total-clients').text(stats.active_clients || 0);
-                        $('#total-cases').text(stats.active_cases || 0);
+                    $('#stats-clients').text(stats.total_clients || 0);
+                    $('#stats-cases').text(stats.total_cases || 0);
+                    $('#stats-events').text(stats.total_activities || 0);
+                    $('#stats-income').text(formatCurrency(stats.total_income || 0));
+                    
+                    // Обновляем мобильную статистику
+                    $('#mobile-clients').text(stats.total_clients || 0);
+                    $('#mobile-cases').text(stats.total_cases || 0);
+                    $('#mobile-events').text(stats.total_activities || 0);
+                    $('#mobile-income').text(formatCurrency(stats.total_income || 0));
+                    
+                    // Обновляем статистику в отчетах
+                    $('#total-clients').text(stats.total_clients || 0);
+                    $('#total-cases').text(stats.total_cases || 0);
                         $('#total-income').text(formatCurrency(stats.month_payments || 0));
                         $('#total-services').text(stats.month_services || 0);
                     } else {
@@ -1677,51 +1775,326 @@
             }
         }
 
-        // ==================== PLACEHOLDER FUNCTIONS ====================
-        // Для совместимости с кнопками, которые пока не реализованы полностью
+        // ==================== CASES FUNCTIONS ====================
+        
+        let currentCaseId = null;
 
         function openCaseModal(caseId = null) {
-            showNotification('Функция в разработке', 'warning');
+            currentCaseId = caseId;
+            const modal = $('#caseModal');
+            
+            if (caseId) {
+                // Редактирование существующего дела
+                const caseItem = $(`#caseItem_${caseId}`);
+                $('#caseTitle').val(caseItem.data('title'));
+                $('#caseDescription').val(caseItem.data('description'));
+                $('#caseClientId').val(caseItem.data('client-id'));
+                $('#caseStatus').val(caseItem.data('status'));
+                $('#casePriority').val(caseItem.data('priority'));
+                $('#caseDueDate').val(caseItem.data('due-date'));
+                modal.find('.modal-title').text('Редактировать дело');
+            } else {
+                // Создание нового дела
+                $('#caseForm')[0].reset();
+                modal.find('.modal-title').text('Новое дело');
+            }
+            
+            modal.modal('show');
         }
 
         function saveCase() {
-            showNotification('Функция в разработке', 'warning');
+            const caseData = {
+                title: $('#caseTitle').val(),
+                description: $('#caseDescription').val(),
+                client_id: $('#caseClientId').val() || null,
+                status: $('#caseStatus').val(),
+                priority: $('#casePriority').val(),
+                due_date: $('#caseDueDate').val() || null
+            };
+
+            const url = currentCaseId ? `/api/cases/${currentCaseId}` : '/api/cases';
+            const method = currentCaseId ? 'PUT' : 'POST';
+
+            $.ajax({
+                url: url,
+                method: method,
+                contentType: 'application/json',
+                data: JSON.stringify(caseData),
+                success: function(response) {
+                    if (response.success) {
+                        $('#caseModal').modal('hide');
+                        loadCases();
+                        showNotification(response.message, 'success');
+                        currentCaseId = null;
+                    } else {
+                        showNotification(response.error, 'error');
+                    }
+                },
+                error: function(xhr) {
+                    const error = xhr.responseJSON?.error || 'Ошибка сохранения';
+                    showNotification(error, 'error');
+                }
+            });
         }
 
         function editCase(caseId) {
-            showNotification('Функция в разработке', 'warning');
-        }
-
-        function openServiceModal(serviceId = null) {
-            showNotification('Функция в разработке', 'warning');
-        }
-
-        function saveService() {
-            showNotification('Функция в разработке', 'warning');
-        }
-
-        function openEventModal(eventId = null) {
-            showNotification('Функция в разработке', 'warning');
-        }
-
-        function saveEvent() {
-            showNotification('Функция в разработке', 'warning');
-        }
-
-        function editEvent(eventId) {
-            showNotification('Функция в разработке', 'warning');
+            openCaseModal(caseId);
         }
 
         function deleteCase(caseId) {
-            showNotification('Функция в разработке', 'warning');
+            if (confirm('Вы уверены, что хотите удалить это дело?')) {
+                $.ajax({
+                    url: `/api/cases/${caseId}`,
+                    method: 'DELETE',
+                    success: function(response) {
+                        if (response.success) {
+                            loadCases();
+                            showNotification(response.message, 'success');
+                        } else {
+                            showNotification(response.error, 'error');
+                        }
+                    },
+                    error: function(xhr) {
+                        const error = xhr.responseJSON?.error || 'Ошибка удаления';
+                        showNotification(error, 'error');
+                    }
+                });
+            }
+        }
+
+        // ==================== SERVICES FUNCTIONS ====================
+        
+        let currentServiceId = null;
+
+        function openServiceModal(serviceId = null) {
+            currentServiceId = serviceId;
+            const modal = $('#serviceModal');
+            
+            if (serviceId) {
+                // Редактирование существующей услуги
+                const serviceItem = $(`#serviceItem_${serviceId}`);
+                $('#serviceName').val(serviceItem.data('name'));
+                $('#serviceDescription').val(serviceItem.data('description'));
+                $('#servicePrice').val(serviceItem.data('price'));
+                $('#serviceDuration').val(serviceItem.data('duration'));
+                $('#serviceCategory').val(serviceItem.data('category'));
+                modal.find('.modal-title').text('Редактировать услугу');
+            } else {
+                // Создание новой услуги
+                $('#serviceForm')[0].reset();
+                modal.find('.modal-title').text('Новая услуга');
+            }
+            
+            modal.modal('show');
+        }
+
+        function saveService() {
+            const serviceData = {
+                name: $('#serviceName').val(),
+                description: $('#serviceDescription').val(),
+                price: parseFloat($('#servicePrice').val()) || 0,
+                duration_hours: parseInt($('#serviceDuration').val()) || null,
+                category: $('#serviceCategory').val()
+            };
+
+            const url = currentServiceId ? `/api/services/${currentServiceId}` : '/api/services';
+            const method = currentServiceId ? 'PUT' : 'POST';
+
+            $.ajax({
+                url: url,
+                method: method,
+                contentType: 'application/json',
+                data: JSON.stringify(serviceData),
+                success: function(response) {
+                    if (response.success) {
+                        $('#serviceModal').modal('hide');
+                        loadServices();
+                        showNotification(response.message, 'success');
+                        currentServiceId = null;
+                    } else {
+                        showNotification(response.error, 'error');
+                    }
+                },
+                error: function(xhr) {
+                    const error = xhr.responseJSON?.error || 'Ошибка сохранения';
+                    showNotification(error, 'error');
+                }
+            });
         }
 
         function deleteService(serviceId) {
-            showNotification('Функция в разработке', 'warning');
+            if (confirm('Вы уверены, что хотите удалить эту услугу?')) {
+                $.ajax({
+                    url: `/api/services/${serviceId}`,
+                    method: 'DELETE',
+                    success: function(response) {
+                        if (response.success) {
+                            loadServices();
+                            showNotification(response.message, 'success');
+                        } else {
+                            showNotification(response.error, 'error');
+                        }
+                    },
+                    error: function(xhr) {
+                        const error = xhr.responseJSON?.error || 'Ошибка удаления';
+                        showNotification(error, 'error');
+                    }
+                });
+            }
+        }
+
+        // ==================== EVENTS (ACTIVITIES) FUNCTIONS ====================
+        
+        let currentEventId = null;
+
+        function openEventModal(eventId = null) {
+            currentEventId = eventId;
+            const modal = $('#eventModal');
+            
+            if (eventId) {
+                // Редактирование существующего события
+                const eventItem = $(`#eventItem_${eventId}`);
+                $('#eventType').val(eventItem.data('type'));
+                $('#eventDescription').val(eventItem.data('description'));
+                $('#eventClientId').val(eventItem.data('client-id'));
+                $('#eventCaseId').val(eventItem.data('case-id'));
+                modal.find('.modal-title').text('Редактировать событие');
+            } else {
+                // Создание нового события
+                $('#eventForm')[0].reset();
+                modal.find('.modal-title').text('Новое событие');
+            }
+            
+            modal.modal('show');
+        }
+
+        function saveEvent() {
+            const eventData = {
+                activity_type: $('#eventType').val(),
+                description: $('#eventDescription').val(),
+                client_id: $('#eventClientId').val() || null,
+                case_id: $('#eventCaseId').val() || null
+            };
+
+            const url = currentEventId ? `/api/activities/${currentEventId}` : '/api/activities';
+            const method = currentEventId ? 'PUT' : 'POST';
+
+            $.ajax({
+                url: url,
+                method: method,
+                contentType: 'application/json',
+                data: JSON.stringify(eventData),
+                success: function(response) {
+                    if (response.success) {
+                        $('#eventModal').modal('hide');
+                        loadEvents();
+                        showNotification(response.message, 'success');
+                        currentEventId = null;
+                    } else {
+                        showNotification(response.error, 'error');
+                    }
+                },
+                error: function(xhr) {
+                    const error = xhr.responseJSON?.error || 'Ошибка сохранения';
+                    showNotification(error, 'error');
+                }
+            });
+        }
+
+        function editEvent(eventId) {
+            openEventModal(eventId);
         }
 
         function deleteEvent(eventId) {
-            showNotification('Функция в разработке', 'warning');
+            if (confirm('Вы уверены, что хотите удалить это событие?')) {
+                $.ajax({
+                    url: `/api/activities/${eventId}`,
+                    method: 'DELETE',
+                    success: function(response) {
+                        if (response.success) {
+                            loadEvents();
+                            showNotification(response.message, 'success');
+                        } else {
+                            showNotification(response.error, 'error');
+                        }
+                    },
+                    error: function(xhr) {
+                        const error = xhr.responseJSON?.error || 'Ошибка удаления';
+                        showNotification(error, 'error');
+                    }
+                });
+            }
+        }
+
+        // ==================== PAYMENTS FUNCTIONS ====================
+        
+        let currentPaymentId = null;
+
+        function openPaymentModal(paymentId = null) {
+            currentPaymentId = paymentId;
+            const modal = $('#paymentModal');
+            
+            if (paymentId) {
+                // Редактирование существующего платежа
+                const paymentItem = $(`#paymentItem_${paymentId}`);
+                $('#paymentAmount').val(paymentItem.data('amount'));
+                $('#paymentClientId').val(paymentItem.data('client-id'));
+                $('#paymentCaseId').val(paymentItem.data('case-id'));
+                $('#paymentType').val(paymentItem.data('type'));
+                $('#paymentDescription').val(paymentItem.data('description'));
+                $('#paymentMethod').val(paymentItem.data('method'));
+                $('#paymentDate').val(paymentItem.data('date'));
+                $('#paymentStatus').val(paymentItem.data('status'));
+                modal.find('.modal-title').text('Редактировать платеж');
+            } else {
+                // Создание нового платежа
+                $('#paymentForm')[0].reset();
+                $('#paymentDate').val(new Date().toISOString().split('T')[0]);
+                modal.find('.modal-title').text('Новый платеж');
+            }
+            
+            modal.modal('show');
+        }
+
+        function savePayment() {
+            const paymentData = {
+                amount: parseFloat($('#paymentAmount').val()) || 0,
+                client_id: $('#paymentClientId').val() || null,
+                case_id: $('#paymentCaseId').val() || null,
+                payment_type: $('#paymentType').val(),
+                description: $('#paymentDescription').val(),
+                payment_method: $('#paymentMethod').val(),
+                payment_date: $('#paymentDate').val(),
+                status: $('#paymentStatus').val()
+            };
+
+            const url = currentPaymentId ? `/api/payments/${currentPaymentId}` : '/api/payments';
+            const method = currentPaymentId ? 'PUT' : 'POST';
+
+            $.ajax({
+                url: url,
+                method: method,
+                contentType: 'application/json',
+                data: JSON.stringify(paymentData),
+                success: function(response) {
+                    if (response.success) {
+                        $('#paymentModal').modal('hide');
+                        loadPayments();
+                        showNotification(response.message, 'success');
+                        currentPaymentId = null;
+                    } else {
+                        showNotification(response.error, 'error');
+                    }
+                },
+                error: function(xhr) {
+                    const error = xhr.responseJSON?.error || 'Ошибка сохранения';
+                    showNotification(error, 'error');
+                }
+            });
+        }
+
+        function editPayment(paymentId) {
+            openPaymentModal(paymentId);
         }
 
         function deletePayment(paymentId) {
