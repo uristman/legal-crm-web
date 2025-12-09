@@ -627,10 +627,24 @@ def get_sync_status():
                 configured = False
                 print("[DEBUG] Запись sync_config не найдена")
             
+            # Безопасная обработка last_sync
+            last_sync = None
+            if result and result[2]:
+                try:
+                    # Если result[2] уже строка, используем как есть
+                    if isinstance(result[2], str):
+                        last_sync = result[2]
+                    else:
+                        # Если это datetime объект, конвертируем в строку
+                        last_sync = result[2].isoformat()
+                except Exception as e:
+                    print(f"[DEBUG] Ошибка обработки last_sync: {e}")
+                    last_sync = str(result[2])
+            
             status = {
                 'configured': configured,
                 'needs_sync': False,
-                'last_sync': result[2].isoformat() if result and result[2] else None,
+                'last_sync': last_sync,
                 'auto_sync_enabled': bool(result[1]) if result else False,
                 'backup_folder': result[3] if result and result[3] else '/LegalCRM_Backups',
                 'debug_info': {
@@ -832,7 +846,7 @@ def upload_to_yandex():
             
             yandex_disk = YandexDiskWebDAV(username, password)
             sync_manager = DatabaseSyncManager(
-                db_path='legal_crm.db', 
+                db_path=os.path.abspath('legal_crm.db'), 
                 yandex_disk=yandex_disk, 
                 remote_path='/legal_crm/'
             )
@@ -893,7 +907,7 @@ def download_from_yandex():
             
             yandex_disk = YandexDiskWebDAV(username, password)
             sync_manager = DatabaseSyncManager(
-                db_path='legal_crm.db', 
+                db_path=os.path.abspath('legal_crm.db'), 
                 yandex_disk=yandex_disk, 
                 remote_path='/legal_crm/'
             )
@@ -1013,7 +1027,7 @@ def get_backup_history():
             
             yandex_disk = YandexDiskWebDAV(username, password)
             sync_manager = DatabaseSyncManager(
-                db_path='legal_crm.db', 
+                db_path=os.path.abspath('legal_crm.db'), 
                 yandex_disk=yandex_disk, 
                 remote_path='/legal_crm/'
             )
@@ -1064,7 +1078,7 @@ def restore_from_backup():
             
             yandex_disk = YandexDiskWebDAV(username, password)
             sync_manager = DatabaseSyncManager(
-                db_path='legal_crm.db', 
+                db_path=os.path.abspath('legal_crm.db'), 
                 yandex_disk=yandex_disk, 
                 remote_path='/legal_crm/'
             )
@@ -1113,7 +1127,7 @@ def cleanup_old_backups():
             
             yandex_disk = YandexDiskWebDAV(username, password)
             sync_manager = DatabaseSyncManager(
-                db_path='legal_crm.db', 
+                db_path=os.path.abspath('legal_crm.db'), 
                 yandex_disk=yandex_disk, 
                 remote_path='/legal_crm/'
             )
