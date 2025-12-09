@@ -834,7 +834,7 @@ def upload_to_yandex():
             )
             
             # Загружаем базу данных в облако
-            result = sync_manager.upload_database()
+            result = sync_manager.upload_to_cloud()
             
             if result:
                 # Обновляем время последней синхронизации
@@ -891,7 +891,7 @@ def download_from_yandex():
             )
             
             # Скачиваем последнюю версию базы данных
-            result = sync_manager.download_database()
+            result = sync_manager.download_from_cloud()
             
             if result.get('success'):
                 # Обновляем время последней синхронизации
