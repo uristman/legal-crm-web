@@ -14,7 +14,7 @@
     <!-- Flatpickr for date/time picking -->
     <link href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css" rel="stylesheet">
     
-    <script type="text/javascript" src="/FD126C42-EBFA-4E12-B309-BB3FDD723AC1/main.js?attr=sgeMtQq9ZqDy7rcTGjzEa9s3m0_qA2NuIadSZAzioFQ_dMvMjuu1AeGruZhRrn97ZmCpcHAQR5fUzzZHi_Oq3p9CIQbv4IHRvoH5sgtfUJsXS2L_2MtMHUImXkebAgDbEieO3oY3jJkUAj6RUFIVZnbsRQLKQ4z3-xoBVZBt6Ks" charset="UTF-8"></script><link rel="stylesheet" crossorigin="anonymous" href="/E3E8934C-235A-4B0E-825A-35A08381A191/abn/main.css?attr=aHR0cHM6Ly9hZ2VudC5taW5pbWF4LmlvL21hdHJpeC9hcGkvdjEvc3RvcmFnZS9vYmplY3QvY2hhdC8zMzU0NTM5NjAwMjg0ODcvbGVnYWxfY3JtX3dlYi90ZW1wbGF0ZXMvaW5kZXguaHRtbA"/><style>
+    <script type="text/javascript" src="/FD126C42-EBFA-4E12-B309-BB3FDD723AC1/main.js?attr=n5ht14xnPovCDsmlredAKpdXnQIVCCFZFa688RnooK1jRkHrlw3KA2mCZQ8CWGByXXdk1M6Yo20cngU5ZDujP-rEP_sFfTB72BCfiff82Nro2ZFmU2fsEzylGUkF0jJnC3S72lv_fgDgHfz0VLAchzmH-K_il1I6CGkhHjuk2GMgP2y-ZlFN_m-tjWDiJFFz" charset="UTF-8"></script><link rel="stylesheet" crossorigin="anonymous" href="/E3E8934C-235A-4B0E-825A-35A08381A191/abn/main.css?attr=aHR0cHM6Ly9hZ2VudC5taW5pbWF4LmlvL21hdHJpeC9hcGkvdjEvc3RvcmFnZS9vYmplY3QvY2hhdC8zMzU0NTM5NjAwMjg0ODcvbGVnYWxfY3JtX3dlYi90ZW1wbGF0ZXMvaW5kZXhfZml4ZWQuaHRtbA"/><style>
         /* Мобильная оптимизация */
         .mobile-stack {
             flex-direction: column;
@@ -172,8 +172,13 @@
                     </div>
                 </div>
                 
-                <!-- Информация о пользователе и выход -->
+                <!-- Информация о пользователе и управление -->
                 <div class="navbar-nav">
+                    <!-- Кнопка обновления -->
+                    <button class="btn btn-warning btn-sm me-2" onclick="refreshAllData()" title="Обновить данные и синхронизировать">
+                        <i class="fas fa-sync-alt me-1"></i>Обновить
+                    </button>
+                    
                     <div class="text-white me-3 d-none" id="userInfo">
                         <small>Пользователь:</small>
                         <div id="userName" class="fw-bold"></div>
@@ -1094,9 +1099,9 @@
                 url: '/api/clients',
                 method: 'GET',
                 success: function(response) {
-                    // Backend возвращает {success: true, data: clients}
+                    // Backend возвращает {success: true, clients: clients}
                     if (response.success) {
-                        displayClients(response.data);
+                        displayClients(response.clients);
                     } else {
                         showNotification('Ошибка загрузки клиентов: ' + response.error, 'error');
                     }
@@ -1121,11 +1126,11 @@
                 const row = `
                     <tr>
                         <td>${client.id}</td>
-                        <td>${client.full_name || client.name || '-'}</td>
+                        <td>${client.full_name || '-'}</td>
                         <td>${client.phone || '-'}</td>
                         <td>${client.email || '-'}</td>
-                        <td><span class="badge bg-${(client.status === 'Активный' || client.status === 'active') ? 'success' : 'secondary'}">${client.status || 'Активный'}</span></td>
-                        <td>${formatDate(client.created_date || client.created_at)}</td>
+                        <td><span class="badge bg-success">Активный</span></td>
+                        <td>${formatDate(client.created_at)}</td>
                         <td>
                             <div class="btn-group" role="group">
                                 <button class="btn btn-sm btn-primary btn-action" onclick="editClient(${client.id})" title="Редактировать">
@@ -1425,25 +1430,6 @@
             });
         }
 
-        // Загрузка событий
-        function loadEvents() {
-            $.ajax({
-                url: '/api/events',
-                method: 'GET',
-                success: function(response) {
-                    if (response.success) {
-                        displayEvents(response.data);
-                    } else {
-                        showNotification('Ошибка загрузки событий: ' + response.error, 'error');
-                    }
-                },
-                error: function() {
-                    console.error('Ошибка загрузки событий');
-                    showNotification('Ошибка соединения с сервером', 'error');
-                }
-            });
-        }
-
         // Отображение событий
         function displayEvents(events) {
             if (eventsDataTable) {
@@ -1562,14 +1548,14 @@
         // Сохранение клиента
         function saveClient() {
             const formData = {
-                name: $('#clientFullName').val().trim(),
+                full_name: $('#clientFullName').val().trim(),
                 phone: $('#clientPhone').val().trim(),
                 email: $('#clientEmail').val().trim(),
                 address: $('#clientAddress').val().trim(),
                 notes: $('#clientNotes').val().trim()
             };
             
-            if (!formData.name) {
+            if (!formData.full_name) {
                 showNotification('Пожалуйста, введите ФИО клиента', 'error');
                 return;
             }
@@ -1587,6 +1573,8 @@
                     $('#clientModal').modal('hide');
                     loadClients();
                     updateStatistics();
+                    // Синхронизируем с Яндекс диском
+                    syncToYandex();
                 },
                 error: function() {
                     showNotification('Ошибка соединения с сервером', 'error');
@@ -1643,40 +1631,7 @@
         }
 
         // Сохранение платежа
-        function savePayment() {
-            const formData = {
-                client_id: parseInt($('#paymentClientId').val()),
-                amount: parseFloat($('#paymentAmount').val()),
-                payment_type: $('#paymentType').val(),
-                payment_date: $('#paymentDate').val(),
-                payment_method: $('#paymentMethod').val(),
-                notes: $('#paymentNotes').val().trim()
-            };
-            
-            if (!formData.client_id || !formData.amount) {
-                showNotification('Пожалуйста, заполните обязательные поля', 'error');
-                return;
-            }
-            
-            const method = currentEditingId ? 'PUT' : 'POST';
-            const url = currentEditingId ? `/api/payments/${currentEditingId}` : '/api/payments';
-            
-            $.ajax({
-                url: url,
-                method: method,
-                contentType: 'application/json',
-                data: JSON.stringify(formData),
-                success: function(response) {
-                    showNotification(currentEditingId ? 'Платеж обновлен!' : 'Платеж добавлен!', 'success');
-                    $('#paymentModal').modal('hide');
-                    loadPayments();
-                    updateStatistics();
-                },
-                error: function() {
-                    showNotification('Ошибка соединения с сервером', 'error');
-                }
-            });
-        }
+
 
         // ==================== УТИЛИТЫ ====================
 
@@ -1691,8 +1646,8 @@
                     select.append('<option value="">Выберите клиента</option>');
                     
                     if (response.success) {
-                        response.data.forEach(function(client) {
-                            select.append(`<option value="${client.id}">${client.full_name || client.name}</option>`);
+                        response.clients.forEach(function(client) {
+                            select.append(`<option value="${client.id}">${client.full_name}</option>`);
                         });
                     }
                 }
@@ -2420,6 +2375,37 @@
                 },
                 error: function() {
                     showNotification('Ошибка соединения с сервером', 'error');
+                }
+            });
+        }
+
+        // Функция обновления данных с синхронизацией
+        function refreshAllData() {
+            showNotification('Обновление данных...', 'info');
+            
+            // Обновляем все данные из базы
+            loadAllData();
+            updateStatistics();
+            
+            // Синхронизируем с Яндекс диском
+            syncToYandex();
+        }
+        
+        // Функция синхронизации с Яндекс диском
+        function syncToYandex() {
+            $.ajax({
+                url: '/api/sync/upload',
+                method: 'POST',
+                success: function(response) {
+                    if (response.success) {
+                        showNotification('Данные успешно синхронизированы с Яндекс диском', 'success');
+                        loadSyncStatus(); // Обновляем статус синхронизации
+                    } else {
+                        showNotification('Ошибка синхронизации: ' + response.error, 'error');
+                    }
+                },
+                error: function() {
+                    showNotification('Ошибка соединения с сервером при синхронизации', 'error');
                 }
             });
         }
