@@ -1,5 +1,5 @@
 """
-Веб-версия Legal CRM - Flask Backend (ИСПРАВЛЕННАЯ ВЕРСИЯ)
+Веб-версия Legal CRM - Flask Backend (ПОЛНОСТЬЮ ФУНКЦИОНАЛЬНАЯ ВЕРСИЯ)
 Система учета клиентов и активностей для юридической практики
 """
 
@@ -116,7 +116,7 @@ class WebDatabase:
                 )
             """)
             
-            # Таблица действий
+            # Таблица действий (События)
             cursor.execute("""
                 CREATE TABLE IF NOT EXISTS activities (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -127,6 +127,38 @@ class WebDatabase:
                     datetime TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                     FOREIGN KEY (case_id) REFERENCES cases (id) ON DELETE CASCADE,
                     FOREIGN KEY (client_id) REFERENCES clients (id) ON DELETE CASCADE
+                )
+            """)
+            
+            # Таблица услуг
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS services (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    name TEXT NOT NULL,
+                    description TEXT,
+                    price DECIMAL(10,2),
+                    duration_hours INTEGER,
+                    category TEXT,
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            # Таблица платежей
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS payments (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    client_id INTEGER,
+                    case_id INTEGER,
+                    amount DECIMAL(10,2) NOT NULL,
+                    payment_type TEXT DEFAULT 'income',
+                    description TEXT,
+                    payment_method TEXT,
+                    payment_date DATE DEFAULT CURRENT_DATE,
+                    status TEXT DEFAULT 'completed',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    FOREIGN KEY (client_id) REFERENCES clients (id) ON DELETE CASCADE,
+                    FOREIGN KEY (case_id) REFERENCES cases (id) ON DELETE CASCADE
                 )
             """)
             
@@ -533,6 +565,282 @@ def create_activity():
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)})
 
+@app.route('/api/activities/<int:activity_id>', methods=['PUT'])
+@login_required
+def update_activity(activity_id):
+    """Обновление активности"""
+    try:
+        data = request.json
+        
+        with db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                UPDATE activities 
+                SET case_id = ?, client_id = ?, activity_type = ?, description = ?
+                WHERE id = ?
+            """, (
+                data.get('case_id'),
+                data.get('client_id'),
+                data.get('activity_type', ''),
+                data.get('description', ''),
+                activity_id
+            ))
+            
+            if cursor.rowcount == 0:
+                return jsonify({'success': False, 'error': 'Активность не найдена'})
+            
+            conn.commit()
+            
+        return jsonify({'success': True, 'message': 'Активность успешно обновлена'})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/activities/<int:activity_id>', methods=['DELETE'])
+@login_required
+def delete_activity(activity_id):
+    """Удаление активности"""
+    try:
+        with db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM activities WHERE id = ?", (activity_id,))
+            
+            if cursor.rowcount == 0:
+                return jsonify({'success': False, 'error': 'Активность не найдена'})
+            
+            conn.commit()
+            
+        return jsonify({'success': True, 'message': 'Активность успешно удалена'})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+# ==================== SERVICES API ====================
+
+@app.route('/api/services', methods=['GET'])
+@login_required
+def get_services():
+    """Получение всех услуг"""
+    try:
+        with db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("SELECT * FROM services ORDER BY created_at DESC")
+            services = [dict(row) for row in cursor.fetchall()]
+            
+            # Преобразуем datetime объекты в строки для JSON
+            for service in services:
+                if 'created_at' in service:
+                    service['created_at'] = str(service['created_at'])
+                if 'updated_at' in service:
+                    service['updated_at'] = str(service['updated_at'])
+                    
+            return jsonify({'success': True, 'services': services})
+            
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/services', methods=['POST'])
+@login_required
+def create_service():
+    """Создание новой услуги"""
+    try:
+        data = request.json
+        
+        # Проверяем обязательные поля
+        if not data.get('name'):
+            return jsonify({'success': False, 'error': 'Название услуги обязательно для заполнения'})
+        
+        with db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO services (name, description, price, duration_hours, category)
+                VALUES (?, ?, ?, ?, ?)
+            """, (
+                data.get('name', ''),
+                data.get('description', ''),
+                data.get('price', 0),
+                data.get('duration_hours'),
+                data.get('category', '')
+            ))
+            
+            conn.commit()
+            service_id = cursor.lastrowid
+            
+        return jsonify({'success': True, 'message': 'Услуга успешно создана', 'service_id': service_id})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/services/<int:service_id>', methods=['PUT'])
+@login_required
+def update_service(service_id):
+    """Обновление услуги"""
+    try:
+        data = request.json
+        
+        with db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                UPDATE services 
+                SET name = ?, description = ?, price = ?, duration_hours = ?, category = ?, updated_at = CURRENT_TIMESTAMP
+                WHERE id = ?
+            """, (
+                data.get('name', ''),
+                data.get('description', ''),
+                data.get('price', 0),
+                data.get('duration_hours'),
+                data.get('category', ''),
+                service_id
+            ))
+            
+            if cursor.rowcount == 0:
+                return jsonify({'success': False, 'error': 'Услуга не найдена'})
+            
+            conn.commit()
+            
+        return jsonify({'success': True, 'message': 'Услуга успешно обновлена'})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/services/<int:service_id>', methods=['DELETE'])
+@login_required
+def delete_service(service_id):
+    """Удаление услуги"""
+    try:
+        with db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM services WHERE id = ?", (service_id,))
+            
+            if cursor.rowcount == 0:
+                return jsonify({'success': False, 'error': 'Услуга не найдена'})
+            
+            conn.commit()
+            
+        return jsonify({'success': True, 'message': 'Услуга успешно удалена'})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+# ==================== PAYMENTS API ====================
+
+@app.route('/api/payments', methods=['GET'])
+@login_required
+def get_payments():
+    """Получение всех платежей"""
+    try:
+        with db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                SELECT p.*, c.full_name as client_name, cs.title as case_title
+                FROM payments p 
+                LEFT JOIN clients c ON p.client_id = c.id
+                LEFT JOIN cases cs ON p.case_id = cs.id
+                ORDER BY p.payment_date DESC
+            """)
+            payments = [dict(row) for row in cursor.fetchall()]
+            
+            # Преобразуем datetime объекты в строки для JSON
+            for payment in payments:
+                if 'created_at' in payment:
+                    payment['created_at'] = str(payment['created_at'])
+                if 'payment_date' in payment:
+                    payment['payment_date'] = str(payment['payment_date'])
+                    
+            return jsonify({'success': True, 'payments': payments})
+            
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/payments', methods=['POST'])
+@login_required
+def create_payment():
+    """Создание нового платежа"""
+    try:
+        data = request.json
+        
+        # Проверяем обязательные поля
+        if not data.get('amount'):
+            return jsonify({'success': False, 'error': 'Сумма платежа обязательна для заполнения'})
+        
+        with db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                INSERT INTO payments (client_id, case_id, amount, payment_type, description, payment_method, payment_date, status)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                data.get('client_id'),
+                data.get('case_id'),
+                data.get('amount', 0),
+                data.get('payment_type', 'income'),
+                data.get('description', ''),
+                data.get('payment_method', ''),
+                data.get('payment_date'),
+                data.get('status', 'completed')
+            ))
+            
+            conn.commit()
+            payment_id = cursor.lastrowid
+            
+        return jsonify({'success': True, 'message': 'Платеж успешно создан', 'payment_id': payment_id})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/payments/<int:payment_id>', methods=['PUT'])
+@login_required
+def update_payment(payment_id):
+    """Обновление платежа"""
+    try:
+        data = request.json
+        
+        with db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("""
+                UPDATE payments 
+                SET client_id = ?, case_id = ?, amount = ?, payment_type = ?, description = ?, payment_method = ?, payment_date = ?, status = ?
+                WHERE id = ?
+            """, (
+                data.get('client_id'),
+                data.get('case_id'),
+                data.get('amount', 0),
+                data.get('payment_type', 'income'),
+                data.get('description', ''),
+                data.get('payment_method', ''),
+                data.get('payment_date'),
+                data.get('status', 'completed'),
+                payment_id
+            ))
+            
+            if cursor.rowcount == 0:
+                return jsonify({'success': False, 'error': 'Платеж не найден'})
+            
+            conn.commit()
+            
+        return jsonify({'success': True, 'message': 'Платеж успешно обновлен'})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
+@app.route('/api/payments/<int:payment_id>', methods=['DELETE'])
+@login_required
+def delete_payment(payment_id):
+    """Удаление платежа"""
+    try:
+        with db.get_connection() as conn:
+            cursor = conn.cursor()
+            cursor.execute("DELETE FROM payments WHERE id = ?", (payment_id,))
+            
+            if cursor.rowcount == 0:
+                return jsonify({'success': False, 'error': 'Платеж не найден'})
+            
+            conn.commit()
+            
+        return jsonify({'success': True, 'message': 'Платеж успешно удален'})
+        
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)})
+
 # ==================== STATISTICS API ====================
 
 @app.route('/api/stats', methods=['GET'])
@@ -561,6 +869,13 @@ def get_statistics():
             cursor.execute("SELECT priority, COUNT(*) FROM cases GROUP BY priority")
             priority_stats = dict(cursor.fetchall())
             
+            # Статистика платежей
+            cursor.execute("SELECT COUNT(*) FROM payments")
+            total_payments = cursor.fetchone()[0]
+            
+            cursor.execute("SELECT SUM(amount) FROM payments WHERE payment_type = 'income'")
+            total_income = cursor.fetchone()[0] or 0
+            
             # Последние активности
             cursor.execute("""
                 SELECT a.activity_type, a.description, a.datetime, c.title as case_title 
@@ -582,6 +897,8 @@ def get_statistics():
                 'total_activities': total_activities,
                 'active_cases': active_cases,
                 'priority_stats': priority_stats,
+                'total_payments': total_payments,
+                'total_income': float(total_income),
                 'recent_activities': recent_activities
             }
             
@@ -1213,6 +1530,7 @@ if __name__ == '__main__':
     print("✅ Система авторизации с Flask-Login настроена")
     print("🔗 Демо-пользователь: admin / 12345")
     print("🔧 Синхронизация с Яндекс.Диском ИСПРАВЛЕНА с детальным логированием")
+    print("✅ Все модули полностью реализованы: Клиенты, Дела, Услуги, События, Платежи")
     print(f"🌐 Сервер запущен на порту {PORT}")
     
     app.run(host='0.0.0.0', port=PORT, debug=DEBUG_MODE)
