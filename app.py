@@ -8,17 +8,10 @@ from flask_cors import CORS
 from flask_login import LoginManager, login_user, logout_user, login_required, UserMixin, current_user
 import sqlite3
 import os
-from datetime import datetime
 import json
-import uuid
-
-# OAuth imports
-import json
-import os
 import uuid
 from datetime import datetime
 from sync.yandex_oauth_client import YandexOAuthClient
-from oauth_api_endpoints import oauth_bp
 
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
