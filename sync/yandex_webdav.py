@@ -1,6 +1,6 @@
 """
-Упрощенный модуль для работы с Яндекс.Диском через HTTP API
-Не требует внешних зависимостей, использует только стандартную библиотеку Python
+Модуль для работы с Яндекс.Диском через HTTP API
+Использует OAuth авторизацию для безопасного доступа к данным
 """
 
 import os
@@ -11,7 +11,6 @@ from datetime import datetime
 from pathlib import Path
 import logging
 from typing import Dict, List, Optional, Tuple
-import base64
 import urllib.parse
 
 # Настройка логирования
@@ -26,29 +25,27 @@ except ImportError:
     import requests
 
 class YandexDiskWebDAV:
-    """Упрощенный класс для работы с Яндекс.Диском через HTTP API"""
+    """Класс для работы с Яндекс.Диском через HTTP API с OAuth авторизацией"""
     
-    def __init__(self, username: str, password: str):
+    def __init__(self, access_token: str):
         """
         Инициализация клиента для Яндекс.Диска
         
         Args:
-            username: Логин Яндекс
-            password: Пароль Яндекс
+            access_token: Токен доступа OAuth
         """
-        self.username = username
-        self.password = password
+        self.access_token = access_token
         self.base_url = "https://cloud-api.yandex.net/v1/disk"
         self.session = requests.Session()
         
-        # Базовая авторизация
-        auth = base64.b64encode(f"{username}:{password}".encode()).decode()
+        # OAuth авторизация
         self.session.headers.update({
-            'Authorization': f'Basic {auth}',
-            'User-Agent': 'LegalCRM/1.0'
+            'Authorization': f'OAuth {access_token}',
+            'User-Agent': 'LegalCRM/1.0',
+            'Accept': 'application/json'
         })
         
-        logger.info(f"HTTP клиент инициализирован для пользователя {username}")
+        logger.info(f"HTTP клиент инициализирован для Яндекс.Диска")
     
     def test_connection(self) -> bool:
         """Тестирование подключения к Яндекс.Диску"""
@@ -58,7 +55,7 @@ class YandexDiskWebDAV:
                 logger.info("✅ Подключение к Яндекс.Диску успешно")
                 return True
             else:
-                logger.error(f"❌ Ошибка подключения: {response.status_code}")
+                logger.error(f"❌ Ошибка подключения: {response.status_code} - {response.text}")
                 return False
         except Exception as e:
             logger.error(f"❌ Ошибка подключения к Яндекс.Диску: {e}")
@@ -75,26 +72,30 @@ class YandexDiskWebDAV:
                 return True  # Директория уже существует
             
             # Создаем директорию
-            response = self.session.put(f"{self.base_url}/resources?path={encoded_path}")
+            response = self.session.put(
+                f"{self.base_url}/resources?path={encoded_path}",
+                headers={'Content-Type': 'application/json'}
+            )
             
             if response.status_code in [200, 201]:
                 logger.info(f"✅ Директория создана: {path}")
                 return True
             else:
-                logger.warning(f"⚠️  Не удалось создать директорию {path}: {response.status_code}")
+                logger.warning(f"⚠️  Не удалось создать директорию {path}: {response.status_code} - {response.text}")
                 return False
                 
         except Exception as e:
             logger.error(f"❌ Ошибка создания директории {path}: {e}")
             return False
     
-    def upload_file(self, local_path: str, remote_path: str) -> bool:
+    def upload_file(self, local_path: str, remote_path: str, content_type: str = 'application/json') -> bool:
         """
         Загрузка файла на Яндекс.Диск
         
         Args:
             local_path: Локальный путь к файлу
             remote_path: Удаленный путь на Яндекс.Диске
+            content_type: MIME тип содержимого файла
             
         Returns:
             bool: True если файл успешно загружен
@@ -109,12 +110,12 @@ class YandexDiskWebDAV:
             with open(local_path, 'rb') as f:
                 file_data = f.read()
             
-            # Загружаем файл
+            # Загружаем файл с правильным Content-Type
             encoded_path = urllib.parse.quote(remote_path, safe='')
             response = self.session.put(
                 f"{self.base_url}/resources/upload?path={encoded_path}",
                 data=file_data,
-                headers={'Content-Type': 'application/octet-stream'}
+                headers={'Content-Type': content_type}
             )
             
             if response.status_code in [200, 201, 202]:
@@ -126,6 +127,45 @@ class YandexDiskWebDAV:
                 
         except Exception as e:
             logger.error(f"❌ Ошибка загрузки файла {remote_path}: {e}")
+            return False
+    
+    def upload_json_data(self, data: Dict, remote_path: str) -> bool:
+        """
+        Загрузка JSON данных на Яндекс.Диск
+        
+        Args:
+            data: Данные для загрузки
+            remote_path: Удаленный путь на Яндекс.Диске
+            
+        Returns:
+            bool: True если данные успешно загружены
+        """
+        try:
+            # Создаем директорию если она не существует
+            remote_dir = os.path.dirname(remote_path)
+            if remote_dir:
+                self._ensure_directory(remote_dir)
+            
+            # Конвертируем данные в JSON
+            json_data = json.dumps(data, ensure_ascii=False, indent=2)
+            
+            # Загружаем данные
+            encoded_path = urllib.parse.quote(remote_path, safe='')
+            response = self.session.put(
+                f"{self.base_url}/resources/upload?path={encoded_path}",
+                data=json_data.encode('utf-8'),
+                headers={'Content-Type': 'application/json; charset=utf-8'}
+            )
+            
+            if response.status_code in [200, 201, 202]:
+                logger.info(f"✅ JSON данные загружены: {remote_path}")
+                return True
+            else:
+                logger.error(f"❌ Ошибка загрузки JSON {remote_path}: {response.status_code} - {response.text}")
+                return False
+                
+        except Exception as e:
+            logger.error(f"❌ Ошибка загрузки JSON {remote_path}: {e}")
             return False
     
     def download_file(self, remote_path: str, local_path: str) -> bool:
@@ -426,21 +466,10 @@ class DatabaseSyncManager:
             # Экспортируем базу данных в JSON
             data = self.export_database_to_json()
             
-            # Создаем временный файл с данными
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            temp_json_path = os.path.join(self.backup_dir, f"legal_crm_data_{timestamp}.json")
-            
-            with open(temp_json_path, 'w', encoding='utf-8') as f:
-                json.dump(data, f, ensure_ascii=False, indent=2)
-            
-            # Загружаем на Яндекс.Диск в единый файл (перезаписываем)
+            # Загружаем данные напрямую на Яндекс.Диск без создания временного файла
             remote_file_path = f"{self.remote_path}legal_crm_database.json"
             
-            success = self.yandex_disk.upload_file(temp_json_path, remote_file_path)
-            
-            # Удаляем временный файл
-            if os.path.exists(temp_json_path):
-                os.remove(temp_json_path)
+            success = self.yandex_disk.upload_json_data(data, remote_file_path)
             
             if success:
                 logger.info(f"✅ База данных загружена на Яндекс.Диск: {remote_file_path}")
@@ -666,17 +695,48 @@ class YandexOAuthClient:
         self.client_id = client_id
         self.client_secret = client_secret
         self.redirect_uri = redirect_uri
+        self.base_url = "https://oauth.yandex.ru"
     
     def get_auth_url(self) -> str:
         """Получение URL для авторизации"""
-        # Этот метод может быть реализован для полной OAuth авторизации
-        # В данной версии используется простая авторизация через логин/пароль
-        return "OAuth авторизация не реализована в данной версии"
+        params = {
+            'response_type': 'code',
+            'client_id': self.client_id,
+            'redirect_uri': self.redirect_uri,
+            'scope': 'disk:write disk:read'
+        }
+        
+        url_params = urllib.parse.urlencode(params)
+        return f"{self.base_url}/authorize?{url_params}"
     
     def exchange_code_for_token(self, auth_code: str) -> Dict:
         """Обмен кода авторизации на токен"""
-        # Этот метод может быть реализован для полной OAuth авторизации
-        return {
-            'success': False,
-            'error': 'OAuth авторизация не реализована'
-        }
+        try:
+            data = {
+                'grant_type': 'authorization_code',
+                'code': auth_code,
+                'client_id': self.client_id,
+                'client_secret': self.client_secret,
+                'redirect_uri': self.redirect_uri
+            }
+            
+            response = requests.post(f"{self.base_url}/token", data=data)
+            
+            if response.status_code == 200:
+                token_data = response.json()
+                return {
+                    'success': True,
+                    'access_token': token_data.get('access_token'),
+                    'token_type': token_data.get('token_type', 'Bearer')
+                }
+            else:
+                return {
+                    'success': False,
+                    'error': f'Ошибка получения токена: {response.status_code} - {response.text}'
+                }
+                
+        except Exception as e:
+            return {
+                'success': False,
+                'error': f'Ошибка обмена кода на токен: {str(e)}'
+            }
