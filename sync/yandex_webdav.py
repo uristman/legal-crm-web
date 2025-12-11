@@ -76,13 +76,19 @@ class YandexDiskWebDAV:
                 return True  # Директория уже существует
             
             # Создаем директорию
-            response = self.session.put(f"{self.base_url}/resources?path={encoded_path}")
+            response = self.session.put(
+                f"{self.base_url}/resources?path={encoded_path}",
+                data='{}',
+                headers={'Content-Type': 'application/json'}
+            )
             
             if response.status_code in [200, 201]:
                 logger.info(f"✅ Директория создана: {path}")
                 return True
             else:
                 logger.warning(f"⚠️  Не удалось создать директорию {path}: {response.status_code}")
+                logger.warning(f"⚠️  URL: {self.base_url}/resources?path={encoded_path}")
+                logger.warning(f"⚠️  Response: {response.text}")
                 return False
                 
         except Exception as e:
@@ -115,7 +121,7 @@ class YandexDiskWebDAV:
             response = self.session.put(
                 f"{self.base_url}/resources/upload?path={encoded_path}",
                 data=file_data,
-                headers={'Content-Type': 'application/octet-stream'}
+                headers={'Content-Type': 'application/json'}
             )
             
             if response.status_code in [200, 201, 202]:
@@ -123,6 +129,9 @@ class YandexDiskWebDAV:
                 return True
             else:
                 logger.error(f"❌ Ошибка загрузки файла {remote_path}: {response.status_code} - {response.text}")
+                logger.error(f"❌ URL: {self.base_url}/resources/upload?path={encoded_path}")
+                logger.error(f"❌ Headers: {self.session.headers}")
+                logger.error(f"❌ Response headers: {dict(response.headers)}")
                 return False
                 
         except Exception as e:
