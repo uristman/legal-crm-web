@@ -11,7 +11,7 @@ import os
 import json
 import uuid
 from datetime import datetime
-from sync.yandex_webdav import YandexOAuthClient
+from sync.yandex_webdav import YandexDiskWebDAV
 
 
 app = Flask(__name__, static_folder='static', template_folder='templates')
