@@ -1,440 +1,682 @@
 """
-Модуль для работы с Яндекс.Диском через WebDAV API
-Обеспечивает автоматическую синхронизацию базы данных Legal CRM
+Упрощенный модуль для работы с Яндекс.Диском через HTTP API
+Не требует внешних зависимостей, использует только стандартную библиотеку Python
 """
 
 import os
 import json
+import sqlite3
 import shutil
 from datetime import datetime
 from pathlib import Path
-import requests
-import xml.etree.ElementTree as ET
-from urllib.parse import quote
-import hashlib
-import sqlite3
+import logging
+from typing import Dict, List, Optional, Tuple
+import base64
+import urllib.parse
+
+# Настройка логирования
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+try:
+    import requests
+except ImportError:
+    print("⚠️  Установка requests...")
+    os.system("pip install requests")
+    import requests
 
 class YandexDiskWebDAV:
-    """Клиент для работы с Яндекс.Диском через WebDAV"""
+    """Упрощенный класс для работы с Яндекс.Диском через HTTP API"""
     
-    def __init__(self, username, password):
+    def __init__(self, username: str, password: str):
         """
-        Инициализация клиента
+        Инициализация клиента для Яндекс.Диска
         
         Args:
-            username (str): Логин Яндекс.Паспорта
-            password (str): Пароль Яндекс.Паспорта или пароль приложения
+            username: Логин Яндекс
+            password: Пароль Яндекс
         """
-        self.base_url = "https://webdav.yandex.ru"
         self.username = username
         self.password = password
+        self.base_url = "https://cloud-api.yandex.net/v1/disk"
         self.session = requests.Session()
-        self.session.auth = (username, password)
         
-        # Проверяем подключение при инициализации
-        if not self.test_connection():
-            raise ConnectionError("Не удалось подключиться к Яндекс.Диску")
+        # Базовая авторизация
+        auth = base64.b64encode(f"{username}:{password}".encode()).decode()
+        self.session.headers.update({
+            'Authorization': f'Basic {auth}',
+            'User-Agent': 'LegalCRM/1.0'
+        })
+        
+        logger.info(f"HTTP клиент инициализирован для пользователя {username}")
     
-    def test_connection(self):
-        """Проверяет подключение к Яндекс.Диску"""
+    def test_connection(self) -> bool:
+        """Тестирование подключения к Яндекс.Диску"""
         try:
-            response = self.session.request('PROPFIND', self.base_url, 
-                                          headers={'Depth': '0'})
-            return response.status_code in [200, 207]  # 207 Multi-Status
-        except Exception:
+            response = self.session.get(f"{self.base_url}/resources")
+            if response.status_code == 200:
+                logger.info("✅ Подключение к Яндекс.Диску успешно")
+                return True
+            else:
+                logger.error(f"❌ Ошибка подключения: {response.status_code}")
+                return False
+        except Exception as e:
+            logger.error(f"❌ Ошибка подключения к Яндекс.Диску: {e}")
             return False
     
-    def upload_file(self, local_path, remote_path):
+    def _ensure_directory(self, path: str) -> bool:
+        """Создание директории если она не существует"""
+        try:
+            # Проверяем существование директории
+            encoded_path = urllib.parse.quote(path, safe='')
+            response = self.session.get(f"{self.base_url}/resources?path={encoded_path}")
+            
+            if response.status_code == 200:
+                return True  # Директория уже существует
+            
+            # Создаем директорию
+            response = self.session.put(f"{self.base_url}/resources?path={encoded_path}")
+            
+            if response.status_code in [200, 201]:
+                logger.info(f"✅ Директория создана: {path}")
+                return True
+            else:
+                logger.warning(f"⚠️  Не удалось создать директорию {path}: {response.status_code}")
+                return False
+                
+        except Exception as e:
+            logger.error(f"❌ Ошибка создания директории {path}: {e}")
+            return False
+    
+    def upload_file(self, local_path: str, remote_path: str) -> bool:
         """
-        Загружает файл на Яндекс.Диск
+        Загрузка файла на Яндекс.Диск
         
         Args:
-            local_path (str): Локальный путь к файлу
-            remote_path (str): Удаленный путь на Яндекс.Диске
-        
+            local_path: Локальный путь к файлу
+            remote_path: Удаленный путь на Яндекс.Диске
+            
         Returns:
-            bool: True при успехе, False при ошибке
+            bool: True если файл успешно загружен
         """
         try:
-            if not os.path.exists(local_path):
-                return False
+            # Создаем директорию если она не существует
+            remote_dir = os.path.dirname(remote_path)
+            if remote_dir:
+                self._ensure_directory(remote_dir)
             
+            # Читаем файл
             with open(local_path, 'rb') as f:
                 file_data = f.read()
             
-            url = f"{self.base_url}{quote(remote_path)}"
-            response = self.session.put(url, data=file_data)
+            # Загружаем файл
+            encoded_path = urllib.parse.quote(remote_path, safe='')
+            response = self.session.put(
+                f"{self.base_url}/resources/upload?path={encoded_path}",
+                data=file_data,
+                headers={'Content-Type': 'application/octet-stream'}
+            )
             
-            return response.status_code in [200, 201, 204]
-        except Exception as e:
-            print(f"Ошибка загрузки файла: {e}")
-            return False
-    
-    def download_file(self, remote_path, local_path):
-        """
-        Скачивает файл с Яндекс.Диска
-        
-        Args:
-            remote_path (str): Удаленный путь на Яндекс.Диске
-            local_path (str): Локальный путь для сохранения
-        
-        Returns:
-            bool: True при успехе, False при ошибке
-        """
-        try:
-            url = f"{self.base_url}{quote(remote_path)}"
-            response = self.session.get(url)
-            
-            if response.status_code == 200:
-                # Создаем директорию если не существует
-                os.makedirs(os.path.dirname(local_path), exist_ok=True)
-                
-                with open(local_path, 'wb') as f:
-                    f.write(response.content)
+            if response.status_code in [200, 201, 202]:
+                logger.info(f"✅ Файл загружен: {remote_path}")
                 return True
-            return False
+            else:
+                logger.error(f"❌ Ошибка загрузки файла {remote_path}: {response.status_code} - {response.text}")
+                return False
+                
         except Exception as e:
-            print(f"Ошибка скачивания файла: {e}")
+            logger.error(f"❌ Ошибка загрузки файла {remote_path}: {e}")
             return False
     
-    def list_directory(self, remote_path="/"):
+    def download_file(self, remote_path: str, local_path: str) -> bool:
         """
-        Получает список файлов и папок в директории
+        Скачивание файла с Яндекс.Диска
         
         Args:
-            remote_path (str): Путь к директории
-        
+            remote_path: Удаленный путь на Яндекс.Диске
+            local_path: Локальный путь для сохранения
+            
         Returns:
-            list: Список элементов с информацией о файлах
+            bool: True если файл успешно скачан
         """
         try:
-            url = f"{self.base_url}{quote(remote_path)}"
-            response = self.session.request('PROPFIND', url, 
-                                          headers={'Depth': '1'})
+            # Создаем локальную директорию если она не существует
+            local_dir = os.path.dirname(local_path)
+            if local_dir:
+                os.makedirs(local_dir, exist_ok=True)
             
-            if response.status_code != 207:
+            # Получаем ссылку для скачивания
+            encoded_path = urllib.parse.quote(remote_path, safe='')
+            response = self.session.get(f"{self.base_url}/resources/download?path={encoded_path}")
+            
+            if response.status_code != 200:
+                logger.error(f"❌ Не удалось получить ссылку для скачивания {remote_path}: {response.status_code}")
+                return False
+            
+            # Скачиваем файл по ссылке
+            download_data = response.json()
+            download_url = download_data.get('href')
+            
+            if not download_url:
+                logger.error(f"❌ Не удалось получить ссылку для скачивания {remote_path}")
+                return False
+            
+            # Скачиваем файл
+            file_response = requests.get(download_url)
+            if file_response.status_code == 200:
+                with open(local_path, 'wb') as f:
+                    f.write(file_response.content)
+                logger.info(f"✅ Файл скачан: {remote_path}")
+                return True
+            else:
+                logger.error(f"❌ Ошибка скачивания файла {remote_path}: {file_response.status_code}")
+                return False
+                
+        except Exception as e:
+            logger.error(f"❌ Ошибка скачивания файла {remote_path}: {e}")
+            return False
+    
+    def delete_file(self, remote_path: str) -> bool:
+        """
+        Удаление файла с Яндекс.Диска
+        
+        Args:
+            remote_path: Удаленный путь на Яндекс.Диске
+            
+        Returns:
+            bool: True если файл успешно удален
+        """
+        try:
+            encoded_path = urllib.parse.quote(remote_path, safe='')
+            response = self.session.delete(f"{self.base_url}/resources?path={encoded_path}")
+            
+            if response.status_code in [200, 204]:
+                logger.info(f"✅ Файл удален: {remote_path}")
+                return True
+            else:
+                logger.warning(f"⚠️  Не удалось удалить файл {remote_path}: {response.status_code}")
+                return False
+                
+        except Exception as e:
+            logger.error(f"❌ Ошибка удаления файла {remote_path}: {e}")
+            return False
+    
+    def list_files(self, remote_path: str = '/') -> List[str]:
+        """
+        Получение списка файлов в директории
+        
+        Args:
+            remote_path: Удаленный путь директории
+            
+        Returns:
+            List[str]: Список файлов
+        """
+        try:
+            encoded_path = urllib.parse.quote(remote_path, safe='')
+            response = self.session.get(f"{self.base_url}/resources?path={encoded_path}")
+            
+            if response.status_code != 200:
+                logger.error(f"❌ Ошибка получения списка файлов {remote_path}: {response.status_code}")
                 return []
             
-            # Парсим XML ответ
-            root = ET.fromstring(response.content)
-            
-            # Определяем namespaces
-            namespaces = {
-                'd': 'DAV:',
-                'ns0': 'DAV:'
-            }
-            
+            data = response.json()
             files = []
-            for response_elem in root.findall('.//d:response', namespaces):
-                href = response_elem.find('d:href', namespaces)
-                prop = response_elem.find('d:propstat/d:prop', namespaces)
-                
-                if href is not None and prop is not None:
-                    name = href.text
-                    if name.startswith('/'):
-                        name = name[1:]
-                    
-                    # Определяем тип
-                    is_collection = prop.find('d:resourcetype/d:collection', namespaces) is not None
-                    
-                    # Получаем размер файла
-                    content_length = prop.find('d:content-length')
-                    size = int(content_length.text) if content_length is not None else 0
-                    
-                    # Получаем дату модификации
-                    last_modified = prop.find('d:getlastmodified')
-                    modified_date = last_modified.text if last_modified is not None else None
-                    
-                    files.append({
-                        'name': name,
-                        'path': href.text,
-                        'is_directory': is_collection,
-                        'size': size,
-                        'modified': modified_date
-                    })
+            
+            if '_embedded' in data and 'items' in data['_embedded']:
+                for item in data['_embedded']['items']:
+                    if item.get('type') == 'file':
+                        files.append({
+                            'name': item.get('name', ''),
+                            'size': item.get('size', 0),
+                            'modified': item.get('modified', ''),
+                            'path': item.get('path', '')
+                        })
             
             return files
+            
         except Exception as e:
-            print(f"Ошибка получения списка файлов: {e}")
+            logger.error(f"❌ Ошибка получения списка файлов {remote_path}: {e}")
             return []
     
-    def create_directory(self, remote_path):
+    def file_exists(self, remote_path: str) -> bool:
         """
-        Создает директорию на Яндекс.Диске
+        Проверка существования файла
         
         Args:
-            remote_path (str): Путь к новой директории
-        
+            remote_path: Удаленный путь на Яндекс.Диске
+            
         Returns:
-            bool: True при успехе, False при ошибке
+            bool: True если файл существует
         """
         try:
-            url = f"{self.base_url}{quote(remote_path)}"
-            response = self.session.request('MKCOL', url)
-            return response.status_code in [200, 201]
-        except Exception as e:
-            print(f"Ошибка создания директории: {e}")
+            encoded_path = urllib.parse.quote(remote_path, safe='')
+            response = self.session.get(f"{self.base_url}/resources?path={encoded_path}")
+            return response.status_code == 200
+        except Exception:
             return False
-    
-    def delete_file(self, remote_path):
-        """
-        Удаляет файл или директорию с Яндекс.Диска
-        
-        Args:
-            remote_path (str): Путь к файлу/директории
-        
-        Returns:
-            bool: True при успехе, False при ошибке
-        """
-        try:
-            url = f"{self.base_url}{quote(remote_path)}"
-            response = self.session.request('DELETE', url)
-            return response.status_code in [200, 204]
-        except Exception as e:
-            print(f"Ошибка удаления файла: {e}")
-            return False
-    
-    def get_file_info(self, remote_path):
-        """
-        Получает информацию о файле
-        
-        Args:
-            remote_path (str): Путь к файлу
-        
-        Returns:
-            dict: Информация о файле или None при ошибке
-        """
-        try:
-            url = f"{self.base_url}{quote(remote_path)}"
-            response = self.session.request('PROPFIND', url, 
-                                          headers={'Depth': '0'})
-            
-            if response.status_code != 207:
-                return None
-            
-            root = ET.fromstring(response.content)
-            namespaces = {
-                'd': 'DAV:',
-                'ns0': 'DAV:'
-            }
-            
-            response_elem = root.find('.//d:response', namespaces)
-            if response_elem is not None:
-                href = response_elem.find('d:href', namespaces)
-                prop = response_elem.find('d:propstat/d:prop', namespaces)
-                
-                if href is not None and prop is not None:
-                    # Определяем тип
-                    is_collection = prop.find('d:resourcetype/d:collection', namespaces) is not None
-                    
-                    # Получаем размер файла
-                    content_length = prop.find('d:content-length')
-                    size = int(content_length.text) if content_length is not None else 0
-                    
-                    # Получаем дату модификации
-                    last_modified = prop.find('d:getlastmodified')
-                    modified_date = last_modified.text if last_modified is not None else None
-                    
-                    return {
-                        'name': href.text,
-                        'is_directory': is_collection,
-                        'size': size,
-                        'modified': modified_date
-                    }
-            return None
-        except Exception as e:
-            print(f"Ошибка получения информации о файле: {e}")
-            return None
 
 
 class DatabaseSyncManager:
     """Менеджер синхронизации базы данных с Яндекс.Диском"""
     
-    def __init__(self, db_path, yandex_disk, remote_path="/legal_crm/"):
+    def __init__(self, db_path: str, yandex_disk: YandexDiskWebDAV, remote_path: str = '/legal_crm/'):
         """
         Инициализация менеджера синхронизации
         
         Args:
-            db_path (str): Путь к локальной базе данных
-            yandex_disk (YandexDiskWebDAV): Экземпляр клиента Яндекс.Диска
-            remote_path (str): Удаленный путь для хранения данных
+            db_path: Путь к локальной базе данных
+            yandex_disk: Экземпляр YandexDiskWebDAV
+            remote_path: Удаленный путь на Яндекс.Диске
         """
         self.db_path = db_path
         self.yandex_disk = yandex_disk
         self.remote_path = remote_path
-        self.last_backup_hash = None
-        self.backup_dir = Path("backups")
-        self.backup_dir.mkdir(exist_ok=True)
+        self.backup_dir = os.path.join(os.path.dirname(db_path), 'temp_backups')
         
-        # Создаем директорию на Яндекс.Диске если не существует
-        self._ensure_remote_directory()
+        # Создаем директорию для временных бэкапов
+        os.makedirs(self.backup_dir, exist_ok=True)
+        
+        logger.info(f"DatabaseSyncManager инициализирован: {db_path} -> {remote_path}")
     
-    def _ensure_remote_directory(self):
-        """Создает директорию на Яндекс.Диске если не существует"""
-        self.yandex_disk.create_directory(self.remote_path)
-    
-    def _get_db_hash(self):
-        """Вычисляет хеш текущей базы данных"""
+    def export_database_to_json(self) -> Dict:
+        """
+        Экспорт всей базы данных в JSON формат
+        
+        Returns:
+            Dict: Данные всех таблиц в JSON формате
+        """
         try:
-            with open(self.db_path, 'rb') as f:
-                return hashlib.md5(f.read()).hexdigest()
-        except Exception:
+            conn = sqlite3.connect(self.db_path)
+            conn.row_factory = sqlite3.Row
+            cursor = conn.cursor()
+            
+            # Получаем список всех таблиц
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")
+            tables = [row[0] for row in cursor.fetchall()]
+            
+            data = {
+                'export_info': {
+                    'timestamp': datetime.now().isoformat(),
+                    'database_path': self.db_path,
+                    'tables_count': len(tables),
+                    'tables': tables
+                },
+                'tables': {}
+            }
+            
+            # Экспортируем каждую таблицу
+            for table in tables:
+                cursor.execute(f"SELECT * FROM {table}")
+                rows = cursor.fetchall()
+                
+                # Преобразуем в список словарей
+                table_data = []
+                for row in rows:
+                    row_dict = dict(row)
+                    # Преобразуем datetime объекты в строки
+                    for key, value in row_dict.items():
+                        if isinstance(value, datetime):
+                            row_dict[key] = value.isoformat()
+                    table_data.append(row_dict)
+                
+                data['tables'][table] = table_data
+            
+            conn.close()
+            logger.info(f"✅ База данных экспортирована в JSON: {len(tables)} таблиц")
+            return data
+            
+        except Exception as e:
+            logger.error(f"❌ Ошибка экспорта базы данных: {e}")
+            raise
+    
+    def import_database_from_json(self, data: Dict) -> bool:
+        """
+        Импорт базы данных из JSON формата
+        
+        Args:
+            data: Данные в JSON формате
+            
+        Returns:
+            bool: True если импорт успешен
+        """
+        try:
+            # Создаем резервную копию текущей базы
+            backup_path = self._create_local_backup()
+            
+            conn = sqlite3.connect(self.db_path)
+            cursor = conn.cursor()
+            
+            # Отключаем проверки внешних ключей для быстрого импорта
+            cursor.execute("PRAGMA foreign_keys = OFF")
+            
+            # Удаляем все существующие таблицы (кроме системных)
+            cursor.execute("SELECT name FROM sqlite_master WHERE type='table' AND name NOT LIKE 'sqlite_%'")
+            existing_tables = [row[0] for row in cursor.fetchall()]
+            
+            for table in existing_tables:
+                cursor.execute(f"DROP TABLE IF EXISTS {table}")
+            
+            # Импортируем каждую таблицу из JSON
+            if 'tables' in data:
+                for table_name, table_data in data['tables'].items():
+                    if table_data:  # Если таблица не пуста
+                        self._create_table_from_data(cursor, table_name, table_data)
+            
+            # Включаем проверки внешних ключей обратно
+            cursor.execute("PRAGMA foreign_keys = ON")
+            
+            conn.commit()
+            conn.close()
+            
+            logger.info(f"✅ База данных импортирована из JSON: {len(data.get('tables', {}))} таблиц")
+            return True
+            
+        except Exception as e:
+            logger.error(f"❌ Ошибка импорта базы данных: {e}")
+            # Восстанавливаем из резервной копии
+            if backup_path and os.path.exists(backup_path):
+                shutil.copy2(backup_path, self.db_path)
+                logger.info("🔄 База данных восстановлена из резервной копии")
+            return False
+    
+    def _create_table_from_data(self, cursor, table_name: str, table_data: List[Dict]):
+        """Создание таблицы и заполнение данными из JSON"""
+        if not table_data:
+            return
+        
+        # Получаем колонки из первого элемента
+        columns = list(table_data[0].keys())
+        
+        # Создаем таблицу
+        create_sql = f"CREATE TABLE {table_name} ({', '.join([f'{col} TEXT' for col in columns])})"
+        cursor.execute(create_sql)
+        
+        # Вставляем данные
+        for row_data in table_data:
+            values = [str(row_data.get(col, '')) for col in columns]
+            placeholders = ', '.join(['?' for _ in columns])
+            insert_sql = f"INSERT INTO {table_name} VALUES ({placeholders})"
+            cursor.execute(insert_sql, values)
+    
+    def _create_local_backup(self) -> Optional[str]:
+        """Создание локальной резервной копии"""
+        try:
+            if not os.path.exists(self.db_path):
+                return None
+            
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            backup_path = os.path.join(self.backup_dir, f"backup_{timestamp}.db")
+            
+            shutil.copy2(self.db_path, backup_path)
+            logger.info(f"📁 Локальная резервная копия создана: {backup_path}")
+            return backup_path
+            
+        except Exception as e:
+            logger.error(f"❌ Ошибка создания локальной резервной копии: {e}")
             return None
     
-    def _create_backup(self):
-        """Создает резервную копию локальной базы данных"""
-        timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-        backup_filename = f"legal_crm_backup_{timestamp}.db"
-        backup_path = self.backup_dir / backup_filename
-        
-        try:
-            shutil.copy2(self.db_path, backup_path)
-            return backup_path, backup_filename
-        except Exception as e:
-            print(f"Ошибка создания резервной копии: {e}")
-            return None, None
-    
-    def upload_to_cloud(self):
+    def upload_to_cloud(self) -> bool:
         """
-        Загружает базу данных на Яндекс.Диск
+        Загрузка базы данных на Яндекс.Диск в единый файл
         
         Returns:
-            dict: Результат операции
+            bool: True если загрузка успешна
         """
         try:
-            # Создаем резервную копию
-            local_backup_path, backup_filename = self._create_backup()
-            if not local_backup_path:
-                return {
-                    'success': False,
-                    'error': 'Не удалось создать резервную копию'
-                }
+            # Экспортируем базу данных в JSON
+            data = self.export_database_to_json()
             
-            # Загружаем на Яндекс.Диск
-            remote_path = f"{self.remote_path}{backup_filename}"
-            success = self.yandex_disk.upload_file(str(local_backup_path), remote_path)
+            # Создаем временный файл с данными
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            temp_json_path = os.path.join(self.backup_dir, f"legal_crm_data_{timestamp}.json")
             
-            # Обновляем основную базу данных
-            main_db_path = f"{self.remote_path}legal_crm.db"
-            main_success = self.yandex_disk.upload_file(self.db_path, main_db_path)
+            with open(temp_json_path, 'w', encoding='utf-8') as f:
+                json.dump(data, f, ensure_ascii=False, indent=2)
             
-            # Обновляем хеш последней версии
-            self.last_backup_hash = self._get_db_hash()
+            # Загружаем на Яндекс.Диск в единый файл (перезаписываем)
+            remote_file_path = f"{self.remote_path}legal_crm_database.json"
             
-            # Очищаем локальную резервную копию
-            local_backup_path.unlink(missing_ok=True)
+            success = self.yandex_disk.upload_file(temp_json_path, remote_file_path)
             
-            return {
-                'success': success and main_success,
-                'backup_filename': backup_filename,
-                'uploaded_to_cloud': True
-            }
+            # Удаляем временный файл
+            if os.path.exists(temp_json_path):
+                os.remove(temp_json_path)
+            
+            if success:
+                logger.info(f"✅ База данных загружена на Яндекс.Диск: {remote_file_path}")
+                return True
+            else:
+                logger.error("❌ Не удалось загрузить базу данных на Яндекс.Диск")
+                return False
+                
         except Exception as e:
-            return {
-                'success': False,
-                'error': str(e)
-            }
+            logger.error(f"❌ Ошибка загрузки на облако: {e}")
+            return False
     
-    def download_from_cloud(self):
+    def download_from_cloud(self) -> Dict:
         """
-        Скачивает последнюю версию базы данных с Яндекс.Диска
+        Скачивание базы данных с Яндекс.Диска
         
         Returns:
-            dict: Результат операции
+            Dict: Результат операции
         """
         try:
-            remote_db_path = f"{self.remote_path}legal_crm.db"
+            remote_file_path = f"{self.remote_path}legal_crm_database.json"
             
-            # Проверяем, существует ли файл на облаке
-            file_info = self.yandex_disk.get_file_info(remote_db_path)
-            if not file_info:
+            # Проверяем существование файла
+            if not self.yandex_disk.file_exists(remote_file_path):
                 return {
                     'success': False,
                     'error': 'Файл базы данных не найден на Яндекс.Диске'
                 }
             
-            # Скачиваем базу данных
-            success = self.yandex_disk.download_file(remote_db_path, self.db_path)
+            # Скачиваем файл
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            temp_json_path = os.path.join(self.backup_dir, f"downloaded_data_{timestamp}.json")
             
-            if success:
-                self.last_backup_hash = self._get_db_hash()
+            success = self.yandex_disk.download_file(remote_file_path, temp_json_path)
+            
+            if not success:
+                return {
+                    'success': False,
+                    'error': 'Не удалось скачать файл с Яндекс.Диска'
+                }
+            
+            # Читаем данные
+            with open(temp_json_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            
+            # Импортируем в локальную базу данных
+            import_success = self.import_database_from_json(data)
+            
+            # Удаляем временный файл
+            if os.path.exists(temp_json_path):
+                os.remove(temp_json_path)
+            
+            if import_success:
+                logger.info(f"✅ База данных загружена из облака: {remote_file_path}")
                 return {
                     'success': True,
-                    'downloaded_from_cloud': True,
-                    'file_info': file_info
+                    'message': 'База данных успешно загружена из облака'
                 }
             else:
                 return {
                     'success': False,
-                    'error': 'Не удалось скачать файл'
+                    'error': 'Не удалось импортировать данные в локальную базу'
                 }
+                
         except Exception as e:
+            logger.error(f"❌ Ошибка скачивания из облака: {e}")
             return {
                 'success': False,
-                'error': str(e)
+                'error': f'Ошибка скачивания: {str(e)}'
             }
     
-    def sync_status(self):
+    def list_backups(self) -> List[Dict]:
         """
-        Проверяет статус синхронизации
+        Получение списка резервных копий на Яндекс.Диске
         
         Returns:
-            dict: Информация о состоянии синхронизации
+            List[Dict]: Список резервных копий
         """
         try:
-            current_hash = self._get_db_hash()
+            # Получаем список файлов в директории синхронизации
+            files = self.yandex_disk.list_files(self.remote_path)
             
-            # Получаем информацию о файле на облаке
-            remote_db_path = f"{self.remote_path}legal_crm.db"
-            cloud_file_info = self.yandex_disk.get_file_info(remote_db_path)
+            backups = []
+            for file_info in files:
+                if isinstance(file_info, dict) and 'name' in file_info:
+                    filename = file_info['name']
+                    if filename.endswith('.json') and 'legal_crm' in filename:
+                        backup_info = {
+                            'filename': filename,
+                            'size': file_info.get('size', 0),
+                            'modified': file_info.get('modified', ''),
+                            'path': file_info.get('path', '')
+                        }
+                        backups.append(backup_info)
             
-            # Проверяем, нужна ли синхронизация
-            needs_sync = (cloud_file_info and 
-                         current_hash != self.last_backup_hash)
+            # Сортируем по дате модификации (новые первыми)
+            backups.sort(key=lambda x: x['modified'], reverse=True)
             
-            # Получаем список резервных копий на облаке
-            backup_files = self._get_cloud_backups()
+            return backups
             
-            return {
-                'needs_sync': needs_sync,
-                'current_hash': current_hash,
-                'last_backup_hash': self.last_backup_hash,
-                'cloud_file_exists': cloud_file_info is not None,
-                'cloud_file_info': cloud_file_info,
-                'backup_files_count': len(backup_files),
-                'sync_path': self.remote_path
-            }
         except Exception as e:
-            return {
-                'needs_sync': False,
-                'error': str(e)
-            }
-    
-    def _get_cloud_backups(self):
-        """Получает список резервных копий на Яндекс.Диске"""
-        try:
-            files = self.yandex_disk.list_directory(self.remote_path)
-            backup_files = [f for f in files if 'backup' in f['name'] and f['name'].endswith('.db')]
-            return backup_files
-        except Exception:
+            logger.error(f"❌ Ошибка получения списка резервных копий: {e}")
             return []
     
-    def get_backup_history(self, limit=10):
+    def restore_backup(self, backup_filename: str) -> Dict:
         """
-        Получает историю резервных копий
+        Восстановление из резервной копии
         
         Args:
-            limit (int): Максимальное количество записей
-        
+            backup_filename: Имя файла резервной копии
+            
         Returns:
-            list: Список резервных копий
+            Dict: Результат операции
         """
         try:
-            backup_files = self._get_cloud_backups()
+            remote_file_path = f"{self.remote_path}{backup_filename}"
             
-            # Сортируем по дате модификации (новые сначала)
-            backup_files.sort(key=lambda x: x['modified'] if x['modified'] else '', reverse=True)
+            # Скачиваем резервную копию
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            temp_json_path = os.path.join(self.backup_dir, f"restore_backup_{timestamp}.json")
             
-            return backup_files[:limit]
-        except Exception:
-            return []
+            success = self.yandex_disk.download_file(remote_file_path, temp_json_path)
+            
+            if not success:
+                return {
+                    'success': False,
+                    'error': 'Не удалось скачать резервную копию'
+                }
+            
+            # Читаем данные
+            with open(temp_json_path, 'r', encoding='utf-8') as f:
+                data = json.load(f)
+            
+            # Импортируем в локальную базу данных
+            import_success = self.import_database_from_json(data)
+            
+            # Удаляем временный файл
+            if os.path.exists(temp_json_path):
+                os.remove(temp_json_path)
+            
+            if import_success:
+                logger.info(f"✅ Восстановление из резервной копии завершено: {backup_filename}")
+                return {
+                    'success': True,
+                    'message': f'Успешно восстановлено из резервной копии: {backup_filename}'
+                }
+            else:
+                return {
+                    'success': False,
+                    'error': 'Не удалось импортировать данные из резервной копии'
+                }
+                
+        except Exception as e:
+            logger.error(f"❌ Ошибка восстановления из резервной копии: {e}")
+            return {
+                'success': False,
+                'error': f'Ошибка восстановления: {str(e)}'
+            }
+    
+    def cleanup_old_backups(self, retention_days: int = 30) -> Dict:
+        """
+        Очистка старых резервных копий
+        
+        Args:
+            retention_days: Количество дней для хранения резервных копий
+            
+        Returns:
+            Dict: Результат операции
+        """
+        try:
+            backups = self.list_backups()
+            
+            if not backups:
+                return {
+                    'success': True,
+                    'message': 'Резервные копии не найдены'
+                }
+            
+            # Удаляем старые резервные копии (оставляем только последние)
+            cutoff_date = datetime.now()
+            
+            deleted_count = 0
+            for backup in backups:
+                backup_date = backup.get('modified', '')
+                if backup_date:
+                    try:
+                        # Парсим дату модификации
+                        backup_datetime = datetime.fromisoformat(backup_date.replace('Z', '+00:00'))
+                        
+                        # Если резервная копия старше retention_days, удаляем её
+                        if (cutoff_date - backup_datetime.replace(tzinfo=None)).days > retention_days:
+                            success = self.yandex_disk.delete_file(backup['path'])
+                            if success:
+                                deleted_count += 1
+                    except Exception as e:
+                        logger.warning(f"⚠️  Не удалось обработать резервную копию {backup['filename']}: {e}")
+            
+            return {
+                'success': True,
+                'message': f'Удалено {deleted_count} старых резервных копий'
+            }
+            
+        except Exception as e:
+            logger.error(f"❌ Ошибка очистки резервных копий: {e}")
+            return {
+                'success': False,
+                'error': f'Ошибка очистки: {str(e)}'
+            }
+
+
+class YandexOAuthClient:
+    """Клиент для работы с OAuth авторизацией Яндекс"""
+    
+    def __init__(self, client_id: str, client_secret: str, redirect_uri: str):
+        """
+        Инициализация OAuth клиента
+        
+        Args:
+            client_id: ID приложения
+            client_secret: Секретный ключ
+            redirect_uri: URI для редиректа
+        """
+        self.client_id = client_id
+        self.client_secret = client_secret
+        self.redirect_uri = redirect_uri
+    
+    def get_auth_url(self) -> str:
+        """Получение URL для авторизации"""
+        # Этот метод может быть реализован для полной OAuth авторизации
+        # В данной версии используется простая авторизация через логин/пароль
+        return "OAuth авторизация не реализована в данной версии"
+    
+    def exchange_code_for_token(self, auth_code: str) -> Dict:
+        """Обмен кода авторизации на токен"""
+        # Этот метод может быть реализован для полной OAuth авторизации
+        return {
+            'success': False,
+            'error': 'OAuth авторизация не реализована'
+        }
