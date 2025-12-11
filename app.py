@@ -31,31 +31,33 @@ app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'default-secret-key-for-
 app.config['DEBUG'] = DEBUG_MODE
 
 # Настройки Яндекс.Диска для синхронизации
-YANDEX_CLIENT_ID = os.environ.get('YANDEX_CLIENT_ID', '8ba9fec03e104bbd93a8876da2569150')
-YANDEX_CLIENT_SECRET = os.environ.get('SECRET_KEY_YANDEX', 'cc1bddeed645453084af612e62770115')
-YANDEX_REDIRECT_URI = os.environ.get('YANDEX_REDIRECT_URI', 'https://legal-crm-h0wq.onrender.com/auth/callback')
+YANDEX_LOGIN = os.environ.get('YANDEX_LOGIN', '')
+YANDEX_PASSWORD = os.environ.get('YANDEX_PASSWORD', '')
 
 # Функция для получения токена доступа Яндекс.Диска
-def get_yandex_access_token():
+def get_yandex_credentials():
     """
-    Получение токена доступа для Яндекс.Диска
-    В данной версии возвращаем заранее полученный токен
-    В production версии нужно реализовать полноценный OAuth flow
+    Получение учетных данных для Яндекс.Диска
     """
-    # Для демо-версии возвращаем заглушку
-    # В реальном приложении здесь должен быть OAuth flow
-    return os.environ.get('YANDEX_ACCESS_TOKEN', '')
+    username = YANDEX_LOGIN
+    password = YANDEX_PASSWORD
+    
+    if not username or not password:
+        print("⚠️  Учетные данные Яндекс.Диска не настроены")
+        return None, None
+    
+    return username, password
 
 def get_yandex_disk_client():
     """
-    Создание клиента Яндекс.Диска с OAuth авторизацией
+    Создание клиента Яндекс.Диска с Basic Auth
     """
     try:
-        access_token = get_yandex_access_token()
-        if access_token:
-            return YandexDiskWebDAV(access_token)
+        username, password = get_yandex_credentials()
+        if username and password:
+            return YandexDiskWebDAV(username, password)
         else:
-            print("⚠️  Токен доступа Яндекс.Диска не найден в переменных окружения")
+            print("⚠️  Учетные данные Яндекс.Диска не найдены в переменных окружения")
             return None
     except Exception as e:
         print(f"❌ Ошибка создания клиента Яндекс.Диска: {e}")
@@ -1033,7 +1035,7 @@ def test_yandex_connection():
                     'message': 'Подключение к Яндекс.Диску работает!',
                     'debug_info': {
                         'user_id': current_user.id,
-                        'client_id': YANDEX_CLIENT_ID,
+                        'username': YANDEX_LOGIN,
                         'connection_status': 'success'
                     }
                 })
@@ -1043,7 +1045,7 @@ def test_yandex_connection():
                     'error': 'Не удалось подключиться к Яндекс.Диску. Проверьте токен доступа.',
                     'debug_info': {
                         'user_id': current_user.id,
-                        'client_id': YANDEX_CLIENT_ID,
+                        'username': YANDEX_LOGIN,
                         'connection_status': 'failed'
                     }
                 })
@@ -1139,8 +1141,8 @@ def setup_yandex_sync():
             'success': True, 
             'message': 'Подключение к Яндекс.Диску настроено успешно!',
             'debug_info': {
-                'client_id': YANDEX_CLIENT_ID,
-                'oauth_enabled': True
+                'username': YANDEX_LOGIN,
+                'auth_enabled': True
             }
         })
         
