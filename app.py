@@ -30,6 +30,37 @@ PORT = int(os.environ.get('PORT', 5000))
 app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'default-secret-key-for-legal-crm')
 app.config['DEBUG'] = DEBUG_MODE
 
+# Настройки Яндекс.Диска для синхронизации
+YANDEX_CLIENT_ID = os.environ.get('YANDEX_CLIENT_ID', '8ba9fec03e104bbd93a8876da2569150')
+YANDEX_CLIENT_SECRET = os.environ.get('SECRET_KEY_YANDEX', 'cc1bddeed645453084af612e62770115')
+YANDEX_REDIRECT_URI = os.environ.get('YANDEX_REDIRECT_URI', 'https://legal-crm-h0wq.onrender.com/auth/callback')
+
+# Функция для получения токена доступа Яндекс.Диска
+def get_yandex_access_token():
+    """
+    Получение токена доступа для Яндекс.Диска
+    В данной версии возвращаем заранее полученный токен
+    В production версии нужно реализовать полноценный OAuth flow
+    """
+    # Для демо-версии возвращаем заглушку
+    # В реальном приложении здесь должен быть OAuth flow
+    return os.environ.get('YANDEX_ACCESS_TOKEN', '')
+
+def get_yandex_disk_client():
+    """
+    Создание клиента Яндекс.Диска с OAuth авторизацией
+    """
+    try:
+        access_token = get_yandex_access_token()
+        if access_token:
+            return YandexDiskWebDAV(access_token)
+        else:
+            print("⚠️  Токен доступа Яндекс.Диска не найден в переменных окружения")
+            return None
+    except Exception as e:
+        print(f"❌ Ошибка создания клиента Яндекс.Диска: {e}")
+        return None
+
 # Настройка Flask-Login
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -985,59 +1016,47 @@ def test_yandex_connection():
     try:
         print(f"[DEBUG] test_yandex_connection вызван для user_id: {current_user.id}")
         
-        with db.get_connection() as conn:
-            cursor = conn.cursor()
-            
-            # Получаем сохраненные учетные данные
-            cursor.execute("""
-                SELECT yandex_login, yandex_password 
-                FROM sync_config 
-                WHERE user_id = ? 
-                ORDER BY created_at DESC 
-                LIMIT 1
-            """, (current_user.id,))
-            
-            result = cursor.fetchone()
-            print(f"[DEBUG] Результат запроса учетных данных: {result}")
-            
-            if not result:
-                print("[DEBUG] Запись sync_config не найдена")
-                return jsonify({'success': False, 'error': 'Учетные данные Яндекс.Диска не настроены'})
-            
-            if not result[0]:
-                print(f"[DEBUG] yandex_login пустой: '{result[0]}'")
-                return jsonify({'success': False, 'error': 'Учетные данные Яндекс.Диска не настроены'})
-            
-            username, password = result
-            print(f"[DEBUG] Данные найдены - username: {username}, password length: {len(password)}")
-            
-            # Тестируем подключение через существующий WebDAV клиент
-            from sync.yandex_webdav import YandexDiskWebDAV
-            
-            try:
-                print(f"[DEBUG] Создаем YandexDiskWebDAV клиент...")
-                yandex_disk = YandexDiskWebDAV(username, password)
-                print(f"[DEBUG] YandexDiskWebDAV клиент создан успешно")
+        # Создаем клиент для тестирования подключения
+        yandex_disk = get_yandex_disk_client()
+        
+        if not yandex_disk:
+            return jsonify({'success': False, 'error': 'Не удалось инициализировать клиент Яндекс.Диска. Проверьте настройки токена доступа.'})
+        
+        print(f"[DEBUG] YandexDiskWebDAV клиент создан успешно")
+        
+        # Тестируем подключение
+        try:
+            success = yandex_disk.test_connection()
+            if success:
                 return jsonify({
                     'success': True, 
                     'message': 'Подключение к Яндекс.Диску работает!',
                     'debug_info': {
-                        'username': username,
-                        'password_length': len(password),
-                        'user_id': current_user.id
+                        'user_id': current_user.id,
+                        'client_id': YANDEX_CLIENT_ID,
+                        'connection_status': 'success'
                     }
                 })
-            except Exception as webdav_error:
-                print(f"[ERROR] Ошибка WebDAV: {webdav_error}")
+            else:
                 return jsonify({
                     'success': False, 
-                    'error': f'Ошибка подключения к Яндекс.Диску: {str(webdav_error)}',
+                    'error': 'Не удалось подключиться к Яндекс.Диску. Проверьте токен доступа.',
                     'debug_info': {
-                        'username': username,
-                        'password_length': len(password),
-                        'user_id': current_user.id
+                        'user_id': current_user.id,
+                        'client_id': YANDEX_CLIENT_ID,
+                        'connection_status': 'failed'
                     }
                 })
+        except Exception as webdav_error:
+            print(f"[ERROR] Ошибка WebDAV: {webdav_error}")
+            return jsonify({
+                'success': False, 
+                'error': f'Ошибка подключения к Яндекс.Диску: {str(webdav_error)}',
+                'debug_info': {
+                    'user_id': current_user.id,
+                    'client_id': YANDEX_CLIENT_ID
+                }
+            })
                 
     except Exception as e:
         print(f"[ERROR] Общая ошибка в test_yandex_connection: {e}")
@@ -1050,24 +1069,27 @@ def setup_yandex_sync():
     try:
         print(f"[DEBUG] setup_yandex_sync вызван для user_id: {current_user.id}")
         
-        data = request.get_json()
-        if not data:
-            return jsonify({'success': False, 'error': 'Нет данных для обработки'})
-        
-        username = data.get('username', '').strip()
-        password = data.get('password', '').strip()
-        
-        print(f"[DEBUG] Получены данные - username: {username}, password length: {len(password)}")
-        
-        if not username or not password:
-            return jsonify({'success': False, 'error': 'Логин и пароль обязательны'})
-        
-        # Проверяем подключение перед сохранением
+        # Тестируем подключение к Яндекс.Диску
         try:
-            from sync.yandex_webdav import YandexDiskWebDAV
+            yandex_disk = get_yandex_disk_client()
+            
+            if not yandex_disk:
+                return jsonify({
+                    'success': False, 
+                    'error': 'Не удалось инициализировать клиент Яндекс.Диска. Проверьте настройки токена доступа.'
+                })
+            
             print(f"[DEBUG] Тестируем подключение к Яндекс.Диску...")
-            yandex_disk = YandexDiskWebDAV(username, password)
+            success = yandex_disk.test_connection()
+            
+            if not success:
+                return jsonify({
+                    'success': False, 
+                    'error': 'Не удалось подключиться к Яндекс.Диску. Проверьте токен доступа.'
+                })
+            
             print(f"[DEBUG] Подключение к Яндекс.Диску успешно!")
+            
         except Exception as e:
             print(f"[ERROR] Ошибка подключения к Яндекс.Диску: {e}")
             return jsonify({
@@ -1075,7 +1097,7 @@ def setup_yandex_sync():
                 'error': f'Не удалось подключиться к Яндекс.Диску: {str(e)}'
             })
         
-        # Сохраняем конфигурацию в БД
+        # Сохраняем конфигурацию в БД (упрощенная версия без сохранения логина/пароля)
         with db.get_connection() as conn:
             cursor = conn.cursor()
             
@@ -1094,32 +1116,20 @@ def setup_yandex_sync():
             print(f"[DEBUG] Существующая запись sync_config: {existing}")
             
             if existing:
-                # Обновляем существующую запись
+                # Обновляем существующую запись (без логина/пароля)
                 cursor.execute("""
                     UPDATE sync_config 
-                    SET yandex_login = ?, yandex_password = ?, updated_at = CURRENT_TIMESTAMP
+                    SET auto_sync = ?, backup_folder = ?, updated_at = CURRENT_TIMESTAMP
                     WHERE user_id = ?
-                """, (username, password, current_user.id))
+                """, (False, '/legal_crm/', current_user.id))
                 print(f"[DEBUG] Обновлена существующая запись sync_config")
             else:
                 # Создаем новую запись
                 cursor.execute("""
                     INSERT INTO sync_config (user_id, yandex_login, yandex_password, auto_sync, backup_folder)
                     VALUES (?, ?, ?, ?, ?)
-                """, (current_user.id, username, password, False, '/LegalCRM_Backups'))
+                """, (current_user.id, '', '', False, '/legal_crm/'))
                 print(f"[DEBUG] Создана новая запись sync_config")
-            
-            # Проверяем что запись сохранилась
-            cursor.execute("""
-                SELECT yandex_login, yandex_password 
-                FROM sync_config 
-                WHERE user_id = ?
-            """, (current_user.id,))
-            saved_data = cursor.fetchone()
-            print(f"[DEBUG] Проверяем сохраненные данные: {saved_data}")
-            
-            if not saved_data or not saved_data[0]:
-                return jsonify({'success': False, 'error': 'Не удалось сохранить данные в базу данных'})
             
             # Сохраняем изменения в базу данных
             conn.commit()
@@ -1127,7 +1137,11 @@ def setup_yandex_sync():
         
         return jsonify({
             'success': True, 
-            'message': 'Подключение к Яндекс.Диску настроено успешно!'
+            'message': 'Подключение к Яндекс.Диску настроено успешно!',
+            'debug_info': {
+                'client_id': YANDEX_CLIENT_ID,
+                'oauth_enabled': True
+            }
         })
         
     except Exception as e:
@@ -1139,61 +1153,48 @@ def setup_yandex_sync():
 def upload_to_yandex():
     """Загрузка данных на Яндекс.Диск"""
     try:
-        with db.get_connection() as conn:
-            cursor = conn.cursor()
-            
-            # Получаем конфигурацию
-            cursor.execute("""
-                SELECT yandex_login, yandex_password 
-                FROM sync_config 
-                WHERE user_id = ? 
-                ORDER BY created_at DESC 
-                LIMIT 1
-            """, (current_user.id,))
-            
-            result = cursor.fetchone()
-            if not result or not result[0]:
-                return jsonify({'success': False, 'error': 'Синхронизация не настроена'})
-            
-            username, password = result
-            
-            # Создаем WebDAV клиент и менеджер синхронизации
-            from sync.yandex_webdav import YandexDiskWebDAV, DatabaseSyncManager
-            from datetime import datetime
-            
-            yandex_disk = YandexDiskWebDAV(username, password)
-            sync_manager = DatabaseSyncManager(
-                db_path=os.path.abspath('legal_crm.db'), 
-                yandex_disk=yandex_disk, 
-                remote_path='/legal_crm/'
-            )
-            
-            # Загружаем базу данных в облако
-            result = sync_manager.upload_to_cloud()
-            
-            if result:
-                # Обновляем время последней синхронизации
+        # Создаем WebDAV клиент и менеджер синхронизации
+        yandex_disk = get_yandex_disk_client()
+        
+        if not yandex_disk:
+            return jsonify({'success': False, 'error': 'Не удалось инициализировать клиент Яндекс.Диска'})
+        
+        from sync.yandex_webdav import DatabaseSyncManager
+        from datetime import datetime
+        
+        sync_manager = DatabaseSyncManager(
+            db_path=os.path.abspath('legal_crm.db'), 
+            yandex_disk=yandex_disk, 
+            remote_path='/legal_crm/'
+        )
+        
+        # Загружаем базу данных в облако
+        result = sync_manager.upload_to_cloud()
+        
+        if result:
+            # Обновляем время последней синхронизации в БД
+            with db.get_connection() as conn:
+                cursor = conn.cursor()
                 cursor.execute("""
                     UPDATE sync_config 
                     SET last_sync = CURRENT_TIMESTAMP 
                     WHERE user_id = ?
-                """, (current_user.id,))
-                
-                # Сохраняем изменения в базу данных
+current_user.id,                """, ())
                 conn.commit()
                 print(f"[DEBUG] Время последней синхронизации обновлено")
-                
-                return jsonify({
-                    'success': True, 
-                    'message': 'Данные успешно загружены в Яндекс.Диск!'
-                })
-            else:
-                return jsonify({
-                    'success': False, 
-                    'error': 'Не удалось загрузить данные в Яндекс.Диск'
-                })
+            
+            return jsonify({
+                'success': True, 
+                'message': 'Данные успешно загружены в Яндекс.Диск!'
+            })
+        else:
+            return jsonify({
+                'success': False, 
+                'error': 'Не удалось загрузить данные в Яндекс.Диск'
+            })
                 
     except Exception as e:
+        print(f"[ERROR] Ошибка загрузки в Яндекс.Диск: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/sync/download', methods=['POST'])
@@ -1201,60 +1202,47 @@ def upload_to_yandex():
 def download_from_yandex():
     """Скачивание данных с Яндекс.Диска"""
     try:
-        with db.get_connection() as conn:
-            cursor = conn.cursor()
-            
-            # Получаем конфигурацию
-            cursor.execute("""
-                SELECT yandex_login, yandex_password 
-                FROM sync_config 
-                WHERE user_id = ? 
-                ORDER BY created_at DESC 
-                LIMIT 1
-            """, (current_user.id,))
-            
-            result = cursor.fetchone()
-            if not result or not result[0]:
-                return jsonify({'success': False, 'error': 'Синхронизация не настроена'})
-            
-            username, password = result
-            
-            # Создаем WebDAV клиент и менеджер синхронизации
-            from sync.yandex_webdav import YandexDiskWebDAV, DatabaseSyncManager
-            
-            yandex_disk = YandexDiskWebDAV(username, password)
-            sync_manager = DatabaseSyncManager(
-                db_path=os.path.abspath('legal_crm.db'), 
-                yandex_disk=yandex_disk, 
-                remote_path='/legal_crm/'
-            )
-            
-            # Скачиваем последнюю версию базы данных
-            result = sync_manager.download_from_cloud()
-            
-            if result.get('success'):
-                # Обновляем время последней синхронизации
+        # Создаем WebDAV клиент и менеджер синхронизации
+        yandex_disk = get_yandex_disk_client()
+        
+        if not yandex_disk:
+            return jsonify({'success': False, 'error': 'Не удалось инициализировать клиент Яндекс.Диска'})
+        
+        from sync.yandex_webdav import DatabaseSyncManager
+        
+        sync_manager = DatabaseSyncManager(
+            db_path=os.path.abspath('legal_crm.db'), 
+            yandex_disk=yandex_disk, 
+            remote_path='/legal_crm/'
+        )
+        
+        # Скачиваем последнюю версию базы данных
+        result = sync_manager.download_from_cloud()
+        
+        if result.get('success'):
+            # Обновляем время последней синхронизации в БД
+            with db.get_connection() as conn:
+                cursor = conn.cursor()
                 cursor.execute("""
                     UPDATE sync_config 
                     SET last_sync = CURRENT_TIMESTAMP 
                     WHERE user_id = ?
                 """, (current_user.id,))
-                
-                # Сохраняем изменения в базу данных
                 conn.commit()
                 print(f"[DEBUG] Время последней синхронизации обновлено")
-                
-                return jsonify({
-                    'success': True, 
-                    'message': 'Данные успешно загружены из Яндекс.Диска!'
-                })
-            else:
-                return jsonify({
-                    'success': False, 
-                    'error': result.get('error', 'Не удалось скачать данные с Яндекс.Диска')
-                })
+            
+            return jsonify({
+                'success': True, 
+                'message': 'Данные успешно загружены из Яндекс.Диска!'
+            })
+        else:
+            return jsonify({
+                'success': False, 
+                'error': result.get('error', 'Не удалось скачать данные с Яндекс.Диска')
+            })
                 
     except Exception as e:
+        print(f"[ERROR] Ошибка скачивания из Яндекс.Диска: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/sync/auto/enable', methods=['POST'])
@@ -1321,42 +1309,29 @@ def disable_auto_sync():
 def get_backup_history():
     """Получение истории резервных копий"""
     try:
-        with db.get_connection() as conn:
-            cursor = conn.cursor()
-            
-            # Получаем конфигурацию
-            cursor.execute("""
-                SELECT yandex_login, yandex_password 
-                FROM sync_config 
-                WHERE user_id = ? 
-                ORDER BY created_at DESC 
-                LIMIT 1
-            """, (current_user.id,))
-            
-            result = cursor.fetchone()
-            if not result or not result[0]:
-                return jsonify({'success': False, 'error': 'Синхронизация не настроена'})
-            
-            username, password = result
-            
-            # Получаем список резервных копий через WebDAV клиент
-            from sync.yandex_webdav import YandexDiskWebDAV, DatabaseSyncManager
-            
-            yandex_disk = YandexDiskWebDAV(username, password)
-            sync_manager = DatabaseSyncManager(
-                db_path=os.path.abspath('legal_crm.db'), 
-                yandex_disk=yandex_disk, 
-                remote_path='/legal_crm/'
-            )
-            
-            backups = sync_manager.list_backups()
-            
-            return jsonify({
-                'success': True, 
-                'backups': backups
-            })
+        # Создаем WebDAV клиент и менеджер синхронизации
+        yandex_disk = get_yandex_disk_client()
+        
+        if not yandex_disk:
+            return jsonify({'success': False, 'error': 'Не удалось инициализировать клиент Яндекс.Диска'})
+        
+        from sync.yandex_webdav import DatabaseSyncManager
+        
+        sync_manager = DatabaseSyncManager(
+            db_path=os.path.abspath('legal_crm.db'), 
+            yandex_disk=yandex_disk, 
+            remote_path='/legal_crm/'
+        )
+        
+        backups = sync_manager.list_backups()
+        
+        return jsonify({
+            'success': True, 
+            'backups': backups
+        })
             
     except Exception as e:
+        print(f"[ERROR] Ошибка получения резервных копий: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/sync/restore', methods=['POST'])
@@ -1372,48 +1347,35 @@ def restore_from_backup():
         if not backup_filename:
             return jsonify({'success': False, 'error': 'Не указан файл резервной копии'})
         
-        with db.get_connection() as conn:
-            cursor = conn.cursor()
-            
-            # Получаем конфигурацию
-            cursor.execute("""
-                SELECT yandex_login, yandex_password 
-                FROM sync_config 
-                WHERE user_id = ? 
-                ORDER BY created_at DESC 
-                LIMIT 1
-            """, (current_user.id,))
-            
-            result = cursor.fetchone()
-            if not result or not result[0]:
-                return jsonify({'success': False, 'error': 'Синхронизация не настроена'})
-            
-            username, password = result
-            
-            # Восстанавливаем из резервной копии
-            from sync.yandex_webdav import YandexDiskWebDAV, DatabaseSyncManager
-            
-            yandex_disk = YandexDiskWebDAV(username, password)
-            sync_manager = DatabaseSyncManager(
-                db_path=os.path.abspath('legal_crm.db'), 
-                yandex_disk=yandex_disk, 
-                remote_path='/legal_crm/'
-            )
-            
-            result = sync_manager.restore_backup(backup_filename)
-            
-            if result.get('success'):
-                return jsonify({
-                    'success': True, 
-                    'message': f'Успешно восстановлено из резервной копии: {backup_filename}'
-                })
-            else:
-                return jsonify({
-                    'success': False, 
-                    'error': result.get('error', 'Не удалось восстановить из резервной копии')
-                })
+        # Создаем WebDAV клиент и менеджер синхронизации
+        yandex_disk = get_yandex_disk_client()
+        
+        if not yandex_disk:
+            return jsonify({'success': False, 'error': 'Не удалось инициализировать клиент Яндекс.Диска'})
+        
+        from sync.yandex_webdav import DatabaseSyncManager
+        
+        sync_manager = DatabaseSyncManager(
+            db_path=os.path.abspath('legal_crm.db'), 
+            yandex_disk=yandex_disk, 
+            remote_path='/legal_crm/'
+        )
+        
+        result = sync_manager.restore_backup(backup_filename)
+        
+        if result.get('success'):
+            return jsonify({
+                'success': True, 
+                'message': f'Успешно восстановлено из резервной копии: {backup_filename}'
+            })
+        else:
+            return jsonify({
+                'success': False, 
+                'error': result.get('error', 'Не удалось восстановить из резервной копии')
+            })
                 
     except Exception as e:
+        print(f"[ERROR] Ошибка восстановления из резервной копии: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
 @app.route('/api/sync/cleanup', methods=['POST'])
@@ -1421,48 +1383,35 @@ def restore_from_backup():
 def cleanup_old_backups():
     """Очистка старых резервных копий"""
     try:
-        with db.get_connection() as conn:
-            cursor = conn.cursor()
-            
-            # Получаем конфигурацию
-            cursor.execute("""
-                SELECT yandex_login, yandex_password 
-                FROM sync_config 
-                WHERE user_id = ? 
-                ORDER BY created_at DESC 
-                LIMIT 1
-            """, (current_user.id,))
-            
-            result = cursor.fetchone()
-            if not result or not result[0]:
-                return jsonify({'success': False, 'error': 'Синхронизация не настроена'})
-            
-            username, password = result
-            
-            # Очищаем старые резервные копии
-            from sync.yandex_webdav import YandexDiskWebDAV, DatabaseSyncManager
-            
-            yandex_disk = YandexDiskWebDAV(username, password)
-            sync_manager = DatabaseSyncManager(
-                db_path=os.path.abspath('legal_crm.db'), 
-                yandex_disk=yandex_disk, 
-                remote_path='/legal_crm/'
-            )
-            
-            result = sync_manager.cleanup_old_backups(retention_days=30)
-            
-            if result.get('success'):
-                return jsonify({
-                    'success': True, 
-                    'message': result.get('message', 'Очистка старых резервных копий завершена')
-                })
-            else:
-                return jsonify({
-                    'success': False, 
-                    'error': result.get('error', 'Не удалось очистить старые резервные копии')
-                })
+        # Создаем WebDAV клиент и менеджер синхронизации
+        yandex_disk = get_yandex_disk_client()
+        
+        if not yandex_disk:
+            return jsonify({'success': False, 'error': 'Не удалось инициализировать клиент Яндекс.Диска'})
+        
+        from sync.yandex_webdav import DatabaseSyncManager
+        
+        sync_manager = DatabaseSyncManager(
+            db_path=os.path.abspath('legal_crm.db'), 
+            yandex_disk=yandex_disk, 
+            remote_path='/legal_crm/'
+        )
+        
+        result = sync_manager.cleanup_old_backups(retention_days=30)
+        
+        if result.get('success'):
+            return jsonify({
+                'success': True, 
+                'message': result.get('message', 'Очистка старых резервных копий завершена')
+            })
+        else:
+            return jsonify({
+                'success': False, 
+                'error': result.get('error', 'Не удалось очистить старые резервные копии')
+            })
                 
     except Exception as e:
+        print(f"[ERROR] Ошибка очистки резервных копий: {e}")
         return jsonify({'success': False, 'error': str(e)})
 
 # ==================== DEBUG ENDPOINTS ====================
