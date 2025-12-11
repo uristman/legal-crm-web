@@ -1,6 +1,6 @@
 """
 Упрощенный модуль для работы с Яндекс.Диском через HTTP API
-Не требует внешних зависимостей, использует только стандартную библиотеку Python
+Простая синхронизация через логин и пароль для внешних приложений (App Password)
 """
 
 import os
@@ -26,29 +26,30 @@ except ImportError:
     import requests
 
 class YandexDiskWebDAV:
-    """Упрощенный класс для работы с Яндекс.Диском через HTTP API"""
+    """Простой класс для работы с Яндекс.Диском через HTTP API"""
     
     def __init__(self, username: str, password: str):
         """
         Инициализация клиента для Яндекс.Диска
         
         Args:
-            username: Логин Яндекс
-            password: Пароль Яндекс
+            username: Логин Яндекс (например, user@yandex.ru)
+            password: Пароль для внешних приложений (App Password)
         """
+        self.base_url = "https://cloud-api.yandex.net/v1/disk"
         self.username = username
         self.password = password
-        self.base_url = "https://cloud-api.yandex.net/v1/disk"
-        self.session = requests.Session()
         
-        # Базовая авторизация
+        # Создаем HTTP сессию с Basic Auth
+        self.session = requests.Session()
         auth = base64.b64encode(f"{username}:{password}".encode()).decode()
         self.session.headers.update({
             'Authorization': f'Basic {auth}',
-            'User-Agent': 'LegalCRM/1.0'
+            'User-Agent': 'LegalCRM/1.0',
+            'Accept': 'application/json'
         })
         
-        logger.info(f"HTTP клиент инициализирован для пользователя {username}")
+        logger.info(f"🔐 Инициализирован YandexDisk клиент для пользователя {username}")
     
     def test_connection(self) -> bool:
         """Тестирование подключения к Яндекс.Диску"""
