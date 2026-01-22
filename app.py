@@ -21,14 +21,6 @@ app = Flask(__name__, static_folder="static", template_folder="templates")
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-key")
 
 # =====================
-# LOGIN MANAGER
-# =====================
-
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = "login"
-
-# =====================
 # DATABASE
 # =====================
 
@@ -41,7 +33,6 @@ def init_db():
     with get_db() as conn:
         cur = conn.cursor()
 
-        # users
         cur.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -50,7 +41,6 @@ def init_db():
             )
         """)
 
-        # clients
         cur.execute("""
             CREATE TABLE IF NOT EXISTS clients (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -62,7 +52,6 @@ def init_db():
             )
         """)
 
-        # cases
         cur.execute("""
             CREATE TABLE IF NOT EXISTS cases (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -73,7 +62,7 @@ def init_db():
             )
         """)
 
-        # demo admin
+        # создать admin, если БД пустая
         cur.execute("SELECT COUNT(*) FROM users")
         if cur.fetchone()[0] == 0:
             cur.execute(
@@ -82,6 +71,17 @@ def init_db():
             )
 
         conn.commit()
+
+# ⚠️ ВАЖНО: инициализация БД ПРИ ИМПОРТЕ
+init_db()
+
+# =====================
+# LOGIN MANAGER
+# =====================
+
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = "login"
 
 # =====================
 # USER MODEL
@@ -126,7 +126,7 @@ def logout():
     return redirect(url_for("login"))
 
 # =====================
-# AUTH API (ВАЖНО)
+# AUTH API
 # =====================
 
 @app.route("/api/auth/login", methods=["POST"])
@@ -138,9 +138,6 @@ def api_login():
 
     username = data.get("username", "").strip()
     password = data.get("password", "").strip()
-
-    if not username or not password:
-        return jsonify({"success": False, "error": "Логин и пароль обязательны"})
 
     with get_db() as conn:
         cur = conn.cursor()
@@ -156,7 +153,7 @@ def api_login():
     login_user(User(user["id"], user["username"], user["password"]))
     return jsonify({"success": True})
 
-@app.route("/api/auth/check", methods=["GET"])
+@app.route("/api/auth/check")
 def api_auth_check():
     if current_user.is_authenticated:
         return jsonify({
@@ -175,25 +172,17 @@ def api_logout():
     return jsonify({"success": True})
 
 # =====================
-# CLIENTS API (МИНИМУМ)
+# CLIENTS API (минимум)
 # =====================
 
-@app.route("/api/clients", methods=["GET"])
+@app.route("/api/clients")
 @login_required
-def get_clients():
+def clients():
     with get_db() as conn:
         cur = conn.cursor()
         cur.execute(
-            "SELECT * FROM clients WHERE user_id = ? ORDER BY created_at DESC",
+            "SELECT * FROM clients WHERE user_id = ?",
             (current_user.id,)
         )
-        clients = [dict(row) for row in cur.fetchall()]
-    return jsonify({"success": True, "clients": clients})
-
-# =====================
-# MAIN
-# =====================
-
-if __name__ == "__main__":
-    init_db()
-    app.run(host="0.0.0.0", port=5000, debug=True)
+        rows = [dict(r) for r in cur.fetchall()]
+    return jsonify({"success": True, "clients": rows})
