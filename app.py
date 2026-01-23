@@ -6,6 +6,7 @@ from flask_login import (
 from werkzeug.security import generate_password_hash, check_password_hash
 import sqlite3
 import os
+from datetime import datetime
 
 DATABASE = "legal_crm.db"
 
@@ -25,7 +26,6 @@ def init_db():
     with get_db() as conn:
         cur = conn.cursor()
 
-        # users
         cur.execute("""
             CREATE TABLE IF NOT EXISTS users (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -34,7 +34,6 @@ def init_db():
             )
         """)
 
-        # clients
         cur.execute("""
             CREATE TABLE IF NOT EXISTS clients (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -51,7 +50,6 @@ def init_db():
             )
         """)
 
-        # cases (ДЕЛА)
         cur.execute("""
             CREATE TABLE IF NOT EXISTS cases (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -69,7 +67,6 @@ def init_db():
             )
         """)
 
-        # demo user
         cur.execute("SELECT COUNT(*) FROM users")
         if cur.fetchone()[0] == 0:
             cur.execute(
@@ -128,7 +125,6 @@ def logout():
 @app.route("/api/auth/login", methods=["POST"])
 def api_login():
     data = request.get_json()
-
     with get_db() as conn:
         cur = conn.cursor()
         cur.execute("SELECT * FROM users WHERE username=?", (data.get("username"),))
@@ -186,12 +182,10 @@ def api_clients():
             ORDER BY created_at DESC
         """, (current_user.id,))
 
-        clients = [dict(row) for row in cur.fetchall()]
-
-    return jsonify(success=True, clients=clients)
+        return jsonify(success=True, clients=[dict(r) for r in cur.fetchall()])
 
 # =====================
-# CASES API (РЕАЛЬНЫЕ ДЕЛА)
+# CASES API (ИСПРАВЛЕНО)
 # =====================
 
 @app.route("/api/cases", methods=["GET", "POST"])
@@ -202,6 +196,14 @@ def api_cases():
 
         if request.method == "POST":
             data = request.get_json()
+
+            # 🔐 защита от пустого номера дела
+            case_number = (
+                data.get("case_number")
+                or data.get("number")
+                or f"Дело {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
+            )
+
             cur.execute("""
                 INSERT INTO cases
                 (user_id, client_id, case_number, court, case_type,
@@ -210,7 +212,7 @@ def api_cases():
             """, (
                 current_user.id,
                 data.get("client_id"),
-                data.get("case_number"),
+                case_number,
                 data.get("court"),
                 data.get("case_type"),
                 data.get("plaintiff"),
@@ -230,9 +232,7 @@ def api_cases():
             ORDER BY c.created_at DESC
         """, (current_user.id,))
 
-        cases = [dict(row) for row in cur.fetchall()]
-
-    return jsonify(success=True, cases=cases)
+        return jsonify(success=True, cases=[dict(r) for r in cur.fetchall()])
 
 # =====================
 # STUB API
@@ -261,12 +261,7 @@ def api_stats():
 @app.route("/api/sync/status")
 @login_required
 def api_sync_status():
-    return jsonify(
-        success=True,
-        connected=False,
-        last_sync=None,
-        backups=0
-    )
+    return jsonify(success=True, connected=False, last_sync=None, backups=0)
 
 @app.route("/api/sync/backups")
 @login_required
