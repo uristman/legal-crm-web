@@ -1,14 +1,8 @@
 import os
 import sqlite3
 from datetime import datetime
-
-from flask import Flask, jsonify, request, redirect, render_template
+from flask import Flask, jsonify, request, session, redirect, render_template
 from flask_cors import CORS
-from flask_login import (
-    LoginManager, UserMixin,
-    login_user, login_required,
-    logout_user, current_user
-)
 
 from yandex_disk import YandexDisk
 
@@ -25,16 +19,13 @@ YANDEX_TOKEN = os.getenv(
 )
 
 # ======================
-# APP INIT
+# APP
 # ======================
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
-app.secret_key = "super-secret-key"
-CORS(app, supports_credentials=True)
+app.secret_key = "legal-crm-secret-key"
 
-login_manager = LoginManager()
-login_manager.init_app(app)
-login_manager.login_view = "login"
+CORS(app, supports_credentials=True)
 
 # ======================
 # DB
@@ -112,62 +103,46 @@ def init_db():
 init_db()
 
 # ======================
-# AUTH
+# AUTH (БЕЗ Flask-Login)
 # ======================
 
-class User(UserMixin):
-    def __init__(self, id, username):
-        self.id = id
-        self.username = username
+def auth_required(fn):
+    def wrapper(*args, **kwargs):
+        if not session.get("user"):
+            return jsonify({"error": "unauthorized"}), 401
+        return fn(*args, **kwargs)
+    wrapper.__name__ = fn.__name__
+    return wrapper
 
-
-@login_manager.user_loader
-def load_user(user_id):
-    row = get_db().execute(
-        "SELECT * FROM users WHERE id = ?",
-        (user_id,)
-    ).fetchone()
-    if row:
-        return User(row["id"], row["username"])
-    return None
-
-
-# ===== API AUTH (ВАЖНО ДЛЯ UI) =====
 
 @app.route("/api/auth/check")
-def api_auth_check():
-    if current_user.is_authenticated:
-        return jsonify({
-            "authenticated": True,
-            "user": current_user.username
-        })
+def auth_check():
+    if session.get("user"):
+        return jsonify({"authenticated": True, "user": session["user"]})
     return jsonify({"authenticated": False}), 401
 
 
 @app.route("/api/auth/login", methods=["POST"])
-def api_auth_login():
+def auth_login():
     data = request.json
     username = data.get("username")
     password = data.get("password")
 
     row = get_db().execute(
-        "SELECT * FROM users WHERE username = ? AND password = ?",
+        "SELECT * FROM users WHERE username=? AND password=?",
         (username, password)
     ).fetchone()
 
     if not row:
         return jsonify({"error": "invalid_credentials"}), 401
 
-    user = User(row["id"], row["username"])
-    login_user(user)
-
+    session["user"] = username
     return jsonify({"ok": True})
 
 
 @app.route("/api/auth/logout", methods=["POST"])
-@login_required
-def api_auth_logout():
-    logout_user()
+def auth_logout():
+    session.clear()
     return jsonify({"ok": True})
 
 
@@ -181,8 +156,9 @@ def login():
 
 
 @app.route("/")
-@login_required
 def index():
+    if not session.get("user"):
+        return redirect("/login")
     return render_template("index.html")
 
 
@@ -191,7 +167,7 @@ def index():
 # ======================
 
 @app.route("/api/clients", methods=["GET", "POST"])
-@login_required
+@auth_required
 def api_clients():
     db = get_db()
     if request.method == "POST":
@@ -218,7 +194,7 @@ def api_clients():
 # ======================
 
 @app.route("/api/cases", methods=["GET", "POST"])
-@login_required
+@auth_required
 def api_cases():
     db = get_db()
     if request.method == "POST":
@@ -248,7 +224,7 @@ def api_cases():
 # ======================
 
 @app.route("/api/services", methods=["GET", "POST"])
-@login_required
+@auth_required
 def api_services():
     db = get_db()
     if request.method == "POST":
@@ -269,7 +245,7 @@ def api_services():
 # ======================
 
 @app.route("/api/payments", methods=["GET", "POST"])
-@login_required
+@auth_required
 def api_payments():
     db = get_db()
     if request.method == "POST":
@@ -295,7 +271,7 @@ def api_payments():
 # ======================
 
 @app.route("/api/activities", methods=["GET", "POST"])
-@login_required
+@auth_required
 def api_activities():
     db = get_db()
     if request.method == "POST":
@@ -312,11 +288,11 @@ def api_activities():
 
 
 # ======================
-# API — SYNC
+# SYNC
 # ======================
 
 @app.route("/api/sync/status")
-@login_required
+@auth_required
 def sync_status():
     row = get_db().execute(
         "SELECT * FROM sync_state WHERE id = 1"
@@ -328,19 +304,19 @@ def sync_status():
 
 
 @app.route("/api/sync/upload", methods=["POST"])
-@login_required
-def api_sync_upload():
+@auth_required
+def sync_upload():
     yd = YandexDisk(YANDEX_TOKEN)
-    backup_name = yd.upload_backup(DATABASE)
+    name = yd.upload_backup(DATABASE)
 
     db = get_db()
     db.execute(
-        "UPDATE sync_state SET enabled = 1, last_sync = ? WHERE id = 1",
+        "UPDATE sync_state SET enabled=1, last_sync=? WHERE id=1",
         (datetime.now().isoformat(),)
     )
     db.commit()
 
-    return jsonify({"backup": backup_name})
+    return jsonify({"backup": name})
 
 
 # ======================
