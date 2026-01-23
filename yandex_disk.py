@@ -3,12 +3,14 @@ import os
 from datetime import datetime
 
 YANDEX_API = "https://cloud-api.yandex.net/v1/disk"
-APP_DIR = "Apps/LegalCRM/backups"
+
+BASE_DIR = "Apps"
+APP_DIR = "Apps/LegalCRM"
+BACKUP_DIR = "Apps/LegalCRM/backups"
 
 
 class YandexDisk:
     def __init__(self, token: str):
-        self.token = token
         self.headers = {
             "Authorization": f"OAuth {token}"
         }
@@ -23,19 +25,27 @@ class YandexDisk:
         r = self._request("GET", f"{YANDEX_API}/")
         return r.status_code == 200
 
-    def ensure_folder(self):
+    def _create_folder(self, path):
         r = requests.put(
             f"{YANDEX_API}/resources",
             headers=self.headers,
-            params={"path": APP_DIR}
+            params={"path": path}
         )
         return r.status_code in (201, 409)
 
-    def upload_backup(self, local_path):
-        self.ensure_folder()
+    def ensure_folders(self):
+        self._create_folder(BASE_DIR)
+        self._create_folder(APP_DIR)
+        self._create_folder(BACKUP_DIR)
 
-        name = f"backup_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.db"
-        disk_path = f"{APP_DIR}/{name}"
+    def upload_backup(self, local_path):
+        if not os.path.exists(local_path):
+            raise Exception("Local database file not found")
+
+        self.ensure_folders()
+
+        filename = f"backup_{datetime.now().strftime('%Y-%m-%d_%H-%M-%S')}.db"
+        disk_path = f"{BACKUP_DIR}/{filename}"
 
         r = self._request(
             "GET",
@@ -48,4 +58,4 @@ class YandexDisk:
         with open(local_path, "rb") as f:
             requests.put(upload_url, data=f)
 
-        return name
+        return filename
