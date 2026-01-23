@@ -1,43 +1,23 @@
 import os
 import sqlite3
 from datetime import datetime
-from flask import (
-    Flask, jsonify, request, session,
-    redirect, render_template
-)
+from flask import Flask, jsonify, request, session, redirect, render_template
 from flask_cors import CORS
-
-from yandex_disk import YandexDisk
+from werkzeug.security import generate_password_hash, check_password_hash
 
 # ======================
 # CONFIG
 # ======================
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATABASE = os.path.join(BASE_DIR, "legal_crm.db")
+APP_SECRET = os.environ.get("SECRET_KEY", "dev-secret")
+DATABASE = "database.db"
 
-YANDEX_TOKEN = os.getenv(
-    "YANDEX_DISK_TOKEN",
-    "y0__xC0-4YkGNuWAyCO0vKUFjDF_v-xCL6nN0jYFp_VSGo9eiutJ3WTKiv4"
-)
-
-# ======================
-# APP
-# ======================
-
-app = Flask(__name__, static_folder="static", template_folder="templates")
-
-# 🔐 КРИТИЧЕСКИ ВАЖНО ДЛЯ RENDER + HTTPS
-app.secret_key = "legal-crm-secret-key"
-app.config.update(
-    SESSION_COOKIE_SAMESITE="None",
-    SESSION_COOKIE_SECURE=True,
-)
-
+app = Flask(__name__)
+app.secret_key = APP_SECRET
 CORS(app, supports_credentials=True)
 
 # ======================
-# DB
+# DATABASE
 # ======================
 
 def get_db():
@@ -45,69 +25,70 @@ def get_db():
     conn.row_factory = sqlite3.Row
     return conn
 
-
 def init_db():
-    with get_db() as db:
-        db.executescript("""
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY,
-            username TEXT UNIQUE,
-            password TEXT
-        );
+    db = get_db()
 
-        INSERT OR IGNORE INTO users (id, username, password)
-        VALUES (1, 'admin', 'admin');
+    db.executescript("""
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY,
+        username TEXT UNIQUE,
+        password TEXT
+    );
 
-        CREATE TABLE IF NOT EXISTS clients (
-            id INTEGER PRIMARY KEY,
-            name TEXT NOT NULL,
-            phone TEXT,
-            email TEXT,
-            status TEXT,
-            created_at TEXT
-        );
+    CREATE TABLE IF NOT EXISTS clients (
+        id INTEGER PRIMARY KEY,
+        name TEXT,
+        phone TEXT
+    );
 
-        CREATE TABLE IF NOT EXISTS cases (
-            id INTEGER PRIMARY KEY,
-            client_id INTEGER,
-            case_number TEXT NOT NULL,
-            court TEXT,
-            case_type TEXT,
-            stage TEXT,
-            notes TEXT,
-            created_at TEXT
-        );
+    CREATE TABLE IF NOT EXISTS cases (
+        id INTEGER PRIMARY KEY,
+        title TEXT,
+        client_id INTEGER
+    );
 
-        CREATE TABLE IF NOT EXISTS services (
-            id INTEGER PRIMARY KEY,
-            name TEXT NOT NULL,
-            price REAL
-        );
+    CREATE TABLE IF NOT EXISTS services (
+        id INTEGER PRIMARY KEY,
+        name TEXT,
+        price REAL
+    );
 
-        CREATE TABLE IF NOT EXISTS payments (
-            id INTEGER PRIMARY KEY,
-            client_id INTEGER,
-            amount REAL,
-            date TEXT,
-            description TEXT
-        );
+    CREATE TABLE IF NOT EXISTS payments (
+        id INTEGER PRIMARY KEY,
+        client_id INTEGER,
+        amount REAL,
+        date TEXT
+    );
 
-        CREATE TABLE IF NOT EXISTS activities (
-            id INTEGER PRIMARY KEY,
-            title TEXT,
-            date TEXT,
-            description TEXT
-        );
+    CREATE TABLE IF NOT EXISTS activities (
+        id INTEGER PRIMARY KEY,
+        title TEXT,
+        date TEXT
+    );
 
-        CREATE TABLE IF NOT EXISTS sync_state (
-            id INTEGER PRIMARY KEY CHECK (id = 1),
-            last_sync TEXT,
-            enabled INTEGER
-        );
+    CREATE TABLE IF NOT EXISTS sync_state (
+        id INTEGER PRIMARY KEY,
+        configured INTEGER,
+        last_sync TEXT
+    );
+    """)
 
-        INSERT OR IGNORE INTO sync_state (id, enabled)
-        VALUES (1, 0);
-        """)
+    # admin user
+    cur = db.execute("SELECT * FROM users WHERE username='admin'")
+    if not cur.fetchone():
+        db.execute(
+            "INSERT INTO users (username, password) VALUES (?, ?)",
+            ("admin", generate_password_hash("admin"))
+        )
+
+    # sync state
+    cur = db.execute("SELECT * FROM sync_state")
+    if not cur.fetchone():
+        db.execute(
+            "INSERT INTO sync_state (configured, last_sync) VALUES (0, NULL)"
+        )
+
+    db.commit()
 
 init_db()
 
@@ -115,154 +96,183 @@ init_db()
 # AUTH
 # ======================
 
-def auth_required(fn):
-    def wrapper(*args, **kwargs):
-        if not session.get("user"):
-            return jsonify({"error": "unauthorized"}), 401
-        return fn(*args, **kwargs)
-    wrapper.__name__ = fn.__name__
-    return wrapper
+def require_auth():
+    if not session.get("user"):
+        return False
+    return True
 
-
-@app.route("/api/auth/check")
-def auth_check():
-    if session.get("user"):
-        return jsonify({"authenticated": True})
-    return jsonify({"authenticated": False}), 401
-
+@app.route("/login")
+def login_page():
+    return render_template("login.html")
 
 @app.route("/api/auth/login", methods=["POST"])
-def auth_login():
+def api_login():
     data = request.json
-    username = data.get("username")
-    password = data.get("password")
-
-    row = get_db().execute(
-        "SELECT * FROM users WHERE username=? AND password=?",
-        (username, password)
+    db = get_db()
+    user = db.execute(
+        "SELECT * FROM users WHERE username=?",
+        (data["username"],)
     ).fetchone()
 
-    if not row:
+    if not user or not check_password_hash(user["password"], data["password"]):
         return jsonify({"error": "invalid"}), 401
 
-    session["user"] = username
+    session["user"] = user["username"]
+    return jsonify({"ok": True})
 
-    # 👇 КЛЮЧЕВОЕ ИЗМЕНЕНИЕ
-    return jsonify({"ok": True, "redirect": "/"})
+@app.route("/api/auth/check")
+def api_auth_check():
+    if not require_auth():
+        return jsonify({"auth": False}), 401
+    return jsonify({"auth": True})
 
-@app.route("/api/auth/logout", methods=["POST"])
-def auth_logout():
+@app.route("/api/auth/logout")
+def api_logout():
     session.clear()
     return jsonify({"ok": True})
 
-
 # ======================
-# UI
+# MAIN PAGE
 # ======================
-
-@app.route("/login")
-def login():
-    if session.get("user"):
-        return redirect("/")
-    return render_template("login.html")
-
 
 @app.route("/")
 def index():
-    if not session.get("user"):
+    if not require_auth():
         return redirect("/login")
     return render_template("index.html")
 
-
 # ======================
-# API — CLIENTS
+# API — CLIENTS / CASES
 # ======================
 
 @app.route("/api/clients", methods=["GET", "POST"])
-@auth_required
 def api_clients():
+    if not require_auth():
+        return jsonify([])
+
     db = get_db()
     if request.method == "POST":
-        data = request.json
-        db.execute(
-            "INSERT INTO clients (name, phone, email, status, created_at) VALUES (?, ?, ?, ?, ?)",
-            (
-                data["name"],
-                data.get("phone"),
-                data.get("email"),
-                data.get("status", "active"),
-                datetime.now().isoformat()
-            )
-        )
+        d = request.json
+        db.execute("INSERT INTO clients (name, phone) VALUES (?,?)",
+                   (d["name"], d["phone"]))
         db.commit()
-        return jsonify({"ok": True})
-
     rows = db.execute("SELECT * FROM clients").fetchall()
     return jsonify([dict(r) for r in rows])
 
-
-# ======================
-# API — CASES
-# ======================
-
 @app.route("/api/cases", methods=["GET", "POST"])
-@auth_required
 def api_cases():
+    if not require_auth():
+        return jsonify([])
+
     db = get_db()
     if request.method == "POST":
-        data = request.json
-        db.execute("""
-            INSERT INTO cases
-            (client_id, case_number, court, case_type, stage, notes, created_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?)
-        """, (
-            data["client_id"],
-            data["case_number"],
-            data.get("court"),
-            data.get("case_type"),
-            data.get("stage"),
-            data.get("notes"),
-            datetime.now().isoformat()
-        ))
+        d = request.json
+        db.execute("INSERT INTO cases (title, client_id) VALUES (?,?)",
+                   (d["title"], d["client_id"]))
         db.commit()
-        return jsonify({"ok": True})
-
     rows = db.execute("SELECT * FROM cases").fetchall()
     return jsonify([dict(r) for r in rows])
 
+# ======================
+# API — SERVICES
+# ======================
+
+@app.route("/api/services", methods=["GET", "POST"])
+def api_services():
+    if not require_auth():
+        return jsonify([])
+
+    db = get_db()
+    if request.method == "POST":
+        d = request.json
+        db.execute("INSERT INTO services (name, price) VALUES (?,?)",
+                   (d["name"], d["price"]))
+        db.commit()
+    rows = db.execute("SELECT * FROM services").fetchall()
+    return jsonify([dict(r) for r in rows])
 
 # ======================
-# SYNC
+# API — PAYMENTS
+# ======================
+
+@app.route("/api/payments", methods=["GET", "POST"])
+def api_payments():
+    if not require_auth():
+        return jsonify([])
+
+    db = get_db()
+    if request.method == "POST":
+        d = request.json
+        db.execute(
+            "INSERT INTO payments (client_id, amount, date) VALUES (?,?,?)",
+            (d["client_id"], d["amount"], d["date"])
+        )
+        db.commit()
+    rows = db.execute("SELECT * FROM payments").fetchall()
+    return jsonify([dict(r) for r in rows])
+
+# ======================
+# API — ACTIVITIES
+# ======================
+
+@app.route("/api/activities", methods=["GET", "POST"])
+def api_activities():
+    if not require_auth():
+        return jsonify([])
+
+    db = get_db()
+    if request.method == "POST":
+        d = request.json
+        db.execute(
+            "INSERT INTO activities (title, date) VALUES (?,?)",
+            (d["title"], d["date"])
+        )
+        db.commit()
+    rows = db.execute("SELECT * FROM activities").fetchall()
+    return jsonify([dict(r) for r in rows])
+
+# ======================
+# API — STATS
+# ======================
+
+@app.route("/api/stats")
+def api_stats():
+    if not require_auth():
+        return jsonify({})
+
+    db = get_db()
+    return jsonify({
+        "clients": db.execute("SELECT COUNT(*) FROM clients").fetchone()[0],
+        "cases": db.execute("SELECT COUNT(*) FROM cases").fetchone()[0],
+        "income": db.execute("SELECT IFNULL(SUM(amount),0) FROM payments").fetchone()[0]
+    })
+
+# ======================
+# API — SYNC
 # ======================
 
 @app.route("/api/sync/status")
-@auth_required
-def sync_status():
-    row = get_db().execute(
-        "SELECT * FROM sync_state WHERE id=1"
-    ).fetchone()
-
+def api_sync_status():
+    db = get_db()
+    row = db.execute("SELECT * FROM sync_state").fetchone()
     return jsonify({
-        "enabled": bool(row["enabled"]),
+        "configured": bool(row["configured"]),
         "last_sync": row["last_sync"]
     })
 
-
 @app.route("/api/sync/upload", methods=["POST"])
-@auth_required
-def sync_upload():
-    yd = YandexDisk(YANDEX_TOKEN)
-    name = yd.upload_backup(DATABASE)
-
+def api_sync_upload():
     db = get_db()
     db.execute(
-        "UPDATE sync_state SET enabled=1, last_sync=? WHERE id=1",
+        "UPDATE sync_state SET configured=1, last_sync=?",
         (datetime.now().isoformat(),)
     )
     db.commit()
+    return jsonify({"ok": True})
 
-    return jsonify({"backup": name})
-
+@app.route("/api/sync/backups")
+def api_sync_backups():
+    return jsonify([])
 
 # ======================
 # RUN
