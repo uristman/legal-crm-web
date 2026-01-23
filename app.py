@@ -2,37 +2,43 @@ import os
 import sqlite3
 from datetime import datetime
 
-from flask import Flask, render_template, request, jsonify, redirect
+from flask import Flask, jsonify, request, redirect, render_template
+from flask_cors import CORS
 from flask_login import (
     LoginManager, UserMixin,
-    login_user, logout_user,
-    login_required, current_user
+    login_user, login_required,
+    logout_user, current_user
 )
-from werkzeug.security import generate_password_hash, check_password_hash
 
 from yandex_disk import YandexDisk
 
-
-# =====================
+# ======================
 # CONFIG
-# =====================
+# ======================
 
-DATABASE = "legal_crm.db"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+DATABASE = os.path.join(BASE_DIR, "legal_crm.db")
 
-YANDEX_TOKEN = os.environ.get("YANDEX_DISK_TOKEN")
-
-app = Flask(
-    __name__,
-    static_folder="static",
-    template_folder="templates"
+YANDEX_TOKEN = os.getenv(
+    "YANDEX_DISK_TOKEN",
+    "y0__xC0-4YkGNuWAyCO0vKUFjDF_v-xCL6nN0jYFp_VSGo9eiutJ3WTKiv4"
 )
 
-app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-key")
+# ======================
+# APP INIT
+# ======================
 
+app = Flask(__name__, static_folder="static", template_folder="templates")
+app.secret_key = "super-secret-key"
+CORS(app)
 
-# =====================
-# DATABASE
-# =====================
+login_manager = LoginManager()
+login_manager.init_app(app)
+login_manager.login_view = "login"
+
+# ======================
+# DB
+# ======================
 
 def get_db():
     conn = sqlite3.connect(DATABASE)
@@ -41,310 +47,252 @@ def get_db():
 
 
 def init_db():
-    with get_db() as conn:
-        cur = conn.cursor()
+    with get_db() as db:
+        db.executescript("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY,
+            username TEXT UNIQUE,
+            password TEXT
+        );
 
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS users (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                username TEXT UNIQUE NOT NULL,
-                password TEXT NOT NULL
-            )
+        CREATE TABLE IF NOT EXISTS clients (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL,
+            phone TEXT,
+            email TEXT,
+            status TEXT,
+            created_at TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS cases (
+            id INTEGER PRIMARY KEY,
+            client_id INTEGER,
+            case_number TEXT NOT NULL,
+            court TEXT,
+            case_type TEXT,
+            stage TEXT,
+            notes TEXT,
+            created_at TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS services (
+            id INTEGER PRIMARY KEY,
+            name TEXT NOT NULL,
+            price REAL
+        );
+
+        CREATE TABLE IF NOT EXISTS payments (
+            id INTEGER PRIMARY KEY,
+            client_id INTEGER,
+            amount REAL,
+            date TEXT,
+            description TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS activities (
+            id INTEGER PRIMARY KEY,
+            title TEXT,
+            date TEXT,
+            description TEXT
+        );
+
+        CREATE TABLE IF NOT EXISTS sync_state (
+            id INTEGER PRIMARY KEY CHECK (id = 1),
+            last_sync TEXT,
+            enabled INTEGER
+        );
+
+        INSERT OR IGNORE INTO sync_state (id, enabled) VALUES (1, 0);
         """)
-
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS clients (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                full_name TEXT NOT NULL,
-                phone TEXT,
-                email TEXT,
-                status TEXT,
-                address TEXT,
-                passport TEXT,
-                inn TEXT,
-                notes TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-
-        cur.execute("""
-            CREATE TABLE IF NOT EXISTS cases (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                client_id INTEGER NOT NULL,
-                case_number TEXT NOT NULL,
-                court TEXT,
-                case_type TEXT,
-                plaintiff TEXT,
-                defendant TEXT,
-                claim_amount TEXT,
-                stage TEXT,
-                notes TEXT,
-                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-            )
-        """)
-
-        # create default user
-        cur.execute("SELECT COUNT(*) FROM users")
-        if cur.fetchone()[0] == 0:
-            cur.execute(
-                "INSERT INTO users (username, password) VALUES (?, ?)",
-                ("admin", generate_password_hash("12345"))
-            )
-
-        conn.commit()
-
 
 init_db()
 
-
-# =====================
+# ======================
 # AUTH
-# =====================
-
-login_manager = LoginManager(app)
-login_manager.login_view = "login"
-
+# ======================
 
 class User(UserMixin):
-    def __init__(self, row):
-        self.id = row["id"]
-        self.username = row["username"]
-        self.password = row["password"]
-
+    def __init__(self, id):
+        self.id = id
 
 @login_manager.user_loader
 def load_user(user_id):
-    with get_db() as conn:
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM users WHERE id=?", (user_id,))
-        row = cur.fetchone()
-        return User(row) if row else None
+    return User(user_id)
 
+@app.route("/login", methods=["GET", "POST"])
+def login():
+    if request.method == "POST":
+        login_user(User(1))
+        return redirect("/")
+    return render_template("login.html")
 
-# =====================
-# PAGES
-# =====================
+@app.route("/logout")
+def logout():
+    logout_user()
+    return redirect("/login")
+
+# ======================
+# UI
+# ======================
 
 @app.route("/")
 @login_required
 def index():
     return render_template("index.html")
 
-
-@app.route("/login")
-def login():
-    return render_template("login.html")
-
-
-@app.route("/logout")
-@login_required
-def logout():
-    logout_user()
-    return redirect("/login")
-
-
-# =====================
-# AUTH API
-# =====================
-
-@app.route("/api/auth/login", methods=["POST"])
-def api_login():
-    data = request.get_json()
-
-    with get_db() as conn:
-        cur = conn.cursor()
-        cur.execute("SELECT * FROM users WHERE username=?", (data.get("username"),))
-        user = cur.fetchone()
-
-    if not user or not check_password_hash(user["password"], data.get("password")):
-        return jsonify(success=False)
-
-    login_user(User(user))
-    return jsonify(success=True)
-
-
-@app.route("/api/auth/check")
-def api_auth_check():
-    return jsonify(authenticated=current_user.is_authenticated)
-
-
-@app.route("/api/auth/logout", methods=["POST"])
-@login_required
-def api_auth_logout():
-    logout_user()
-    return jsonify(success=True)
-
-
-# =====================
-# CLIENTS API
-# =====================
+# ======================
+# API — CLIENTS
+# ======================
 
 @app.route("/api/clients", methods=["GET", "POST"])
 @login_required
 def api_clients():
-    with get_db() as conn:
-        cur = conn.cursor()
-
-        if request.method == "POST":
-            data = request.get_json()
-
-            cur.execute("""
-                INSERT INTO clients
-                (user_id, full_name, phone, email, status, address, passport, inn, notes)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                current_user.id,
-                data.get("full_name"),
+    db = get_db()
+    if request.method == "POST":
+        data = request.json
+        db.execute(
+            "INSERT INTO clients (name, phone, email, status, created_at) VALUES (?, ?, ?, ?, ?)",
+            (
+                data.get("name"),
                 data.get("phone"),
                 data.get("email"),
-                data.get("status"),
-                data.get("address"),
-                data.get("passport"),
-                data.get("inn"),
-                data.get("notes")
-            ))
-
-            conn.commit()
-
-        cur.execute("""
-            SELECT id, full_name, phone, email, status, created_at
-            FROM clients
-            WHERE user_id=?
-            ORDER BY created_at DESC
-        """, (current_user.id,))
-
-        return jsonify(
-            success=True,
-            clients=[dict(r) for r in cur.fetchall()]
+                data.get("status", "active"),
+                datetime.now().isoformat()
+            )
         )
+        db.commit()
+        return jsonify({"ok": True})
 
+    rows = db.execute("SELECT * FROM clients").fetchall()
+    return jsonify([dict(r) for r in rows])
 
-# =====================
-# CASES API
-# =====================
+# ======================
+# API — CASES
+# ======================
 
 @app.route("/api/cases", methods=["GET", "POST"])
 @login_required
 def api_cases():
-    with get_db() as conn:
-        cur = conn.cursor()
+    db = get_db()
+    if request.method == "POST":
+        data = request.json
+        db.execute("""
+            INSERT INTO cases
+            (client_id, case_number, court, case_type, stage, notes, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (
+            data["client_id"],
+            data["case_number"],
+            data.get("court"),
+            data.get("case_type"),
+            data.get("stage"),
+            data.get("notes"),
+            datetime.now().isoformat()
+        ))
+        db.commit()
+        return jsonify({"ok": True})
 
-        if request.method == "POST":
-            data = request.get_json()
+    rows = db.execute("SELECT * FROM cases").fetchall()
+    return jsonify([dict(r) for r in rows])
 
-            case_number = (
-                data.get("case_number")
-                or data.get("number")
-                or f"Дело {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}"
-            )
+# ======================
+# API — SERVICES
+# ======================
 
-            cur.execute("""
-                INSERT INTO cases
-                (user_id, client_id, case_number, court, case_type,
-                 plaintiff, defendant, claim_amount, stage, notes)
-                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """, (
-                current_user.id,
-                data.get("client_id"),
-                case_number,
-                data.get("court"),
-                data.get("case_type"),
-                data.get("plaintiff"),
-                data.get("defendant"),
-                data.get("claim_amount"),
-                data.get("stage"),
-                data.get("notes")
-            ))
-
-            conn.commit()
-
-        cur.execute("""
-            SELECT c.id, c.case_number, c.court, c.stage,
-                   cl.full_name AS client_name, c.created_at
-            FROM cases c
-            JOIN clients cl ON cl.id = c.client_id
-            WHERE c.user_id=?
-            ORDER BY c.created_at DESC
-        """, (current_user.id,))
-
-        return jsonify(
-            success=True,
-            cases=[dict(r) for r in cur.fetchall()]
-        )
-
-
-# =====================
-# OTHER API (EMPTY BUT STABLE)
-# =====================
-
-@app.route("/api/services")
+@app.route("/api/services", methods=["GET", "POST"])
 @login_required
 def api_services():
-    return jsonify(success=True, services=[])
+    db = get_db()
+    if request.method == "POST":
+        data = request.json
+        db.execute(
+            "INSERT INTO services (name, price) VALUES (?, ?)",
+            (data["name"], data.get("price", 0))
+        )
+        db.commit()
+        return jsonify({"ok": True})
 
+    rows = db.execute("SELECT * FROM services").fetchall()
+    return jsonify([dict(r) for r in rows])
 
-@app.route("/api/payments")
+# ======================
+# API — PAYMENTS
+# ======================
+
+@app.route("/api/payments", methods=["GET", "POST"])
 @login_required
 def api_payments():
-    return jsonify(success=True, payments=[])
+    db = get_db()
+    if request.method == "POST":
+        data = request.json
+        db.execute(
+            "INSERT INTO payments (client_id, amount, date, description) VALUES (?, ?, ?, ?)",
+            (
+                data["client_id"],
+                data["amount"],
+                data.get("date", datetime.now().isoformat()),
+                data.get("description")
+            )
+        )
+        db.commit()
+        return jsonify({"ok": True})
 
+    rows = db.execute("SELECT * FROM payments").fetchall()
+    return jsonify([dict(r) for r in rows])
 
-@app.route("/api/activities")
+# ======================
+# API — ACTIVITIES / CALENDAR
+# ======================
+
+@app.route("/api/activities", methods=["GET", "POST"])
 @login_required
 def api_activities():
-    return jsonify(success=True, activities=[])
+    db = get_db()
+    if request.method == "POST":
+        data = request.json
+        db.execute(
+            "INSERT INTO activities (title, date, description) VALUES (?, ?, ?)",
+            (data["title"], data["date"], data.get("description"))
+        )
+        db.commit()
+        return jsonify({"ok": True})
 
+    rows = db.execute("SELECT * FROM activities").fetchall()
+    return jsonify([dict(r) for r in rows])
 
-@app.route("/api/stats")
-@login_required
-def api_stats():
-    return jsonify(success=True, stats={})
-
-
-# =====================
-# YANDEX DISK SYNC
-# =====================
+# ======================
+# API — SYNC
+# ======================
 
 @app.route("/api/sync/status")
 @login_required
-def api_sync_status():
-    if not YANDEX_TOKEN:
-        return jsonify(
-            success=True,
-            connected=False,
-            last_sync=None,
-            backups=0
-        )
-
-    try:
-        yd = YandexDisk(YANDEX_TOKEN)
-        connected = yd.check_token()
-    except Exception:
-        connected = False
-
-    return jsonify(
-        success=True,
-        connected=connected,
-        last_sync=None,
-        backups=0
-    )
-
+def sync_status():
+    row = get_db().execute(
+        "SELECT * FROM sync_state WHERE id = 1"
+    ).fetchone()
+    return jsonify({
+        "enabled": bool(row["enabled"]),
+        "last_sync": row["last_sync"]
+    })
 
 @app.route("/api/sync/upload", methods=["POST"])
 @login_required
 def api_sync_upload():
-    if not YANDEX_TOKEN:
-        return jsonify(success=False, error="Token not configured"), 400
-
     yd = YandexDisk(YANDEX_TOKEN)
     backup_name = yd.upload_backup(DATABASE)
 
-    return jsonify(success=True, backup=backup_name)
+    db = get_db()
+    db.execute(
+        "UPDATE sync_state SET enabled = 1, last_sync = ? WHERE id = 1",
+        (datetime.now().isoformat(),)
+    )
+    db.commit()
 
+    return jsonify({"backup": backup_name})
 
-@app.route("/api/sync/backups")
-@login_required
-def api_sync_backups():
-    return jsonify(success=True, backups=[])
+# ======================
+# RUN
+# ======================
+
+if __name__ == "__main__":
+    app.run(host="0.0.0.0", port=10000)
