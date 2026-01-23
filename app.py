@@ -1,7 +1,10 @@
 import os
 import sqlite3
 from datetime import datetime
-from flask import Flask, jsonify, request, session, redirect, render_template
+from flask import (
+    Flask, jsonify, request, session,
+    redirect, render_template
+)
 from flask_cors import CORS
 
 from yandex_disk import YandexDisk
@@ -23,7 +26,13 @@ YANDEX_TOKEN = os.getenv(
 # ======================
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
+
+# 🔐 КРИТИЧЕСКИ ВАЖНО ДЛЯ RENDER + HTTPS
 app.secret_key = "legal-crm-secret-key"
+app.config.update(
+    SESSION_COOKIE_SAMESITE="None",
+    SESSION_COOKIE_SECURE=True,
+)
 
 CORS(app, supports_credentials=True)
 
@@ -103,7 +112,7 @@ def init_db():
 init_db()
 
 # ======================
-# AUTH (БЕЗ Flask-Login)
+# AUTH
 # ======================
 
 def auth_required(fn):
@@ -118,7 +127,7 @@ def auth_required(fn):
 @app.route("/api/auth/check")
 def auth_check():
     if session.get("user"):
-        return jsonify({"authenticated": True, "user": session["user"]})
+        return jsonify({"authenticated": True})
     return jsonify({"authenticated": False}), 401
 
 
@@ -134,11 +143,12 @@ def auth_login():
     ).fetchone()
 
     if not row:
-        return jsonify({"error": "invalid_credentials"}), 401
+        return jsonify({"error": "invalid"}), 401
 
     session["user"] = username
-    return jsonify({"ok": True})
 
+    # 👇 КЛЮЧЕВОЕ ИЗМЕНЕНИЕ
+    return jsonify({"ok": True, "redirect": "/"})
 
 @app.route("/api/auth/logout", methods=["POST"])
 def auth_logout():
@@ -152,6 +162,8 @@ def auth_logout():
 
 @app.route("/login")
 def login():
+    if session.get("user"):
+        return redirect("/")
     return render_template("login.html")
 
 
@@ -175,7 +187,7 @@ def api_clients():
         db.execute(
             "INSERT INTO clients (name, phone, email, status, created_at) VALUES (?, ?, ?, ?, ?)",
             (
-                data.get("name"),
+                data["name"],
                 data.get("phone"),
                 data.get("email"),
                 data.get("status", "active"),
@@ -220,74 +232,6 @@ def api_cases():
 
 
 # ======================
-# API — SERVICES
-# ======================
-
-@app.route("/api/services", methods=["GET", "POST"])
-@auth_required
-def api_services():
-    db = get_db()
-    if request.method == "POST":
-        data = request.json
-        db.execute(
-            "INSERT INTO services (name, price) VALUES (?, ?)",
-            (data["name"], data.get("price", 0))
-        )
-        db.commit()
-        return jsonify({"ok": True})
-
-    rows = db.execute("SELECT * FROM services").fetchall()
-    return jsonify([dict(r) for r in rows])
-
-
-# ======================
-# API — PAYMENTS
-# ======================
-
-@app.route("/api/payments", methods=["GET", "POST"])
-@auth_required
-def api_payments():
-    db = get_db()
-    if request.method == "POST":
-        data = request.json
-        db.execute(
-            "INSERT INTO payments (client_id, amount, date, description) VALUES (?, ?, ?, ?)",
-            (
-                data["client_id"],
-                data["amount"],
-                data.get("date", datetime.now().isoformat()),
-                data.get("description")
-            )
-        )
-        db.commit()
-        return jsonify({"ok": True})
-
-    rows = db.execute("SELECT * FROM payments").fetchall()
-    return jsonify([dict(r) for r in rows])
-
-
-# ======================
-# API — ACTIVITIES
-# ======================
-
-@app.route("/api/activities", methods=["GET", "POST"])
-@auth_required
-def api_activities():
-    db = get_db()
-    if request.method == "POST":
-        data = request.json
-        db.execute(
-            "INSERT INTO activities (title, date, description) VALUES (?, ?, ?)",
-            (data["title"], data["date"], data.get("description"))
-        )
-        db.commit()
-        return jsonify({"ok": True})
-
-    rows = db.execute("SELECT * FROM activities").fetchall()
-    return jsonify([dict(r) for r in rows])
-
-
-# ======================
 # SYNC
 # ======================
 
@@ -295,8 +239,9 @@ def api_activities():
 @auth_required
 def sync_status():
     row = get_db().execute(
-        "SELECT * FROM sync_state WHERE id = 1"
+        "SELECT * FROM sync_state WHERE id=1"
     ).fetchone()
+
     return jsonify({
         "enabled": bool(row["enabled"]),
         "last_sync": row["last_sync"]
