@@ -1,17 +1,34 @@
+import os
+import sqlite3
+from datetime import datetime
+
 from flask import Flask, render_template, request, jsonify, redirect
 from flask_login import (
-    LoginManager, login_user, logout_user,
-    login_required, UserMixin, current_user
+    LoginManager, UserMixin,
+    login_user, logout_user,
+    login_required, current_user
 )
 from werkzeug.security import generate_password_hash, check_password_hash
-import sqlite3
-import os
-from datetime import datetime
+
+from yandex_disk import YandexDisk
+
+
+# =====================
+# CONFIG
+# =====================
 
 DATABASE = "legal_crm.db"
 
-app = Flask(__name__, static_folder="static", template_folder="templates")
+YANDEX_TOKEN = os.environ.get("YANDEX_DISK_TOKEN")
+
+app = Flask(
+    __name__,
+    static_folder="static",
+    template_folder="templates"
+)
+
 app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-key")
+
 
 # =====================
 # DATABASE
@@ -21,6 +38,7 @@ def get_db():
     conn = sqlite3.connect(DATABASE)
     conn.row_factory = sqlite3.Row
     return conn
+
 
 def init_db():
     with get_db() as conn:
@@ -67,6 +85,7 @@ def init_db():
             )
         """)
 
+        # create default user
         cur.execute("SELECT COUNT(*) FROM users")
         if cur.fetchone()[0] == 0:
             cur.execute(
@@ -76,7 +95,9 @@ def init_db():
 
         conn.commit()
 
+
 init_db()
+
 
 # =====================
 # AUTH
@@ -85,11 +106,13 @@ init_db()
 login_manager = LoginManager(app)
 login_manager.login_view = "login"
 
+
 class User(UserMixin):
     def __init__(self, row):
         self.id = row["id"]
         self.username = row["username"]
         self.password = row["password"]
+
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -98,6 +121,7 @@ def load_user(user_id):
         cur.execute("SELECT * FROM users WHERE id=?", (user_id,))
         row = cur.fetchone()
         return User(row) if row else None
+
 
 # =====================
 # PAGES
@@ -108,15 +132,18 @@ def load_user(user_id):
 def index():
     return render_template("index.html")
 
+
 @app.route("/login")
 def login():
     return render_template("login.html")
+
 
 @app.route("/logout")
 @login_required
 def logout():
     logout_user()
     return redirect("/login")
+
 
 # =====================
 # AUTH API
@@ -125,6 +152,7 @@ def logout():
 @app.route("/api/auth/login", methods=["POST"])
 def api_login():
     data = request.get_json()
+
     with get_db() as conn:
         cur = conn.cursor()
         cur.execute("SELECT * FROM users WHERE username=?", (data.get("username"),))
@@ -136,15 +164,18 @@ def api_login():
     login_user(User(user))
     return jsonify(success=True)
 
+
 @app.route("/api/auth/check")
 def api_auth_check():
     return jsonify(authenticated=current_user.is_authenticated)
+
 
 @app.route("/api/auth/logout", methods=["POST"])
 @login_required
 def api_auth_logout():
     logout_user()
     return jsonify(success=True)
+
 
 # =====================
 # CLIENTS API
@@ -158,6 +189,7 @@ def api_clients():
 
         if request.method == "POST":
             data = request.get_json()
+
             cur.execute("""
                 INSERT INTO clients
                 (user_id, full_name, phone, email, status, address, passport, inn, notes)
@@ -173,6 +205,7 @@ def api_clients():
                 data.get("inn"),
                 data.get("notes")
             ))
+
             conn.commit()
 
         cur.execute("""
@@ -182,10 +215,14 @@ def api_clients():
             ORDER BY created_at DESC
         """, (current_user.id,))
 
-        return jsonify(success=True, clients=[dict(r) for r in cur.fetchall()])
+        return jsonify(
+            success=True,
+            clients=[dict(r) for r in cur.fetchall()]
+        )
+
 
 # =====================
-# CASES API (ИСПРАВЛЕНО)
+# CASES API
 # =====================
 
 @app.route("/api/cases", methods=["GET", "POST"])
@@ -197,7 +234,6 @@ def api_cases():
         if request.method == "POST":
             data = request.get_json()
 
-            # 🔐 защита от пустого номера дела
             case_number = (
                 data.get("case_number")
                 or data.get("number")
@@ -221,6 +257,7 @@ def api_cases():
                 data.get("stage"),
                 data.get("notes")
             ))
+
             conn.commit()
 
         cur.execute("""
@@ -232,43 +269,82 @@ def api_cases():
             ORDER BY c.created_at DESC
         """, (current_user.id,))
 
-        return jsonify(success=True, cases=[dict(r) for r in cur.fetchall()])
+        return jsonify(
+            success=True,
+            cases=[dict(r) for r in cur.fetchall()]
+        )
+
 
 # =====================
-# STUB API
+# OTHER API (EMPTY BUT STABLE)
 # =====================
-
-@app.route("/api/activities")
-@login_required
-def api_activities():
-    return jsonify(success=True, activities=[])
-
-@app.route("/api/payments")
-@login_required
-def api_payments():
-    return jsonify(success=True, payments=[])
 
 @app.route("/api/services")
 @login_required
 def api_services():
     return jsonify(success=True, services=[])
 
+
+@app.route("/api/payments")
+@login_required
+def api_payments():
+    return jsonify(success=True, payments=[])
+
+
+@app.route("/api/activities")
+@login_required
+def api_activities():
+    return jsonify(success=True, activities=[])
+
+
 @app.route("/api/stats")
 @login_required
 def api_stats():
     return jsonify(success=True, stats={})
 
+
+# =====================
+# YANDEX DISK SYNC
+# =====================
+
 @app.route("/api/sync/status")
 @login_required
 def api_sync_status():
-    return jsonify(success=True, connected=False, last_sync=None, backups=0)
+    if not YANDEX_TOKEN:
+        return jsonify(
+            success=True,
+            connected=False,
+            last_sync=None,
+            backups=0
+        )
+
+    try:
+        yd = YandexDisk(YANDEX_TOKEN)
+        connected = yd.check_token()
+    except Exception:
+        connected = False
+
+    return jsonify(
+        success=True,
+        connected=connected,
+        last_sync=None,
+        backups=0
+    )
+
+
+@app.route("/api/sync/upload", methods=["POST"])
+@login_required
+def api_sync_upload():
+    if not YANDEX_TOKEN:
+        return jsonify(success=False, error="Token not configured"), 400
+
+    yd = YandexDisk(YANDEX_TOKEN)
+    backup_name = yd.upload_backup(DATABASE)
+
+    return jsonify(success=True, backup=backup_name)
+
 
 @app.route("/api/sync/backups")
 @login_required
 def api_sync_backups():
     return jsonify(success=True, backups=[])
-
-@app.route("/api/sync/upload", methods=["POST"])
-@login_required
-def api_sync_upload():
-    return jsonify(success=True)
