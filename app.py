@@ -30,7 +30,7 @@ YANDEX_TOKEN = os.getenv(
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
 app.secret_key = "super-secret-key"
-CORS(app)
+CORS(app, supports_credentials=True)
 
 login_manager = LoginManager()
 login_manager.init_app(app)
@@ -54,6 +54,9 @@ def init_db():
             username TEXT UNIQUE,
             password TEXT
         );
+
+        INSERT OR IGNORE INTO users (id, username, password)
+        VALUES (1, 'admin', 'admin');
 
         CREATE TABLE IF NOT EXISTS clients (
             id INTEGER PRIMARY KEY,
@@ -102,7 +105,8 @@ def init_db():
             enabled INTEGER
         );
 
-        INSERT OR IGNORE INTO sync_state (id, enabled) VALUES (1, 0);
+        INSERT OR IGNORE INTO sync_state (id, enabled)
+        VALUES (1, 0);
         """)
 
 init_db()
@@ -112,33 +116,75 @@ init_db()
 # ======================
 
 class User(UserMixin):
-    def __init__(self, id):
+    def __init__(self, id, username):
         self.id = id
+        self.username = username
+
 
 @login_manager.user_loader
 def load_user(user_id):
-    return User(user_id)
+    row = get_db().execute(
+        "SELECT * FROM users WHERE id = ?",
+        (user_id,)
+    ).fetchone()
+    if row:
+        return User(row["id"], row["username"])
+    return None
 
-@app.route("/login", methods=["GET", "POST"])
-def login():
-    if request.method == "POST":
-        login_user(User(1))
-        return redirect("/")
-    return render_template("login.html")
 
-@app.route("/logout")
-def logout():
+# ===== API AUTH (ВАЖНО ДЛЯ UI) =====
+
+@app.route("/api/auth/check")
+def api_auth_check():
+    if current_user.is_authenticated:
+        return jsonify({
+            "authenticated": True,
+            "user": current_user.username
+        })
+    return jsonify({"authenticated": False}), 401
+
+
+@app.route("/api/auth/login", methods=["POST"])
+def api_auth_login():
+    data = request.json
+    username = data.get("username")
+    password = data.get("password")
+
+    row = get_db().execute(
+        "SELECT * FROM users WHERE username = ? AND password = ?",
+        (username, password)
+    ).fetchone()
+
+    if not row:
+        return jsonify({"error": "invalid_credentials"}), 401
+
+    user = User(row["id"], row["username"])
+    login_user(user)
+
+    return jsonify({"ok": True})
+
+
+@app.route("/api/auth/logout", methods=["POST"])
+@login_required
+def api_auth_logout():
     logout_user()
-    return redirect("/login")
+    return jsonify({"ok": True})
+
 
 # ======================
 # UI
 # ======================
 
+@app.route("/login")
+def login():
+    return render_template("login.html")
+
+
 @app.route("/")
 @login_required
 def index():
     return render_template("index.html")
+
 
 # ======================
 # API — CLIENTS
@@ -165,6 +211,7 @@ def api_clients():
 
     rows = db.execute("SELECT * FROM clients").fetchall()
     return jsonify([dict(r) for r in rows])
+
 
 # ======================
 # API — CASES
@@ -195,6 +242,7 @@ def api_cases():
     rows = db.execute("SELECT * FROM cases").fetchall()
     return jsonify([dict(r) for r in rows])
 
+
 # ======================
 # API — SERVICES
 # ======================
@@ -214,6 +262,7 @@ def api_services():
 
     rows = db.execute("SELECT * FROM services").fetchall()
     return jsonify([dict(r) for r in rows])
+
 
 # ======================
 # API — PAYMENTS
@@ -240,8 +289,9 @@ def api_payments():
     rows = db.execute("SELECT * FROM payments").fetchall()
     return jsonify([dict(r) for r in rows])
 
+
 # ======================
-# API — ACTIVITIES / CALENDAR
+# API — ACTIVITIES
 # ======================
 
 @app.route("/api/activities", methods=["GET", "POST"])
@@ -260,6 +310,7 @@ def api_activities():
     rows = db.execute("SELECT * FROM activities").fetchall()
     return jsonify([dict(r) for r in rows])
 
+
 # ======================
 # API — SYNC
 # ======================
@@ -275,6 +326,7 @@ def sync_status():
         "last_sync": row["last_sync"]
     })
 
+
 @app.route("/api/sync/upload", methods=["POST"])
 @login_required
 def api_sync_upload():
@@ -289,6 +341,7 @@ def api_sync_upload():
     db.commit()
 
     return jsonify({"backup": backup_name})
+
 
 # ======================
 # RUN
