@@ -7,10 +7,6 @@ from werkzeug.security import generate_password_hash, check_password_hash
 import sqlite3
 import os
 
-# =====================
-# CONFIG
-# =====================
-
 DATABASE = "legal_crm.db"
 
 app = Flask(__name__, static_folder="static", template_folder="templates")
@@ -55,6 +51,24 @@ def init_db():
             )
         """)
 
+        # cases (ДЕЛА)
+        cur.execute("""
+            CREATE TABLE IF NOT EXISTS cases (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                user_id INTEGER NOT NULL,
+                client_id INTEGER NOT NULL,
+                case_number TEXT NOT NULL,
+                court TEXT,
+                case_type TEXT,
+                plaintiff TEXT,
+                defendant TEXT,
+                claim_amount TEXT,
+                stage TEXT,
+                notes TEXT,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        """)
+
         # demo user
         cur.execute("SELECT COUNT(*) FROM users")
         if cur.fetchone()[0] == 0:
@@ -65,7 +79,6 @@ def init_db():
 
         conn.commit()
 
-# ВАЖНО: инициализация при старте gunicorn
 init_db()
 
 # =====================
@@ -118,10 +131,7 @@ def api_login():
 
     with get_db() as conn:
         cur = conn.cursor()
-        cur.execute(
-            "SELECT * FROM users WHERE username=?",
-            (data.get("username"),)
-        )
+        cur.execute("SELECT * FROM users WHERE username=?", (data.get("username"),))
         user = cur.fetchone()
 
     if not user or not check_password_hash(user["password"], data.get("password")):
@@ -141,7 +151,7 @@ def api_auth_logout():
     return jsonify(success=True)
 
 # =====================
-# CLIENTS API (РЕАЛЬНЫЙ)
+# CLIENTS API
 # =====================
 
 @app.route("/api/clients", methods=["GET", "POST"])
@@ -152,7 +162,6 @@ def api_clients():
 
         if request.method == "POST":
             data = request.get_json()
-
             cur.execute("""
                 INSERT INTO clients
                 (user_id, full_name, phone, email, status, address, passport, inn, notes)
@@ -182,13 +191,52 @@ def api_clients():
     return jsonify(success=True, clients=clients)
 
 # =====================
-# STUB API (чтобы frontend не падал)
+# CASES API (РЕАЛЬНЫЕ ДЕЛА)
 # =====================
 
-@app.route("/api/cases")
+@app.route("/api/cases", methods=["GET", "POST"])
 @login_required
 def api_cases():
-    return jsonify(success=True, cases=[])
+    with get_db() as conn:
+        cur = conn.cursor()
+
+        if request.method == "POST":
+            data = request.get_json()
+            cur.execute("""
+                INSERT INTO cases
+                (user_id, client_id, case_number, court, case_type,
+                 plaintiff, defendant, claim_amount, stage, notes)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                current_user.id,
+                data.get("client_id"),
+                data.get("case_number"),
+                data.get("court"),
+                data.get("case_type"),
+                data.get("plaintiff"),
+                data.get("defendant"),
+                data.get("claim_amount"),
+                data.get("stage"),
+                data.get("notes")
+            ))
+            conn.commit()
+
+        cur.execute("""
+            SELECT c.id, c.case_number, c.court, c.stage,
+                   cl.full_name AS client_name, c.created_at
+            FROM cases c
+            JOIN clients cl ON cl.id = c.client_id
+            WHERE c.user_id=?
+            ORDER BY c.created_at DESC
+        """, (current_user.id,))
+
+        cases = [dict(row) for row in cur.fetchall()]
+
+    return jsonify(success=True, cases=cases)
+
+# =====================
+# STUB API
+# =====================
 
 @app.route("/api/activities")
 @login_required
@@ -213,7 +261,12 @@ def api_stats():
 @app.route("/api/sync/status")
 @login_required
 def api_sync_status():
-    return jsonify(success=True, connected=False)
+    return jsonify(
+        success=True,
+        connected=False,
+        last_sync=None,
+        backups=0
+    )
 
 @app.route("/api/sync/backups")
 @login_required
